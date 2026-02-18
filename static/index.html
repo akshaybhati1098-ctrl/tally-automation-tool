@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akshay's Tally GST Tool</title>
+    <title>Akshay's Tally GST Tool · Full dark theme</title>
+    <!-- SheetJS for Excel sheet detection -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
     <style>
         * {
             margin: 0;
@@ -12,11 +14,11 @@
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        /* LIGHT MODE (default) */
         body {
             background: #F1F5F9;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            color: #1E293B;
+            transition: background-color 0.2s, color 0.2s;
         }
 
         .top-nav {
@@ -90,6 +92,7 @@
             padding: 1.5rem;
             margin-bottom: 1.5rem;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         .card-header {
@@ -103,6 +106,7 @@
             color: #0F52BA;
             font-size: 1.3rem;
             font-weight: 600;
+            transition: color 0.2s;
         }
 
         .btn {
@@ -169,6 +173,7 @@
             font-weight: 600;
             margin-bottom: 0.3rem;
             color: #1E293B;
+            transition: color 0.2s;
         }
 
         input, select, textarea {
@@ -177,6 +182,9 @@
             border: 1px solid #CBD5E1;
             border-radius: 6px;
             font-size: 0.95rem;
+            background: white;
+            color: #1E293B;
+            transition: background-color 0.2s, border-color 0.2s, color 0.2s;
         }
 
         input:focus, select:focus, textarea:focus {
@@ -274,6 +282,7 @@
             display: flex;
             align-items: center;
             gap: 1rem;
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         .feature-icon {
@@ -287,6 +296,7 @@
             font-size: 0.9rem;
             max-height: 200px;
             overflow-y: auto;
+            transition: background-color 0.2s;
         }
 
         .mapping-container {
@@ -300,11 +310,13 @@
             background: #F8FAFC;
             border-radius: 8px;
             padding: 1rem;
+            transition: background-color 0.2s;
         }
 
         .group-list h4 {
             color: #0F52BA;
             margin-bottom: 1rem;
+            transition: color 0.2s;
         }
 
         .group-item {
@@ -328,6 +340,7 @@
             background: #F8FAFC;
             border-radius: 8px;
             padding: 1rem;
+            transition: background-color 0.2s;
         }
 
         .rate-list {
@@ -345,6 +358,7 @@
             border: 1px solid #E2E8F0;
             border-radius: 4px;
             margin-bottom: 0.3rem;
+            transition: background-color 0.2s, border-color 0.2s;
         }
 
         .rate-actions button {
@@ -353,16 +367,6 @@
             border: none;
             border-radius: 4px;
             cursor: pointer;
-        }
-
-        .btn-edit {
-            background: #3B82F6;
-            color: white;
-        }
-
-        .btn-delete {
-            background: #EF4444;
-            color: white;
         }
 
         /* Modal */
@@ -387,6 +391,131 @@
             width: 90%;
             max-height: 90vh;
             overflow-y: auto;
+            transition: background-color 0.2s;
+        }
+
+        /* ---------- DARK MODE STYLES ---------- */
+        body.dark {
+            background: #0F172A;
+            color: #F1F5F9;
+        }
+
+        body.dark .card {
+            background: #1E293B;
+            border-color: #334155;
+        }
+
+        body.dark .card-header h3 {
+            color: #90caf9;
+        }
+
+        body.dark label {
+            color: #CBD5E1;
+        }
+
+        body.dark input,
+        body.dark select,
+        body.dark textarea {
+            background: #0F172A;
+            border-color: #334155;
+            color: #F1F5F9;
+        }
+
+        body.dark input:focus,
+        body.dark select:focus,
+        body.dark textarea:focus {
+            border-color: #3B82F6;
+            box-shadow: 0 0 0 3px rgba(59,130,246,0.3);
+        }
+
+        body.dark .btn-primary {
+            background: #2563eb;
+        }
+        body.dark .btn-primary:hover {
+            background: #1d4ed8;
+        }
+        body.dark .btn-success {
+            background: #059669;
+        }
+        body.dark .btn-success:hover {
+            background: #047857;
+        }
+        body.dark .btn-warning {
+            background: #d97706;
+        }
+        body.dark .btn-warning:hover {
+            background: #b45309;
+        }
+        body.dark .btn-danger {
+            background: #dc2626;
+        }
+        body.dark .btn-danger:hover {
+            background: #b91c1c;
+        }
+
+        body.dark .action-card {
+            background: #1E293B;
+            border-color: #3B82F6;
+            color: #F1F5F9;
+        }
+        body.dark .action-card:hover {
+            background: #2563eb;
+            color: white;
+        }
+
+        body.dark .feature-item {
+            background: #1E293B;
+            border-color: #334155;
+        }
+
+        body.dark .activity-log {
+            background: #1E293B;
+            color: #CBD5E1;
+        }
+
+        body.dark .group-list {
+            background: #1E293B;
+        }
+        body.dark .group-list h4 {
+            color: #90caf9;
+        }
+        body.dark .group-item:hover {
+            background: #334155;
+        }
+        body.dark .group-item.active {
+            background: #2563eb;
+        }
+
+        body.dark .rate-editor {
+            background: #1E293B;
+        }
+        body.dark .rate-item {
+            background: #0F172A;
+            border-color: #334155;
+            color: #F1F5F9;
+        }
+
+        body.dark .modal-content {
+            background: #1E293B;
+            border: 1px solid #334155;
+        }
+
+        body.dark .progress {
+            background: #334155;
+        }
+        body.dark .progress-bar {
+            background: #3B82F6;
+        }
+
+        body.dark .message.success {
+            background: #064e3b;
+            color: #d1fae5;
+            border-color: #065f46;
+        }
+        body.dark .message.error {
+            background: #7f1d1d;
+            color: #fee2e2;
+            border-color: #991b1b;
         }
 
         @media (max-width: 768px) {
@@ -478,7 +607,7 @@
             </div>
         </div>
 
-        <!-- Excel to XML Converter Page -->
+        <!-- Excel to XML Converter Page (modified: sheet auto-detect) -->
         <div id="converter" class="page">
             <div class="card">
                 <div class="card-header">
@@ -487,12 +616,19 @@
                 <form id="convertForm">
                     <div class="form-group">
                         <label>Excel File</label>
-                        <input type="file" name="file" accept=".xlsx,.xls" required>
+                        <input type="file" name="file" id="excelFileInput" accept=".xlsx,.xls" required>
                     </div>
-                    <div class="form-group">
+                    
+                    <!-- Sheet selection: hidden original input + dynamic select -->
+                    <div class="form-group" id="sheet-group">
                         <label>Sheet Name</label>
-                        <input type="text" name="sheet_name" value="Sheet1" required>
+                        <input type="text" name="sheet_name" id="sheet_name_input" value="Sheet1" required style="display:none;">
+                        <select id="sheet_select" class="form-control" style="width:100%; padding:0.6rem;" disabled>
+                            <option value="">-- Upload file to see sheets --</option>
+                        </select>
+                        <small style="color:#64748b;">Sheet names detected automatically from uploaded file</small>
                     </div>
+
                     <div class="form-group">
                         <label>Voucher Type</label>
                         <div class="radio-group">
@@ -676,7 +812,59 @@
         }
         loadActivity();
 
-        // ---------- EXCEL TO XML CONVERTER ----------
+        // ---------- SHEET AUTO-DETECT (Excel to XML) ----------
+        const fileInput = document.getElementById('excelFileInput');
+        const sheetSelect = document.getElementById('sheet_select');
+        const hiddenSheetInput = document.getElementById('sheet_name_input');
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) {
+                sheetSelect.disabled = true;
+                sheetSelect.innerHTML = '<option value="">-- Upload file to see sheets --</option>';
+                hiddenSheetInput.value = '';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(loadEvent) {
+                try {
+                    const data = new Uint8Array(loadEvent.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const sheetNames = workbook.SheetNames;
+
+                    sheetSelect.innerHTML = '';
+                    sheetNames.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        sheetSelect.appendChild(option);
+                    });
+
+                    sheetSelect.disabled = false;
+                    let defaultSheet = 'Sheet1';
+                    if (sheetNames.includes('Sheet1')) {
+                        defaultSheet = 'Sheet1';
+                    } else {
+                        defaultSheet = sheetNames[0];
+                    }
+                    sheetSelect.value = defaultSheet;
+                    hiddenSheetInput.value = defaultSheet;
+                } catch (err) {
+                    console.error('Sheet parse error', err);
+                    sheetSelect.disabled = true;
+                    sheetSelect.innerHTML = '<option value="">-- Error reading sheets --</option>';
+                    hiddenSheetInput.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        sheetSelect.addEventListener('change', function() {
+            hiddenSheetInput.value = sheetSelect.value;
+        });
+
+        // ---------- EXCEL TO XML CONVERTER (submit) ----------
         document.getElementById('convertForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -1040,8 +1228,17 @@
             }
         });
 
-        // ---------- SETTINGS ----------
+        // ---------- SETTINGS & THEME TOGGLE (using class) ----------
         let settings = { theme: 'light', default_vtype: 'sale', default_sheet: 'Sheet1' };
+
+        function applyTheme(theme) {
+            if (theme === 'dark') {
+                document.body.classList.add('dark');
+            } else {
+                document.body.classList.remove('dark');
+            }
+        }
+
         function loadSettings() {
             const saved = localStorage.getItem('settings');
             if (saved) settings = JSON.parse(saved);
@@ -1049,11 +1246,6 @@
             document.getElementById('defaultVtype').value = settings.default_vtype;
             document.getElementById('defaultSheet').value = settings.default_sheet;
             applyTheme(settings.theme);
-        }
-
-        function applyTheme(theme) {
-            document.body.style.background = theme === 'dark' ? '#0F172A' : '#F1F5F9';
-            document.body.style.color = theme === 'dark' ? '#F1F5F9' : '#1E293B';
         }
 
         document.getElementById('saveSettingsBtn').addEventListener('click', () => {
