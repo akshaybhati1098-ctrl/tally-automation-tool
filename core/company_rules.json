@@ -1,0 +1,12 @@
+{
+    "DR_LOGISTIC": {
+        "label": "DR Logistic",
+        "taxable": "Total Bill Amount",
+        "cgst": "CGST @",
+        "sgst": "SGST @",
+        "igst": null,
+        "fuel": "Fuel",
+        "shipment": "Shipment",
+        "invoice_total": "GRAND TOTAL"
+    }
+}
