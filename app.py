@@ -116,3 +116,11 @@ async def convert_image_to_excel(
     except Exception as e:
         logging.error(f"Image to Excel conversion failed: {e}")
         raise HTTPException(500, f"Conversion failed: {str(e)}")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app:app",
+        host="0.0.0.0",
+        port=7860,
+        reload=False
+    )
