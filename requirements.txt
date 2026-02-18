@@ -1,8 +1,4 @@
 fastapi
 uvicorn
-pandas
-openpyxl
 python-multipart
-pytesseract
-pdf2image
-pillow
+pandas
