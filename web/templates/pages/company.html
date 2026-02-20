@@ -1,0 +1,58 @@
+<div id="company" class="page">
+    <div class="card">
+        <div class="card-header">
+            <h3>Company Rules Manager</h3>
+            <button class="btn btn-success" onclick="showAddCompanyModal()">➕ Add Company</button>
+        </div>
+        <div id="companyList"></div>
+    </div>
+
+    <!-- Company Modal -->
+    <div id="companyModal" class="modal">
+        <div class="modal-content">
+            <h3 id="modalTitle">Add Company</h3>
+            <form id="companyForm">
+                <div class="form-group">
+                    <label>Company Key (unique, e.g., DR_LOGISTIC)</label>
+                    <input type="text" id="companyKey" required>
+                </div>
+                <div class="form-group">
+                    <label>Display Label</label>
+                    <input type="text" id="companyLabel" required>
+                </div>
+                <div class="form-group">
+                    <label>Taxable Value Keyword</label>
+                    <input type="text" id="taxable" required>
+                </div>
+                <div class="form-group">
+                    <label>CGST Keyword</label>
+                    <input type="text" id="cgst">
+                </div>
+                <div class="form-group">
+                    <label>SGST Keyword</label>
+                    <input type="text" id="sgst">
+                </div>
+                <div class="form-group">
+                    <label>IGST Keyword (leave blank if none)</label>
+                    <input type="text" id="igst">
+                </div>
+                <div class="form-group">
+                    <label>Fuel Charges Keyword</label>
+                    <input type="text" id="fuel">
+                </div>
+                <div class="form-group">
+                    <label>Shipment Charges Keyword</label>
+                    <input type="text" id="shipment">
+                </div>
+                <div class="form-group">
+                    <label>Invoice Total Keyword</label>
+                    <input type="text" id="invoice_total" required>
+                </div>
+                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+                    <button type="button" class="btn" onclick="closeCompanyModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
