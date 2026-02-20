@@ -496,3 +496,7 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
 loadMapping();
 loadCompanies();
 loadSettings();
+// ---------- DEFAULT PAGE ON LOAD ----------
+document.addEventListener("DOMContentLoaded", () => {
+    navigateTo("dashboard");   // or "excel_to_xml"
+});
