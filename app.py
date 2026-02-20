@@ -1,86 +1,41 @@
-import os
-import logging
-from fastapi import (
-    FastAPI,
-    UploadFile,
-    Form,
-    HTTPException,
-    Request
-)
-from fastapi.responses import (
-    Response,
-    JSONResponse,
-    HTMLResponse
-)
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Request
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import logging
 
-# -----------------------------
-# CORE SERVICES
-# -----------------------------
 from core.excel_service import excel_to_xml
 from core.mapping import load_mapping_json, save_mapping_json
 from core.company_rules import load_rules, save_rules
 from core.process_service import image_to_excel
 
-# -----------------------------
+# -------------------------------------------------
 # APP INITIALIZATION
-# -----------------------------
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+# -------------------------------------------------
 
 app = FastAPI(title="Tally Automation")
 
-# -----------------------------
-# STATIC FILES
-# -----------------------------
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")),
-    name="static"
-)
+# Serve static files (CSS, JS)
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
 
-# -----------------------------
-# TEMPLATES
-# -----------------------------
-templates = Jinja2Templates(
-    directory=os.path.join(BASE_DIR, "web", "templates")
-)
+# Jinja templates
+templates = Jinja2Templates(directory="web/templates")
 
-# -----------------------------
+# -------------------------------------------------
 # UI ROUTES
-# -----------------------------
-@app.get("/", response_class=HTMLResponse)
+# -------------------------------------------------
+
+@app.get("/")
 async def serve_ui(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {"request": request}
     )
 
-# -----------------------------
-# PAGE LOADER (SPA STYLE)
-# -----------------------------
-@app.get("/pages/{page_name}", response_class=HTMLResponse)
-async def load_page(request: Request, page_name: str):
-    allowed_pages = [
-        "dashboard",
-        "excel_to_xml",
-        "image_to_excel",
-        "mapping",
-        "company",
-        "settings"
-    ]
-
-    if page_name not in allowed_pages:
-        raise HTTPException(status_code=404, detail="Page not found")
-
-    return templates.TemplateResponse(
-        f"pages/{page_name}.html",
-        {"request": request}
-    )
-
-# -----------------------------
+# -------------------------------------------------
 # EXCEL → XML
-# -----------------------------
+# -------------------------------------------------
+
 @app.post("/api/convert")
 async def convert_excel(
     file: UploadFile,
@@ -98,10 +53,7 @@ async def convert_excel(
             content=xml_content,
             media_type="application/xml",
             headers={
-                "Content-Disposition": (
-                    f"attachment; "
-                    f"filename={file.filename.rsplit('.',1)[0]}_output.xml"
-                ),
+                "Content-Disposition": f"attachment; filename={file.filename.rsplit('.',1)[0]}_output.xml",
                 "X-Records-Processed": str(count)
             }
         )
@@ -109,9 +61,10 @@ async def convert_excel(
         logging.exception("Excel to XML failed")
         raise HTTPException(500, str(e))
 
-# -----------------------------
+# -------------------------------------------------
 # LEDGER MAPPING
-# -----------------------------
+# -------------------------------------------------
+
 @app.get("/api/mapping")
 async def get_mapping():
     try:
@@ -128,9 +81,10 @@ async def update_mapping(mapping: dict):
     except Exception as e:
         raise HTTPException(500, str(e))
 
-# -----------------------------
+# -------------------------------------------------
 # COMPANY RULES
-# -----------------------------
+# -------------------------------------------------
+
 @app.get("/api/company-rules")
 async def get_company_rules():
     try:
@@ -154,7 +108,6 @@ async def save_company_rule(company_key: str, rule_data: dict):
 async def delete_company_rule(company_key: str):
     try:
         rules = load_rules()
-
         if company_key not in rules:
             raise HTTPException(404, "Company not found")
 
@@ -164,9 +117,10 @@ async def delete_company_rule(company_key: str):
     except Exception as e:
         raise HTTPException(500, str(e))
 
-# -----------------------------
+# -------------------------------------------------
 # PDF / IMAGE → EXCEL
-# -----------------------------
+# -------------------------------------------------
+
 @app.post("/api/convert-image")
 async def convert_image_to_excel(
     file: UploadFile,
@@ -187,10 +141,7 @@ async def convert_image_to_excel(
 
         return Response(
             content=excel_bytes,
-            media_type=(
-                "application/vnd.openxmlformats-officedocument."
-                "spreadsheetml.sheet"
-            ),
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             headers={
                 "Content-Disposition": f"attachment; filename={filename}"
             }
@@ -198,10 +149,3 @@ async def convert_image_to_excel(
     except Exception as e:
         logging.exception("Image to Excel failed")
         raise HTTPException(500, str(e))
-
-# -----------------------------
-# HEALTH CHECK (VERY USEFUL)
-# -----------------------------
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
