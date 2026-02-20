@@ -32,10 +32,15 @@ document.getElementById('convertForm').addEventListener('submit', async (e) => {
     const progress = document.getElementById('progress');
     const progressBar = document.getElementById('progressBar');
     const messageDiv = document.getElementById('message');
+    const convertBtn = document.getElementById('convertBtn');
 
     progress.style.display = 'block';
     progressBar.style.width = '0%';
     messageDiv.style.display = 'none';
+
+    // UI: show loading state
+    convertBtn.classList.add('loading');
+    convertBtn.disabled = true;
 
     try {
         const response = await fetch('/api/convert', {
@@ -78,6 +83,9 @@ document.getElementById('convertForm').addEventListener('submit', async (e) => {
         setTimeout(() => {
             progress.style.display = 'none';
             progressBar.style.width = '0%';
+            // UI: remove loading state
+            convertBtn.classList.remove('loading');
+            convertBtn.disabled = false;
         }, 1000);
     }
 });
@@ -401,13 +409,12 @@ function loadSettings() {
 }
 
 function applyTheme(theme) {
-    // Remove any existing theme class
     document.body.classList.remove('dark-theme');
     if (theme === 'dark') {
         document.body.classList.add('dark-theme');
     }
-    // Optional: keep the old inline styles for compatibility
-    document.body.style.background = ''; // let CSS handle it
+    // Keep old inline styles for compatibility (can be removed if not needed)
+    document.body.style.background = '';
     document.body.style.color = '';
 }
 

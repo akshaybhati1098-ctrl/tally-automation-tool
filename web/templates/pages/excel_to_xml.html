@@ -1,29 +1,130 @@
 <div id="converter" class="page">
-    <div class="card">
-        <div class="card-header">
-            <h3>Excel to XML Converter</h3>
+  <div class="page-header">
+    <h2>Excel to Tally XML Converter</h2>
+    <p class="text-muted">Convert Sales or Purchase Excel files into Tally-compatible XML.</p>
+  </div>
+
+  <div class="card">
+    <form id="convertForm">
+      <!-- Custom File Upload -->
+      <div class="form-group">
+        <label>Excel File</label>
+        <div class="upload-area" id="uploadArea">
+          <div class="upload-icon">📊</div>
+          <div class="upload-text">
+            <span class="upload-prompt">Click to browse or drag and drop</span>
+            <span class="upload-hint">.xlsx or .xls (max 10MB)</span>
+          </div>
+          <div class="file-info" id="fileInfo" style="display: none;">
+            <span class="file-name" id="fileName"></span>
+            <button type="button" class="btn-remove" id="removeFileBtn" title="Remove file">✕</button>
+          </div>
+          <input type="file" name="file" id="fileInput" accept=".xlsx,.xls" required hidden>
         </div>
-        <form id="convertForm">
-            <div class="form-group">
-                <label>Excel File</label>
-                <input type="file" name="file" accept=".xlsx,.xls" required>
-            </div>
-            <div class="form-group">
-                <label>Sheet Name</label>
-                <input type="text" name="sheet_name" value="Sheet1" required>
-            </div>
-            <div class="form-group">
-                <label>Voucher Type</label>
-                <div class="radio-group">
-                    <label><input type="radio" name="vtype" value="sale" checked> Sales Invoice</label>
-                    <label><input type="radio" name="vtype" value="purchase"> Purchase Invoice</label>
-                </div>
-            </div>
-            <button type="submit" class="btn btn-primary" style="width: 100%;">Generate XML</button>
-        </form>
-        <div class="progress" id="progress">
-            <div class="progress-bar" id="progressBar"></div>
+      </div>
+
+      <!-- Sheet Name -->
+      <div class="form-group">
+        <label for="sheet_name">Sheet Name <span class="optional">(optional – leave blank to auto‑detect)</span></label>
+        <input type="text" name="sheet_name" id="sheet_name" value="Sheet1" placeholder="e.g. Sheet1, Invoice, Sales">
+      </div>
+
+      <!-- Voucher Type (Pill Buttons) -->
+      <div class="form-group">
+        <label>Voucher Type</label>
+        <div class="voucher-type-group">
+          <input type="radio" name="vtype" id="vtype_sale" value="sale" checked hidden>
+          <label for="vtype_sale" class="voucher-pill">Sales Invoice</label>
+
+          <input type="radio" name="vtype" id="vtype_purchase" value="purchase" hidden>
+          <label for="vtype_purchase" class="voucher-pill">Purchase Invoice</label>
         </div>
-        <div id="message" class="message"></div>
-    </div>
+      </div>
+
+      <!-- Submit Button -->
+      <button type="submit" class="btn btn-primary btn-large" id="convertBtn">
+        <span class="btn-icon">⚡</span>
+        <span class="btn-text">Generate XML</span>
+        <span class="spinner" style="display: none;"></span>
+      </button>
+
+      <!-- Progress & Feedback -->
+      <div class="progress" id="progress">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
+      <div id="message" class="message"></div>
+    </form>
+  </div>
 </div>
+
+<!-- UI enhancements script (minor, does not affect core logic) -->
+<script>
+  (function() {
+    // File upload custom UI
+    const fileInput = document.getElementById('fileInput');
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInfo = document.getElementById('fileInfo');
+    const fileNameSpan = document.getElementById('fileName');
+    const removeBtn = document.getElementById('removeFileBtn');
+
+    // Trigger file input when upload area is clicked (except remove button)
+    uploadArea.addEventListener('click', function(e) {
+      if (e.target !== removeBtn && !removeBtn.contains(e.target)) {
+        fileInput.click();
+      }
+    });
+
+    // Show selected file name
+    fileInput.addEventListener('change', function() {
+      if (fileInput.files.length > 0) {
+        fileNameSpan.textContent = fileInput.files[0].name;
+        fileInfo.style.display = 'flex';
+        uploadArea.classList.add('has-file');
+      } else {
+        fileInfo.style.display = 'none';
+        uploadArea.classList.remove('has-file');
+      }
+    });
+
+    // Remove file
+    removeBtn.addEventListener('click', function(e) {
+      e.stopPropagation();
+      fileInput.value = '';  // clear input
+      fileInfo.style.display = 'none';
+      uploadArea.classList.remove('has-file');
+    });
+
+    // Voucher type pill active state (using class toggling for immediate feedback)
+    const vtypeRadios = document.querySelectorAll('input[name="vtype"]');
+    const updatePillActive = () => {
+      document.querySelectorAll('.voucher-pill').forEach(pill => pill.classList.remove('active'));
+      const checkedId = document.querySelector('input[name="vtype"]:checked')?.id;
+      if (checkedId) {
+        document.querySelector(`label[for="${checkedId}"]`).classList.add('active');
+      }
+    };
+    vtypeRadios.forEach(radio => {
+      radio.addEventListener('change', updatePillActive);
+    });
+    updatePillActive(); // initial
+
+    // Button loading state (integrated with existing form submission)
+    const form = document.getElementById('convertForm');
+    const convertBtn = document.getElementById('convertBtn');
+    const originalHandler = form.onsubmit; // backup, but we'll add our own listener alongside
+
+    form.addEventListener('submit', function() {
+      convertBtn.classList.add('loading');
+      convertBtn.disabled = true;
+    });
+
+    // The existing app.js will handle the fetch and finally remove loading.
+    // We'll hook into the global message display to know when it's done.
+    // But since we cannot modify app.js's finally block easily, we'll monitor the message div.
+    // A simpler approach: after the submission, the existing code already has a finally block
+    // that runs after 1 second. We can add a mutation observer on the message div to detect when
+    // the process finishes, but that's overkill. Instead, we'll modify the existing app.js slightly
+    // to add/remove the loading class. Since the user allowed minor JS changes, we'll include that
+    // in the updated app.js. So this script here just handles file UI and pill active state.
+  })();
+</script>
