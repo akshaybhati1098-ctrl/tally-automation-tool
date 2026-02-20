@@ -1,15 +1,20 @@
-// ---------- NAVIGATION ----------
-function navigateTo(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
-    document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
+function navigateTo(page) {
+    document.querySelectorAll('.page').forEach(p => {
+        p.hidden = true;
+        p.classList.remove('active');
+    });
+
+    const section = document.getElementById(`page-${page}`);
+    if (section) {
+        section.hidden = false;
+        section.classList.add('active');
+    }
+
+    document.querySelectorAll('.nav-link').forEach(btn =>
+        btn.classList.remove('active')
+    );
+    document.querySelector(`.nav-link[data-page="${page}"]`)?.classList.add('active');
 }
-
-document.querySelectorAll('.nav-link').forEach(btn => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.page));
-});
-
 // ---------- DASHBOARD ----------
 function downloadTemplate() {
     alert('Template download: create a sample Excel with required columns.');
@@ -428,3 +433,6 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
 loadMapping();
 loadCompanies();
 loadSettings();
+document.addEventListener("DOMContentLoaded", () => {
+    navigateTo("dashboard");
+});
