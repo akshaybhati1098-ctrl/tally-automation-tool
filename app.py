@@ -15,11 +15,11 @@ from core.process_service import image_to_excel
 
 app = FastAPI(title="Tally Automation")
 
-# Serve static files (CSS, JS)
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
+# Serve static files (CSS, JS) from the "static" folder at project root
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
-# Jinja templates
-templates = Jinja2Templates(directory="web/templates")
+# Jinja templates from the "templates" folder at project root
+templates = Jinja2Templates(directory="templates")
 
 # -------------------------------------------------
 # UI ROUTES
@@ -149,3 +149,7 @@ async def convert_image_to_excel(
     except Exception as e:
         logging.exception("Image to Excel failed")
         raise HTTPException(500, str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=7860, reload=True)
