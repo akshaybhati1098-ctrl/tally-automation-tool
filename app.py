@@ -1,99 +1,59 @@
-import os
-import logging
-from fastapi import (
-    FastAPI,
-    UploadFile,
-    Form,
-    HTTPException,
-    Request
-)
-from fastapi.responses import (
-    Response,
-    JSONResponse,
-    HTMLResponse
-)
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Request
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+import logging
+import os
 
-# -----------------------------
-# CORE SERVICES
-# -----------------------------
+# ===== Core Services =====
 from core.excel_service import excel_to_xml
 from core.mapping import load_mapping_json, save_mapping_json
 from core.company_rules import load_rules, save_rules
 from core.process_service import image_to_excel
 
-# -----------------------------
-# BASE DIR (HF SAFE)
-# -----------------------------
+# =========================
+# App Init
+# =========================
+app = FastAPI(title="Akshay's Tally Automation")
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-# -----------------------------
-# APP INIT
-# -----------------------------
-app = FastAPI(title="Tally Automation")
-
-# -----------------------------
-# STATIC FILES
-# -----------------------------
+# =========================
+# Static Files
+# =========================
 app.mount(
     "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")),
+    StaticFiles(directory=os.path.join(BASE_DIR, "web/static")),
     name="static"
 )
 
-# -----------------------------
-# TEMPLATES
-# -----------------------------
+# =========================
+# Templates
+# =========================
 templates = Jinja2Templates(
-    directory=os.path.join(BASE_DIR, "web", "templates")
+    directory=os.path.join(BASE_DIR, "web/templates")
 )
 
-# -----------------------------
-# ROOT UI
-# -----------------------------
-@app.get("/", response_class=HTMLResponse)
+# =========================
+# UI Route
+# =========================
+@app.get("/")
 async def home(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {"request": request}
     )
 
-# -----------------------------
-# SPA PAGE ROUTES
-# -----------------------------
-@app.get("/pages/{page}", response_class=HTMLResponse)
-async def load_page(request: Request, page: str):
-
-    pages = {
-        "dashboard": "pages/dashboard.html",
-        "excel_to_xml": "pages/excel_to_xml.html",
-        "image_to_excel": "pages/image_to_excel.html",
-        "mapping": "pages/mapping.html",
-        "company": "pages/company.html",
-        "settings": "pages/settings.html",
-    }
-
-    if page not in pages:
-        raise HTTPException(status_code=404, detail="Page not found")
-
-    return templates.TemplateResponse(
-        pages[page],
-        {"request": request}
-    )
-
-# =================================================
-# =================== APIs ========================
-# =================================================
-
-# -------- Excel → XML --------
+# =========================
+# Excel → XML
+# =========================
 @app.post("/api/convert")
 async def convert_excel(
     file: UploadFile,
     sheet_name: str = Form(...),
     vtype: str = Form("sale")
 ):
-    if not file.filename.lower().endswith((".xlsx", ".xls")):
+    if not file.filename.endswith((".xlsx", ".xls")):
         raise HTTPException(400, "Only Excel files allowed")
 
     try:
@@ -109,71 +69,71 @@ async def convert_excel(
             }
         )
     except Exception as e:
-        logging.exception("Excel conversion failed")
+        logging.exception(e)
         raise HTTPException(500, str(e))
 
-
-# -------- Mapping --------
+# =========================
+# Mapping APIs
+# =========================
 @app.get("/api/mapping")
 async def get_mapping():
-    return load_mapping_json()
-
+    return JSONResponse(load_mapping_json())
 
 @app.post("/api/mapping")
 async def save_mapping(mapping: dict):
     save_mapping_json(mapping)
     return {"status": "success"}
 
-
-# -------- Company Rules --------
+# =========================
+# Company Rules APIs
+# =========================
 @app.get("/api/company-rules")
 async def get_company_rules():
-    return load_rules()
+    return JSONResponse(load_rules())
 
-
-@app.put("/api/company-rules/{company_key}")
-async def update_company_rule(company_key: str, rule: dict):
+@app.put("/api/company-rules/{key}")
+async def save_company(key: str, rule: dict):
     rules = load_rules()
-    rules[company_key] = rule
+    rules[key] = rule
     save_rules(rules)
-    return {"status": "success"}
+    return {"status": "saved"}
 
-
-@app.delete("/api/company-rules/{company_key}")
-async def delete_company_rule(company_key: str):
+@app.delete("/api/company-rules/{key}")
+async def delete_company(key: str):
     rules = load_rules()
-    if company_key not in rules:
-        raise HTTPException(404, "Company not found")
+    if key in rules:
+        del rules[key]
+        save_rules(rules)
+        return {"status": "deleted"}
+    raise HTTPException(404, "Company not found")
 
-    del rules[company_key]
-    save_rules(rules)
-    return {"status": "deleted"}
-
-
-# -------- PDF / Image → Excel --------
+# =========================
+# PDF / Image → Excel
+# =========================
 @app.post("/api/convert-image")
 async def convert_image(
     file: UploadFile,
     company: str = Form(...)
 ):
-    allowed = (".pdf", ".jpg", ".jpeg", ".png")
-    if not file.filename.lower().endswith(allowed):
-        raise HTTPException(400, "Invalid file type")
+    try:
+        data = await file.read()
+        excel_bytes, filename = image_to_excel(
+            data, file.filename, company
+        )
+        return Response(
+            content=excel_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except Exception as e:
+        logging.exception(e)
+        raise HTTPException(500, str(e))
 
-    data = await file.read()
-    excel_bytes, filename = image_to_excel(data, file.filename, company)
-
-    return Response(
-        content=excel_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": f"attachment; filename={filename}"
-        }
-    )
-
-# -----------------------------
-# HEALTH CHECK
-# -----------------------------
-@app.get("/health")
-async def health():
-    return {"status": "ok"}
+# =========================
+# Run (Local only)
+# =========================
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=7860)
