@@ -1,3 +1,4 @@
+alert("APP.JS LOADED");
 // ---------- NAVIGATION ----------
 function navigateTo(pageId) {
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
