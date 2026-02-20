@@ -389,40 +389,108 @@ document.getElementById('imageConvertForm').addEventListener('submit', async (e)
     }
 });
 
+// ... (keep everything above as is)
+
 // ---------- SETTINGS ----------
-let settings = { theme: 'light', default_vtype: 'sale', default_sheet: 'Sheet1' };
+let settings = {
+  theme: 'light',
+  default_vtype: 'sale',
+  default_sheet: 'Sheet1',
+  fontSize: 'medium',
+  compactMode: false,
+  autoDownload: true,
+  clearFiles: false,
+  uploadInfo: true,
+  xmlNaming: 'original',
+  roundOff: 'two_decimal',
+  mappingBackup: true
+};
+
 function loadSettings() {
-    const saved = localStorage.getItem('settings');
-    if (saved) settings = JSON.parse(saved);
-    document.getElementById('themeSelect').value = settings.theme;
-    document.getElementById('defaultVtype').value = settings.default_vtype;
-    document.getElementById('defaultSheet').value = settings.default_sheet;
-    applyTheme(settings.theme);
+  const saved = localStorage.getItem('settings');
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved);
+      settings = { ...settings, ...parsed };
+    } catch (e) {
+      console.warn('Failed to parse settings', e);
+    }
+  }
+
+  // Populate UI
+  document.getElementById('themeSelect').value = settings.theme;
+  document.getElementById('defaultVtype').value = settings.default_vtype;
+  document.getElementById('defaultSheet').value = settings.default_sheet;
+  document.getElementById('fontSizeSelect').value = settings.fontSize;
+  document.getElementById('compactModeToggle').checked = settings.compactMode;
+  document.getElementById('autoDownloadToggle').checked = settings.autoDownload;
+  document.getElementById('clearFilesToggle').checked = settings.clearFiles;
+  document.getElementById('uploadInfoToggle').checked = settings.uploadInfo;
+  document.getElementById('xmlNamingSelect').value = settings.xmlNaming;
+  document.getElementById('roundOffSelect').value = settings.roundOff;
+  document.getElementById('mappingBackupToggle').checked = settings.mappingBackup;
+
+  applySettings();
 }
 
-function applyTheme(theme) {
-    // Remove any existing theme class
-    document.body.classList.remove('dark-theme');
-    if (theme === 'dark') {
-        document.body.classList.add('dark-theme');
-    }
-    // Optional: keep the old inline styles for compatibility
-    document.body.style.background = ''; // let CSS handle it
-    document.body.style.color = '';
+function applySettings() {
+  // Theme
+  document.body.classList.remove('dark-theme');
+  if (settings.theme === 'dark') {
+    document.body.classList.add('dark-theme');
+  }
+
+  // Font size
+  document.body.classList.remove('font-small', 'font-medium', 'font-large');
+  document.body.classList.add(`font-${settings.fontSize}`);
+
+  // Compact mode
+  if (settings.compactMode) {
+    document.body.classList.add('compact-mode');
+  } else {
+    document.body.classList.remove('compact-mode');
+  }
+
+  // Other settings are used elsewhere (e.g., autoDownload in convert form)
+  // We'll just store them; the convert form can read settings.autoDownload later.
 }
 
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-    settings.theme = document.getElementById('themeSelect').value;
-    settings.default_vtype = document.getElementById('defaultVtype').value;
-    settings.default_sheet = document.getElementById('defaultSheet').value;
-    localStorage.setItem('settings', JSON.stringify(settings));
-    applyTheme(settings.theme);
-    const msg = document.getElementById('settingsMessage');
-    msg.className = 'message success';
-    msg.innerHTML = 'Settings saved!';
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 2000);
+  // Read from UI
+  settings.theme = document.getElementById('themeSelect').value;
+  settings.default_vtype = document.getElementById('defaultVtype').value;
+  settings.default_sheet = document.getElementById('defaultSheet').value;
+  settings.fontSize = document.getElementById('fontSizeSelect').value;
+  settings.compactMode = document.getElementById('compactModeToggle').checked;
+  settings.autoDownload = document.getElementById('autoDownloadToggle').checked;
+  settings.clearFiles = document.getElementById('clearFilesToggle').checked;
+  settings.uploadInfo = document.getElementById('uploadInfoToggle').checked;
+  settings.xmlNaming = document.getElementById('xmlNamingSelect').value;
+  settings.roundOff = document.getElementById('roundOffSelect').value;
+  settings.mappingBackup = document.getElementById('mappingBackupToggle').checked;
+
+  // Save to localStorage
+  localStorage.setItem('settings', JSON.stringify(settings));
+
+  // Apply visual changes
+  applySettings();
+
+  // Show message
+  const msg = document.getElementById('settingsMessage');
+  msg.className = 'message success';
+  msg.innerHTML = 'Settings saved successfully!';
+  msg.style.display = 'block';
+  setTimeout(() => {
+    msg.style.display = 'none';
+  }, 3000);
 });
+
+// ---------- UPDATE EXCEL CONVERTER TO USE AUTO-DOWNLOAD (example) ----------
+// In the convert form submit handler, we can check settings.autoDownload
+// The existing code already triggers download on success, so we don't need to change.
+// But if we wanted to conditionally download only if autoDownload is true, we could wrap the download logic.
+// However, the current behavior always downloads. We'll keep it as is; the setting is informational for now.
+// For future, we could add logic, but the instruction was not to change API endpoints or core logic.
 
 // ---------- INIT ----------
 loadMapping();
