@@ -1,169 +1,27 @@
 <div id="settings" class="page">
-  <div class="page-header">
-    <h2>Settings</h2>
-    <p class="text-muted">Customise your Tally Automation experience</p>
-  </div>
-
-  <div class="settings-container">
-    <!-- Appearance -->
-    <div class="settings-group card">
-      <h3 class="settings-group-title">Appearance</h3>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Theme</span>
-          <span class="settings-description">Light or dark mode</span>
+    <div class="card">
+        <div class="card-header">
+            <h3>Settings</h3>
         </div>
-        <div class="settings-control">
-          <select id="themeSelect" class="settings-select">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Font Size</span>
-          <span class="settings-description">Adjust text size</span>
-        </div>
-        <div class="settings-control">
-          <select id="fontSizeSelect" class="settings-select">
-            <option value="small">Small</option>
-            <option value="medium" selected>Medium</option>
-            <option value="large">Large</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Compact Mode</span>
-          <span class="settings-description">Reduce spacing for dense view</span>
-        </div>
-        <div class="settings-control">
-          <label class="switch">
-            <input type="checkbox" id="compactModeToggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Conversion Defaults -->
-    <div class="settings-group card">
-      <h3 class="settings-group-title">Conversion Defaults</h3>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Default Voucher Type</span>
-          <span class="settings-description">Preselect sales or purchase</span>
-        </div>
-        <div class="settings-control">
-          <select id="defaultVtype" class="settings-select">
-            <option value="sale">Sales Invoice</option>
-            <option value="purchase">Purchase Invoice</option>
-          </select>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Default Sheet Name</span>
-          <span class="settings-description">Sheet to use when not specified</span>
-        </div>
-        <div class="settings-control">
-          <input type="text" id="defaultSheet" class="settings-input" value="Sheet1" placeholder="Sheet1">
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Auto Download</span>
-          <span class="settings-description">Start download immediately after conversion</span>
-        </div>
-        <div class="settings-control">
-          <label class="switch">
-            <input type="checkbox" id="autoDownloadToggle" checked>
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- File Handling -->
-    <div class="settings-group card">
-      <h3 class="settings-group-title">File Handling</h3>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Clear Files After Download</span>
-          <span class="settings-description">Automatically remove uploaded files</span>
-        </div>
-        <div class="settings-control">
-          <label class="switch">
-            <input type="checkbox" id="clearFilesToggle">
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </div>
-      <div class="settings-row">
-        <div class="settings-label">
-          <span class="settings-name">Upload Info</span>
-          <span class="settings-description">Show detailed file information after upload</span>
-        </div>
-        <div class="settings-control">
-          <label class="switch">
-            <input type="checkbox" id="uploadInfoToggle" checked>
-            <span class="slider round"></span>
-          </label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Advanced (collapsible) -->
-    <details class="advanced-section">
-      <summary class="advanced-summary card">
-        <h3 class="settings-group-title">Advanced</h3>
-        <span class="advanced-icon">▼</span>
-      </summary>
-      <div class="advanced-content card">
-        <div class="settings-row">
-          <div class="settings-label">
-            <span class="settings-name">XML Naming Convention</span>
-            <span class="settings-description">Pattern for output file names</span>
-          </div>
-          <div class="settings-control">
-            <select id="xmlNamingSelect" class="settings-select">
-              <option value="original">Original + _output</option>
-              <option value="timestamp">Timestamp-based</option>
-              <option value="custom">Custom pattern</option>
+        <div class="form-group">
+            <label>Theme</label>
+            <select id="themeSelect">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
             </select>
-          </div>
         </div>
-        <div class="settings-row">
-          <div class="settings-label">
-            <span class="settings-name">Round-off Rules</span>
-            <span class="settings-description">Decimal rounding for amounts</span>
-          </div>
-          <div class="settings-control">
-            <select id="roundOffSelect" class="settings-select">
-              <option value="none">No rounding</option>
-              <option value="nearest">Nearest integer</option>
-              <option value="two_decimal" selected>2 decimal places</option>
+        <div class="form-group">
+            <label>Default Voucher Type</label>
+            <select id="defaultVtype">
+                <option value="sale">Sales</option>
+                <option value="purchase">Purchase</option>
             </select>
-          </div>
         </div>
-        <div class="settings-row">
-          <div class="settings-label">
-            <span class="settings-name">Mapping Backup</span>
-            <span class="settings-description">Automatically backup mapping before save</span>
-          </div>
-          <div class="settings-control">
-            <label class="switch">
-              <input type="checkbox" id="mappingBackupToggle" checked>
-              <span class="slider round"></span>
-            </label>
-          </div>
+        <div class="form-group">
+            <label>Default Sheet Name</label>
+            <input type="text" id="defaultSheet" value="Sheet1">
         </div>
-      </div>
-    </details>
-
-    <!-- Save Button & Message -->
-    <button class="btn btn-primary btn-large" id="saveSettingsBtn">Save Settings</button>
-    <div id="settingsMessage" class="message"></div>
-  </div>
+        <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+        <div id="settingsMessage" class="message"></div>
+    </div>
 </div>
