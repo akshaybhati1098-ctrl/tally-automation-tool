@@ -401,8 +401,14 @@ function loadSettings() {
 }
 
 function applyTheme(theme) {
-    document.body.style.background = theme === 'dark' ? '#0F172A' : '#F1F5F9';
-    document.body.style.color = theme === 'dark' ? '#F1F5F9' : '#1E293B';
+    // Remove any existing theme class
+    document.body.classList.remove('dark-theme');
+    if (theme === 'dark') {
+        document.body.classList.add('dark-theme');
+    }
+    // Optional: keep the old inline styles for compatibility
+    document.body.style.background = ''; // let CSS handle it
+    document.body.style.color = '';
 }
 
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
