@@ -3,46 +3,30 @@
 <head>
     {% include 'partials/head.html' %}
 </head>
-
 <body>
-
-    <!-- Sidebar / Navbar -->
     {% include 'partials/navbar.html' %}
 
-    <!-- Main Content Area -->
-    <main class="main-content">
-
-        <!-- Dashboard -->
-        <section class="page" id="page-dashboard">
+    <div class="main-content">
+        <div id="dashboard" class="page active">
             {% include 'pages/dashboard.html' %}
-        </section>
-
-        <!-- Excel to XML -->
-        <section class="page" id="page-excel" hidden>
+        </div>
+        <div id="converter" class="page">
             {% include 'pages/excel_to_xml.html' %}
-        </section>
-
-        <!-- Image to Excel -->
-        <section class="page" id="page-image" hidden>
-            {% include 'pages/image_to_excel.html' %}
-        </section>
-
-        <!-- Mapping -->
-        <section class="page" id="page-mapping" hidden>
+        </div>
+        <div id="mapping" class="page">
             {% include 'pages/mapping.html' %}
-        </section>
-
-        <!-- Company -->
-        <section class="page" id="page-company" hidden>
-            {% include 'pages/company.html' %}
-        </section>
-
-        <!-- Settings -->
-        <section class="page" id="page-settings" hidden>
+        </div>
+        <div id="settings" class="page">
             {% include 'pages/settings.html' %}
-        </section>
-
-    </main>
+        </div>
+        <!-- Additional pages for future use -->
+        <div id="image_to_excel" class="page">
+            {% include 'pages/image_to_excel.html' %}
+        </div>
+        <div id="company" class="page">
+            {% include 'pages/company.html' %}
+        </div>
+    </div>
 
     <script src="/static/scripts/app.js"></script>
 </body>
