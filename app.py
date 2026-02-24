@@ -2,13 +2,9 @@ from fastapi import FastAPI, Request, UploadFile, File, Form
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import JSONResponse
-import os
-import shutil
-import traceback
 
-# 🔹 IMPORT YOUR CORE LOGIC
-# Adjust file / function name if needed
-from core.excel_to_xml import convert_excel_to_xml
+# ✅ IMPORT THE CORRECT SERVICE
+from core.excel_service import excel_to_xml
 
 app = FastAPI()
 
@@ -33,10 +29,10 @@ def home(request: Request):
 # -------------------------
 @app.get("/api/mapping")
 def get_mapping():
-    return JSONResponse({
+    return {
         "status": "ok",
         "data": []
-    })
+    }
 
 # -------------------------
 # Excel → XML Converter API
@@ -48,29 +44,24 @@ async def convert_excel(
     voucher_type: str = Form(...)
 ):
     try:
-        # Ensure temp folder exists
-        os.makedirs("/tmp", exist_ok=True)
+        # 1️⃣ Read uploaded file as bytes
+        file_bytes = await excel_file.read()
 
-        # Save uploaded Excel file
-        input_path = f"/tmp/{excel_file.filename}"
-        with open(input_path, "wb") as buffer:
-            shutil.copyfileobj(excel_file.file, buffer)
-
-        # Call CORE logic
-        xml_output = convert_excel_to_xml(
-            excel_path=input_path,
+        # 2️⃣ Call your EXISTING core logic
+        xml_content, record_count = excel_to_xml(
+            file_bytes=file_bytes,
             sheet_name=sheet_name,
-            voucher_type=voucher_type
+            vtype=voucher_type
         )
 
+        # 3️⃣ Return response
         return JSONResponse({
             "status": "success",
-            "message": "XML generated successfully",
-            "xml": xml_output
+            "records": record_count,
+            "xml": xml_content
         })
 
     except Exception as e:
-        traceback.print_exc()
         return JSONResponse(
             status_code=500,
             content={
