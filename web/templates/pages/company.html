@@ -4,6 +4,8 @@
             <h3>Company Rules Manager</h3>
             <button class="btn btn-success" onclick="showAddCompanyModal()">➕ Add Company</button>
         </div>
+
+        <!-- Company list rendered by your existing JS -->
         <div id="companyList"></div>
     </div>
 
@@ -11,44 +13,54 @@
     <div id="companyModal" class="modal">
         <div class="modal-content">
             <h3 id="modalTitle">Add Company</h3>
+
             <form id="companyForm">
                 <div class="form-group">
-                    <label>Company Key (unique, e.g., DR_LOGISTIC)</label>
-                    <input type="text" id="companyKey" required>
+                    <label>Company Key (unique, e.g. DR_LOGISTIC)</label>
+                    <input type="text" id="companyKey" name="companyKey" required>
                 </div>
+
                 <div class="form-group">
                     <label>Display Label</label>
-                    <input type="text" id="companyLabel" required>
+                    <input type="text" id="companyLabel" name="companyLabel" required>
                 </div>
+
                 <div class="form-group">
                     <label>Taxable Value Keyword</label>
-                    <input type="text" id="taxable" required>
+                    <input type="text" id="taxable" name="taxable" required>
                 </div>
+
                 <div class="form-group">
                     <label>CGST Keyword</label>
-                    <input type="text" id="cgst">
+                    <input type="text" id="cgst" name="cgst">
                 </div>
+
                 <div class="form-group">
                     <label>SGST Keyword</label>
-                    <input type="text" id="sgst">
+                    <input type="text" id="sgst" name="sgst">
                 </div>
+
                 <div class="form-group">
-                    <label>IGST Keyword (leave blank if none)</label>
-                    <input type="text" id="igst">
+                    <label>IGST Keyword</label>
+                    <input type="text" id="igst" name="igst">
                 </div>
+
                 <div class="form-group">
                     <label>Fuel Charges Keyword</label>
-                    <input type="text" id="fuel">
+                    <input type="text" id="fuel" name="fuel">
                 </div>
+
                 <div class="form-group">
                     <label>Shipment Charges Keyword</label>
-                    <input type="text" id="shipment">
+                    <input type="text" id="shipment" name="shipment">
                 </div>
+
                 <div class="form-group">
                     <label>Invoice Total Keyword</label>
-                    <input type="text" id="invoice_total" required>
+                    <input type="text" id="invoice_total" name="invoice_total" required>
                 </div>
-                <div style="display: flex; gap: 1rem; justify-content: flex-end;">
+
+                <div style="display:flex; gap:1rem; justify-content:flex-end;">
                     <button type="button" class="btn" onclick="closeCompanyModal()">Cancel</button>
                     <button type="submit" class="btn btn-primary">Save</button>
                 </div>
