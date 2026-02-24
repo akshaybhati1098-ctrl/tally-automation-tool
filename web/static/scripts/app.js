@@ -1,19 +1,7 @@
-// ---------- STATE ----------
-let currentMapping = null;
-let currentGroup = null;
-let settings = {
-    theme: 'light',
-    default_vtype: 'sale',
-    default_sheet: 'Sheet1'
-};
-
 // ---------- NAVIGATION ----------
 function navigateTo(pageId) {
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    // Show selected page
     document.getElementById(pageId).classList.add('active');
-    // Update active nav button
     document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
 }
@@ -24,15 +12,11 @@ document.querySelectorAll('.nav-link').forEach(btn => {
 
 // ---------- DASHBOARD ----------
 function downloadTemplate() {
-    alert('Template download: Create a sample Excel with required columns.\nIn a full version, this would generate a file.');
+    alert('Template download: create a sample Excel with required columns.');
 }
-
-function viewReports() {
-    alert('Reports feature coming soon.');
-}
+function viewReports() { alert('Reports coming soon.'); }
 
 async function loadActivity() {
-    // Simulate recent activity (in real app, could fetch from server logs)
     document.getElementById('activityLog').innerHTML = `
         <div>[12:34] Converted 25 records from sales.xlsx</div>
         <div>[11:20] Mapping updated</div>
@@ -98,73 +82,10 @@ document.getElementById('convertForm').addEventListener('submit', async (e) => {
     }
 });
 
-// ---------- PDF TO EXCEL CONVERTER ----------
-document.getElementById('pdfConvertForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const progress = document.getElementById('pdfProgress');
-    const progressBar = document.getElementById('pdfProgressBar');
-    const messageDiv = document.getElementById('pdfMessage');
-
-    progress.style.display = 'block';
-    progressBar.style.width = '0%';
-    messageDiv.style.display = 'none';
-
-    try {
-        const response = await fetch('/api/convert-pdf', {
-            method: 'POST',
-            body: formData
-        });
-
-        progressBar.style.width = '100%';
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'converted.xlsx';
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (match) filename = match[1];
-            }
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            messageDiv.className = 'message success';
-            messageDiv.innerHTML = '✅ Conversion successful!';
-            messageDiv.style.display = 'block';
-        } else {
-            const error = await response.text();
-            throw new Error(error);
-        }
-    } catch (err) {
-        messageDiv.className = 'message error';
-        messageDiv.innerHTML = `❌ Error: ${err.message}`;
-        messageDiv.style.display = 'block';
-    } finally {
-        setTimeout(() => {
-            progress.style.display = 'none';
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
-
 // ---------- MAPPING EDITOR ----------
-const groupNames = [
-    'COMPANY_STATE',
-    'SALES',
-    'SALES_IGST',
-    'PURCHASE',
-    'CGST_RATES',
-    'SGST_RATES',
-    'IGST_RATES',
-    'DEBUG'
-];
+let currentMapping = null;
+let currentGroup = null;
+const groupNames = ['COMPANY_STATE','SALES','SALES_IGST','PURCHASE','CGST_RATES','SGST_RATES','IGST_RATES','DEBUG'];
 
 async function loadMapping() {
     try {
@@ -191,11 +112,8 @@ function renderGroupList() {
 
 function selectGroup(name) {
     currentGroup = name;
-    // Update active class
     document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
-    // Find the one with matching text
-    const items = document.querySelectorAll('.group-item');
-    for (let item of items) {
+    for (let item of document.querySelectorAll('.group-item')) {
         if (item.textContent.trim() === name) {
             item.classList.add('active');
             break;
@@ -230,25 +148,22 @@ function renderRateList(group) {
             }
         };
     } else {
-        // Object of rate -> ledger
         rateListDiv.innerHTML = '';
         if (!data || Object.keys(data).length === 0) {
             rateListDiv.innerHTML = '<div class="rate-item">No mappings found. Click "Add Rate" to create one.</div>';
         } else {
-            Object.entries(data)
-                .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
-                .forEach(([rate, ledger]) => {
-                    const item = document.createElement('div');
-                    item.className = 'rate-item';
-                    item.innerHTML = `
-                        <span><b>${rate}%</b> → ${ledger}</span>
-                        <div class="rate-actions">
-                            <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')">✏️</button>
-                            <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')">🗑️</button>
-                        </div>
-                    `;
-                    rateListDiv.appendChild(item);
-                });
+            Object.entries(data).sort((a,b) => parseFloat(a[0])-parseFloat(b[0])).forEach(([rate, ledger]) => {
+                const item = document.createElement('div');
+                item.className = 'rate-item';
+                item.innerHTML = `
+                    <span><b>${rate}%</b> → ${ledger}</span>
+                    <div class="rate-actions">
+                        <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')">✏️</button>
+                        <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')">🗑️</button>
+                    </div>
+                `;
+                rateListDiv.appendChild(item);
+            });
         }
         addBtn.textContent = '➕ Add Rate';
         addBtn.onclick = () => addRate(group);
@@ -293,23 +208,192 @@ document.getElementById('saveMappingBtn').addEventListener('click', async () => 
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(currentMapping)
         });
-        if (response.ok) {
-            alert('Mapping saved successfully!');
-        } else {
-            alert('Failed to save mapping.');
-        }
+        if (response.ok) alert('Mapping saved successfully!');
+        else alert('Failed to save mapping.');
     } catch (err) {
         alert('Error saving mapping: ' + err.message);
     }
 });
 
-// ---------- SETTINGS ----------
-async function loadSettings() {
-    // Load from localStorage
-    const saved = localStorage.getItem('settings');
-    if (saved) {
-        settings = JSON.parse(saved);
+// ---------- COMPANY RULES MANAGER ----------
+let companyRules = {};
+let editingKey = null;
+
+async function loadCompanies() {
+    try {
+        const response = await fetch('/api/company-rules');
+        companyRules = await response.json();
+        renderCompanyList();
+        renderCompanyDropdown();
+    } catch (err) {
+        console.error('Failed to load companies', err);
     }
+}
+
+function renderCompanyList() {
+    const container = document.getElementById('companyList');
+    container.innerHTML = '';
+    for (const [key, rule] of Object.entries(companyRules)) {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
+                <div>
+                    <h4>${rule.label} (${key})</h4>
+                    <p><b>Taxable:</b> ${rule.taxable} | <b>CGST:</b> ${rule.cgst || '—'} | <b>SGST:</b> ${rule.sgst || '—'} | <b>IGST:</b> ${rule.igst || '—'}</p>
+                    <p><b>Fuel:</b> ${rule.fuel || '—'} | <b>Shipment:</b> ${rule.shipment || '—'} | <b>Invoice Total:</b> ${rule.invoice_total}</p>
+                </div>
+                <div>
+                    <button class="btn-edit" onclick="editCompany('${key}')">✏️ Edit</button>
+                    <button class="btn-delete" onclick="deleteCompany('${key}')">🗑️ Delete</button>
+                </div>
+            </div>
+        `;
+        container.appendChild(card);
+    }
+}
+
+function renderCompanyDropdown() {
+    const select = document.getElementById('companySelect');
+    select.innerHTML = '<option value="">-- Select Company --</option>';
+    for (const [key, rule] of Object.entries(companyRules)) {
+        const option = document.createElement('option');
+        option.value = key;
+        option.textContent = rule.label;
+        select.appendChild(option);
+    }
+}
+
+function showAddCompanyModal() {
+    editingKey = null;
+    document.getElementById('modalTitle').textContent = 'Add Company';
+    document.getElementById('companyForm').reset();
+    document.getElementById('companyKey').disabled = false;
+    document.getElementById('companyModal').style.display = 'flex';
+}
+
+function closeCompanyModal() {
+    document.getElementById('companyModal').style.display = 'none';
+}
+
+function editCompany(key) {
+    editingKey = key;
+    const rule = companyRules[key];
+    document.getElementById('modalTitle').textContent = 'Edit Company';
+    document.getElementById('companyKey').value = key;
+    document.getElementById('companyKey').disabled = true;
+    document.getElementById('companyLabel').value = rule.label || '';
+    document.getElementById('taxable').value = rule.taxable || '';
+    document.getElementById('cgst').value = rule.cgst || '';
+    document.getElementById('sgst').value = rule.sgst || '';
+    document.getElementById('igst').value = rule.igst || '';
+    document.getElementById('fuel').value = rule.fuel || '';
+    document.getElementById('shipment').value = rule.shipment || '';
+    document.getElementById('invoice_total').value = rule.invoice_total || '';
+    document.getElementById('companyModal').style.display = 'flex';
+}
+
+async function deleteCompany(key) {
+    if (!confirm(`Delete company ${key}?`)) return;
+    const response = await fetch(`/api/company-rules/${key}`, { method: 'DELETE' });
+    if (response.ok) {
+        loadCompanies();
+    } else {
+        alert('Failed to delete');
+    }
+}
+
+document.getElementById('companyForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const key = document.getElementById('companyKey').value.trim();
+    if (!key) {
+        alert('Company key is required');
+        return;
+    }
+    const rule = {
+        label: document.getElementById('companyLabel').value,
+        taxable: document.getElementById('taxable').value,
+        cgst: document.getElementById('cgst').value || null,
+        sgst: document.getElementById('sgst').value || null,
+        igst: document.getElementById('igst').value || null,
+        fuel: document.getElementById('fuel').value || null,
+        shipment: document.getElementById('shipment').value || null,
+        invoice_total: document.getElementById('invoice_total').value
+    };
+    const response = await fetch(`/api/company-rules/${key}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(rule)
+    });
+    if (response.ok) {
+        closeCompanyModal();
+        loadCompanies();
+    } else {
+        alert('Failed to save company');
+    }
+});
+
+// ---------- PDF/IMAGE TO EXCEL ----------
+document.getElementById('imageConvertForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const progress = document.getElementById('imageProgress');
+    const progressBar = document.getElementById('imageProgressBar');
+    const messageDiv = document.getElementById('imageMessage');
+
+    progress.style.display = 'block';
+    progressBar.style.width = '0%';
+    messageDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/convert-image', {
+            method: 'POST',
+            body: formData
+        });
+
+        progressBar.style.width = '100%';
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'extracted.xlsx';
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (match) filename = match[1];
+            }
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            messageDiv.className = 'message success';
+            messageDiv.innerHTML = '✅ Conversion successful! Excel file downloaded.';
+            messageDiv.style.display = 'block';
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (err) {
+        messageDiv.className = 'message error';
+        messageDiv.innerHTML = `❌ Error: ${err.message}`;
+        messageDiv.style.display = 'block';
+    } finally {
+        setTimeout(() => {
+            progress.style.display = 'none';
+            progressBar.style.width = '0%';
+        }, 1000);
+    }
+});
+
+// ---------- SETTINGS ----------
+let settings = { theme: 'light', default_vtype: 'sale', default_sheet: 'Sheet1' };
+function loadSettings() {
+    const saved = localStorage.getItem('settings');
+    if (saved) settings = JSON.parse(saved);
     document.getElementById('themeSelect').value = settings.theme;
     document.getElementById('defaultVtype').value = settings.default_vtype;
     document.getElementById('defaultSheet').value = settings.default_sheet;
@@ -317,11 +401,14 @@ async function loadSettings() {
 }
 
 function applyTheme(theme) {
+    // Remove any existing theme class
+    document.body.classList.remove('dark-theme');
     if (theme === 'dark') {
         document.body.classList.add('dark-theme');
-    } else {
-        document.body.classList.remove('dark-theme');
     }
+    // Optional: keep the old inline styles for compatibility
+    document.body.style.background = ''; // let CSS handle it
+    document.body.style.color = '';
 }
 
 document.getElementById('saveSettingsBtn').addEventListener('click', () => {
@@ -334,11 +421,10 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     msg.className = 'message success';
     msg.innerHTML = 'Settings saved!';
     msg.style.display = 'block';
-    setTimeout(() => {
-        msg.style.display = 'none';
-    }, 2000);
+    setTimeout(() => msg.style.display = 'none', 2000);
 });
 
 // ---------- INIT ----------
 loadMapping();
+loadCompanies();
 loadSettings();
