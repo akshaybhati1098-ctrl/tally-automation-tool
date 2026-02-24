@@ -1,430 +1,93 @@
-// ---------- NAVIGATION ----------
+/* ================================
+   Global helpers
+================================ */
+
+function qs(selector) {
+    return document.querySelector(selector);
+}
+
+function qsa(selector) {
+    return document.querySelectorAll(selector);
+}
+
+/* ================================
+   SPA Navigation
+================================ */
+
 function navigateTo(pageId) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(pageId).classList.add('active');
-    document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
-    document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
-}
+    // hide all pages
+    qsa('.page').forEach(p => p.classList.remove('active'));
 
-document.querySelectorAll('.nav-link').forEach(btn => {
-    btn.addEventListener('click', () => navigateTo(btn.dataset.page));
-});
+    // show selected page
+    const page = document.getElementById(pageId);
+    if (page) page.classList.add('active');
 
-// ---------- DASHBOARD ----------
-function downloadTemplate() {
-    alert('Template download: create a sample Excel with required columns.');
-}
-function viewReports() { alert('Reports coming soon.'); }
+    // update navbar active state
+    qsa('.nav-link').forEach(btn => btn.classList.remove('active'));
+    const navBtn = document.querySelector(`.nav-link[data-page="${pageId}"]`);
+    if (navBtn) navBtn.classList.add('active');
 
-async function loadActivity() {
-    document.getElementById('activityLog').innerHTML = `
-        <div>[12:34] Converted 25 records from sales.xlsx</div>
-        <div>[11:20] Mapping updated</div>
-        <div>[10:15] 3 files processed</div>
-    `;
-}
-loadActivity();
-
-// ---------- EXCEL TO XML CONVERTER ----------
-document.getElementById('convertForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const progress = document.getElementById('progress');
-    const progressBar = document.getElementById('progressBar');
-    const messageDiv = document.getElementById('message');
-
-    progress.style.display = 'block';
-    progressBar.style.width = '0%';
-    messageDiv.style.display = 'none';
-
-    try {
-        const response = await fetch('/api/convert', {
-            method: 'POST',
-            body: formData
-        });
-
-        progressBar.style.width = '100%';
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'output.xml';
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (match) filename = match[1];
-            }
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            const records = response.headers.get('X-Records-Processed');
-            messageDiv.className = 'message success';
-            messageDiv.innerHTML = `✅ Conversion successful! ${records ? records + ' records processed.' : ''}`;
-            messageDiv.style.display = 'block';
-        } else {
-            const error = await response.text();
-            throw new Error(error);
-        }
-    } catch (err) {
-        messageDiv.className = 'message error';
-        messageDiv.innerHTML = `❌ Error: ${err.message}`;
-        messageDiv.style.display = 'block';
-    } finally {
-        setTimeout(() => {
-            progress.style.display = 'none';
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
-
-// ---------- MAPPING EDITOR ----------
-let currentMapping = null;
-let currentGroup = null;
-const groupNames = ['COMPANY_STATE','SALES','SALES_IGST','PURCHASE','CGST_RATES','SGST_RATES','IGST_RATES','DEBUG'];
-
-async function loadMapping() {
-    try {
-        const response = await fetch('/api/mapping');
-        currentMapping = await response.json();
-        renderGroupList();
-        if (groupNames.length > 0) selectGroup(groupNames[0]);
-    } catch (err) {
-        alert('Failed to load mapping. Is the server running?');
+    // 🔥 IMPORTANT FIX
+    if (pageId === "image2excel") {
+        loadCompaniesIntoSelect();
     }
 }
 
-function renderGroupList() {
-    const groupListDiv = document.getElementById('groupList');
-    groupListDiv.innerHTML = '';
-    groupNames.forEach(name => {
-        const div = document.createElement('div');
-        div.className = 'group-item';
-        div.textContent = name;
-        div.onclick = () => selectGroup(name);
-        groupListDiv.appendChild(div);
-    });
-}
+/* ================================
+   Company dropdown loader
+================================ */
 
-function selectGroup(name) {
-    currentGroup = name;
-    document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
-    for (let item of document.querySelectorAll('.group-item')) {
-        if (item.textContent.trim() === name) {
-            item.classList.add('active');
-            break;
-        }
-    }
-    document.getElementById('currentGroupTitle').textContent = `Editing: ${name}`;
-    renderRateList(name);
-}
+function loadCompaniesIntoSelect() {
+    const select = document.getElementById("companySelect");
+    if (!select) return;
 
-function renderRateList(group) {
-    const rateListDiv = document.getElementById('rateList');
-    const addBtn = document.getElementById('addRateBtn');
-    const data = currentMapping[group];
+    // reset dropdown
+    select.innerHTML = '<option value="">-- Select Company --</option>';
 
-    if (group === 'DEBUG') {
-        const value = data || false;
-        rateListDiv.innerHTML = `<div class="rate-item">DEBUG Mode: ${value ? 'Enabled' : 'Disabled'}</div>`;
-        addBtn.textContent = 'Toggle DEBUG';
-        addBtn.onclick = () => {
-            currentMapping.DEBUG = !currentMapping.DEBUG;
-            renderRateList(group);
-        };
-    } else if (group === 'COMPANY_STATE') {
-        const value = data || 'Not set';
-        rateListDiv.innerHTML = `<div class="rate-item">Current State: ${value}</div>`;
-        addBtn.textContent = 'Change State';
-        addBtn.onclick = () => {
-            const newState = prompt('Enter company state:', value);
-            if (newState) {
-                currentMapping.COMPANY_STATE = newState;
-                renderRateList(group);
-            }
-        };
-    } else {
-        rateListDiv.innerHTML = '';
-        if (!data || Object.keys(data).length === 0) {
-            rateListDiv.innerHTML = '<div class="rate-item">No mappings found. Click "Add Rate" to create one.</div>';
-        } else {
-            Object.entries(data).sort((a,b) => parseFloat(a[0])-parseFloat(b[0])).forEach(([rate, ledger]) => {
-                const item = document.createElement('div');
-                item.className = 'rate-item';
-                item.innerHTML = `
-                    <span><b>${rate}%</b> → ${ledger}</span>
-                    <div class="rate-actions">
-                        <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')">✏️</button>
-                        <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')">🗑️</button>
-                    </div>
-                `;
-                rateListDiv.appendChild(item);
-            });
-        }
-        addBtn.textContent = '➕ Add Rate';
-        addBtn.onclick = () => addRate(group);
-    }
-}
-
-function addRate(group) {
-    const rate = prompt('Enter GST Rate (%):', '');
-    if (!rate) return;
-    const floatRate = parseFloat(rate);
-    if (isNaN(floatRate) || floatRate < 0 || floatRate > 100) {
-        alert('Invalid rate');
+    const raw = localStorage.getItem("company_rules");
+    if (!raw) {
+        console.warn("No company_rules found in localStorage");
         return;
     }
-    const ledger = prompt('Enter Ledger Name:', '');
-    if (!ledger) return;
-    const rateKey = String(floatRate);
-    if (!currentMapping[group]) currentMapping[group] = {};
-    currentMapping[group][rateKey] = ledger;
-    renderRateList(group);
-}
 
-window.editRate = function(group, rate, oldLedger) {
-    const newLedger = prompt(`Edit ledger for ${rate}%:`, oldLedger);
-    if (newLedger) {
-        currentMapping[group][rate] = newLedger;
-        renderRateList(group);
-    }
-};
-
-window.deleteRate = function(group, rate) {
-    if (confirm(`Delete mapping for ${rate}%?`)) {
-        delete currentMapping[group][rate];
-        renderRateList(group);
-    }
-};
-
-document.getElementById('saveMappingBtn').addEventListener('click', async () => {
+    let companies;
     try {
-        const response = await fetch('/api/mapping', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(currentMapping)
-        });
-        if (response.ok) alert('Mapping saved successfully!');
-        else alert('Failed to save mapping.');
-    } catch (err) {
-        alert('Error saving mapping: ' + err.message);
+        companies = JSON.parse(raw);
+    } catch (e) {
+        console.error("Invalid company_rules JSON");
+        return;
     }
-});
 
-// ---------- COMPANY RULES MANAGER ----------
-let companyRules = {};
-let editingKey = null;
+    Object.keys(companies).forEach(key => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = companies[key].label || key;
+        select.appendChild(opt);
+    });
 
-async function loadCompanies() {
-    try {
-        const response = await fetch('/api/company-rules');
-        companyRules = await response.json();
-        renderCompanyList();
-        renderCompanyDropdown();
-    } catch (err) {
-        console.error('Failed to load companies', err);
-    }
+    console.log("Company dropdown populated");
 }
 
-function renderCompanyList() {
-    const container = document.getElementById('companyList');
-    container.innerHTML = '';
-    for (const [key, rule] of Object.entries(companyRules)) {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                <div>
-                    <h4>${rule.label} (${key})</h4>
-                    <p><b>Taxable:</b> ${rule.taxable} | <b>CGST:</b> ${rule.cgst || '—'} | <b>SGST:</b> ${rule.sgst || '—'} | <b>IGST:</b> ${rule.igst || '—'}</p>
-                    <p><b>Fuel:</b> ${rule.fuel || '—'} | <b>Shipment:</b> ${rule.shipment || '—'} | <b>Invoice Total:</b> ${rule.invoice_total}</p>
-                </div>
-                <div>
-                    <button class="btn-edit" onclick="editCompany('${key}')">✏️ Edit</button>
-                    <button class="btn-delete" onclick="deleteCompany('${key}')">🗑️ Delete</button>
-                </div>
-            </div>
-        `;
-        container.appendChild(card);
-    }
-}
-
-function renderCompanyDropdown() {
-    const select = document.getElementById('companySelect');
-    select.innerHTML = '<option value="">-- Select Company --</option>';
-    for (const [key, rule] of Object.entries(companyRules)) {
-        const option = document.createElement('option');
-        option.value = key;
-        option.textContent = rule.label;
-        select.appendChild(option);
-    }
-}
+/* ================================
+   Company Rules (basic helpers)
+   (Your existing logic can stay)
+================================ */
 
 function showAddCompanyModal() {
-    editingKey = null;
-    document.getElementById('modalTitle').textContent = 'Add Company';
-    document.getElementById('companyForm').reset();
-    document.getElementById('companyKey').disabled = false;
-    document.getElementById('companyModal').style.display = 'flex';
+    const modal = document.getElementById("companyModal");
+    if (modal) modal.style.display = "block";
 }
 
 function closeCompanyModal() {
-    document.getElementById('companyModal').style.display = 'none';
+    const modal = document.getElementById("companyModal");
+    if (modal) modal.style.display = "none";
 }
 
-function editCompany(key) {
-    editingKey = key;
-    const rule = companyRules[key];
-    document.getElementById('modalTitle').textContent = 'Edit Company';
-    document.getElementById('companyKey').value = key;
-    document.getElementById('companyKey').disabled = true;
-    document.getElementById('companyLabel').value = rule.label || '';
-    document.getElementById('taxable').value = rule.taxable || '';
-    document.getElementById('cgst').value = rule.cgst || '';
-    document.getElementById('sgst').value = rule.sgst || '';
-    document.getElementById('igst').value = rule.igst || '';
-    document.getElementById('fuel').value = rule.fuel || '';
-    document.getElementById('shipment').value = rule.shipment || '';
-    document.getElementById('invoice_total').value = rule.invoice_total || '';
-    document.getElementById('companyModal').style.display = 'flex';
-}
+/* ================================
+   Init (runs once)
+================================ */
 
-async function deleteCompany(key) {
-    if (!confirm(`Delete company ${key}?`)) return;
-    const response = await fetch(`/api/company-rules/${key}`, { method: 'DELETE' });
-    if (response.ok) {
-        loadCompanies();
-    } else {
-        alert('Failed to delete');
-    }
-}
-
-document.getElementById('companyForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const key = document.getElementById('companyKey').value.trim();
-    if (!key) {
-        alert('Company key is required');
-        return;
-    }
-    const rule = {
-        label: document.getElementById('companyLabel').value,
-        taxable: document.getElementById('taxable').value,
-        cgst: document.getElementById('cgst').value || null,
-        sgst: document.getElementById('sgst').value || null,
-        igst: document.getElementById('igst').value || null,
-        fuel: document.getElementById('fuel').value || null,
-        shipment: document.getElementById('shipment').value || null,
-        invoice_total: document.getElementById('invoice_total').value
-    };
-    const response = await fetch(`/api/company-rules/${key}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(rule)
-    });
-    if (response.ok) {
-        closeCompanyModal();
-        loadCompanies();
-    } else {
-        alert('Failed to save company');
-    }
+document.addEventListener("DOMContentLoaded", () => {
+    // Default page on load
+    navigateTo("dashboard");
 });
-
-// ---------- PDF/IMAGE TO EXCEL ----------
-document.getElementById('imageConvertForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const progress = document.getElementById('imageProgress');
-    const progressBar = document.getElementById('imageProgressBar');
-    const messageDiv = document.getElementById('imageMessage');
-
-    progress.style.display = 'block';
-    progressBar.style.width = '0%';
-    messageDiv.style.display = 'none';
-
-    try {
-        const response = await fetch('/api/convert-image', {
-            method: 'POST',
-            body: formData
-        });
-
-        progressBar.style.width = '100%';
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'extracted.xlsx';
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (match) filename = match[1];
-            }
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            messageDiv.className = 'message success';
-            messageDiv.innerHTML = '✅ Conversion successful! Excel file downloaded.';
-            messageDiv.style.display = 'block';
-        } else {
-            const error = await response.text();
-            throw new Error(error);
-        }
-    } catch (err) {
-        messageDiv.className = 'message error';
-        messageDiv.innerHTML = `❌ Error: ${err.message}`;
-        messageDiv.style.display = 'block';
-    } finally {
-        setTimeout(() => {
-            progress.style.display = 'none';
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
-
-// ---------- SETTINGS ----------
-let settings = { theme: 'light', default_vtype: 'sale', default_sheet: 'Sheet1' };
-function loadSettings() {
-    const saved = localStorage.getItem('settings');
-    if (saved) settings = JSON.parse(saved);
-    document.getElementById('themeSelect').value = settings.theme;
-    document.getElementById('defaultVtype').value = settings.default_vtype;
-    document.getElementById('defaultSheet').value = settings.default_sheet;
-    applyTheme(settings.theme);
-}
-
-function applyTheme(theme) {
-    // Remove any existing theme class
-    document.body.classList.remove('dark-theme');
-    if (theme === 'dark') {
-        document.body.classList.add('dark-theme');
-    }
-    // Optional: keep the old inline styles for compatibility
-    document.body.style.background = ''; // let CSS handle it
-    document.body.style.color = '';
-}
-
-document.getElementById('saveSettingsBtn').addEventListener('click', () => {
-    settings.theme = document.getElementById('themeSelect').value;
-    settings.default_vtype = document.getElementById('defaultVtype').value;
-    settings.default_sheet = document.getElementById('defaultSheet').value;
-    localStorage.setItem('settings', JSON.stringify(settings));
-    applyTheme(settings.theme);
-    const msg = document.getElementById('settingsMessage');
-    msg.className = 'message success';
-    msg.innerHTML = 'Settings saved!';
-    msg.style.display = 'block';
-    setTimeout(() => msg.style.display = 'none', 2000);
-});
-
-// ---------- INIT ----------
-loadMapping();
-loadCompanies();
-loadSettings();
