@@ -41,7 +41,7 @@ async function loadActivity() {
 }
 loadActivity();
 
-// ---------- CONVERTER ----------
+// ---------- EXCEL TO XML CONVERTER ----------
 document.getElementById('convertForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -81,6 +81,62 @@ document.getElementById('convertForm').addEventListener('submit', async (e) => {
             const records = response.headers.get('X-Records-Processed');
             messageDiv.className = 'message success';
             messageDiv.innerHTML = `✅ Conversion successful! ${records ? records + ' records processed.' : ''}`;
+            messageDiv.style.display = 'block';
+        } else {
+            const error = await response.text();
+            throw new Error(error);
+        }
+    } catch (err) {
+        messageDiv.className = 'message error';
+        messageDiv.innerHTML = `❌ Error: ${err.message}`;
+        messageDiv.style.display = 'block';
+    } finally {
+        setTimeout(() => {
+            progress.style.display = 'none';
+            progressBar.style.width = '0%';
+        }, 1000);
+    }
+});
+
+// ---------- PDF TO EXCEL CONVERTER ----------
+document.getElementById('pdfConvertForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+    const progress = document.getElementById('pdfProgress');
+    const progressBar = document.getElementById('pdfProgressBar');
+    const messageDiv = document.getElementById('pdfMessage');
+
+    progress.style.display = 'block';
+    progressBar.style.width = '0%';
+    messageDiv.style.display = 'none';
+
+    try {
+        const response = await fetch('/api/convert-pdf', {
+            method: 'POST',
+            body: formData
+        });
+
+        progressBar.style.width = '100%';
+
+        if (response.ok) {
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            const contentDisposition = response.headers.get('Content-Disposition');
+            let filename = 'converted.xlsx';
+            if (contentDisposition) {
+                const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                if (match) filename = match[1];
+            }
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            messageDiv.className = 'message success';
+            messageDiv.innerHTML = '✅ Conversion successful!';
             messageDiv.style.display = 'block';
         } else {
             const error = await response.text();
@@ -289,60 +345,3 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
 // ---------- INIT ----------
 loadMapping();
 loadSettings();
-// ... (existing code) ...
-
-// ---------- PDF TO EXCEL CONVERTER ----------
-document.getElementById('pdfConvertForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const progress = document.getElementById('pdfProgress');
-    const progressBar = document.getElementById('pdfProgressBar');
-    const messageDiv = document.getElementById('pdfMessage');
-
-    progress.style.display = 'block';
-    progressBar.style.width = '0%';
-    messageDiv.style.display = 'none';
-
-    try {
-        const response = await fetch('/api/convert-pdf', {
-            method: 'POST',
-            body: formData
-        });
-
-        progressBar.style.width = '100%';
-
-        if (response.ok) {
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            const contentDisposition = response.headers.get('Content-Disposition');
-            let filename = 'converted.xlsx';
-            if (contentDisposition) {
-                const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                if (match) filename = match[1];
-            }
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(url);
-
-            messageDiv.className = 'message success';
-            messageDiv.innerHTML = '✅ Conversion successful!';
-            messageDiv.style.display = 'block';
-        } else {
-            const error = await response.text();
-            throw new Error(error);
-        }
-    } catch (err) {
-        messageDiv.className = 'message error';
-        messageDiv.innerHTML = `❌ Error: ${err.message}`;
-        messageDiv.style.display = 'block';
-    } finally {
-        setTimeout(() => {
-            progress.style.display = 'none';
-            progressBar.style.width = '0%';
-        }, 1000);
-    }
-});
