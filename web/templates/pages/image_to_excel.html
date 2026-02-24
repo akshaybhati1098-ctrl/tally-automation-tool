@@ -1,61 +1,24 @@
-<div class="page-inner">
-
+<div id="image2excel" class="page">
     <div class="card">
         <div class="card-header">
-            <h3>📄 Image / PDF to Excel Converter</h3>
-            <p class="card-subtitle">
-                Convert invoices, bills, or scanned documents into Excel using company-specific rules.
-            </p>
+            <h3>PDF / Image to Excel Converter</h3>
         </div>
-
-        <!-- ===== FORM ===== -->
-        <form id="pdfConvertForm" class="form">
-
-            <!-- File Upload -->
+        <form id="imageConvertForm">
             <div class="form-group">
-                <label for="file">Upload Image or PDF</label>
-                <input
-                    type="file"
-                    id="file"
-                    name="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    required
-                >
-                <small class="help-text">
-                    Supported formats: PDF, JPG, PNG
-                </small>
+                <label>PDF or Image File</label>
+                <input type="file" name="file" accept=".pdf,.jpg,.jpeg,.png" required>
             </div>
-
-            <!-- Company Selector -->
             <div class="form-group">
-                <label for="company_key">Select Company</label>
-                <select id="company_key" name="company_key" required>
+                <label>Company</label>
+                <select name="company" id="companySelect" required>
                     <option value="">-- Select Company --</option>
-                    <option value="default">Default Rules</option>
-                    <option value="company_a">Company A</option>
-                    <option value="company_b">Company B</option>
                 </select>
-                <small class="help-text">
-                    Company rules decide how data is extracted.
-                </small>
             </div>
-
-            <!-- Submit -->
-            <div class="form-actions">
-                <button type="submit" class="btn-primary">
-                    Convert to Excel
-                </button>
-            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Convert to Excel</button>
         </form>
-
-        <!-- ===== PROGRESS ===== -->
-        <div id="pdfProgress" class="progress" style="display:none;">
-            <div id="pdfProgressBar" class="progress-bar"></div>
+        <div class="progress" id="imageProgress">
+            <div class="progress-bar" id="imageProgressBar"></div>
         </div>
-
-        <!-- ===== MESSAGE ===== -->
-        <div id="pdfMessage" class="message" style="display:none;"></div>
-
+        <div id="imageMessage" class="message"></div>
     </div>
-
 </div>
