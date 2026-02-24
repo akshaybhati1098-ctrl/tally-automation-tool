@@ -318,12 +318,9 @@ async function loadSettings() {
 
 function applyTheme(theme) {
     if (theme === 'dark') {
-        document.body.style.background = '#0F172A';
-        document.body.style.color = '#F1F5F9';
-        // You could also add more dark styles here
+        document.body.classList.add('dark-theme');
     } else {
-        document.body.style.background = '#F1F5F9';
-        document.body.style.color = '#1E293B';
+        document.body.classList.remove('dark-theme');
     }
 }
 
