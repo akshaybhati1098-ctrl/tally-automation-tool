@@ -39,3 +39,16 @@
         <div id="imageMessage" class="message"></div>
     </div>
 </div>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    const data = JSON.parse(localStorage.getItem("company_rules")) || {};
+    const select = document.getElementById("companySelect");
+
+    for (const key in data) {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = data[key].label;
+        select.appendChild(opt);
+    }
+});
+</script>
