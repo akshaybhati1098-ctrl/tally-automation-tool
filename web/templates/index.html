@@ -3,29 +3,46 @@
 <head>
     {% include 'partials/head.html' %}
 </head>
+
 <body>
+
+    <!-- Sidebar / Navbar -->
     {% include 'partials/navbar.html' %}
 
-    <div class="main-content">
-        <div id="dashboard" class="page active">
+    <!-- Main Content Area -->
+    <main class="main-content">
+
+        <!-- Dashboard -->
+        <section class="page" id="page-dashboard">
             {% include 'pages/dashboard.html' %}
-        </div>
-        <div id="converter" class="page">
+        </section>
+
+        <!-- Excel to XML -->
+        <section class="page" id="page-excel" hidden>
             {% include 'pages/excel_to_xml.html' %}
-        </div>
-        <div id="mapping" class="page">
-            {% include 'pages/mapping.html' %}
-        </div>
-        <div id="settings" class="page">
-            {% include 'pages/settings.html' %}
-        </div>
-        <div id="image_to_excel" class="page">
+        </section>
+
+        <!-- Image to Excel -->
+        <section class="page" id="page-image" hidden>
             {% include 'pages/image_to_excel.html' %}
-        </div>
-        <div id="company" class="page">
+        </section>
+
+        <!-- Mapping -->
+        <section class="page" id="page-mapping" hidden>
+            {% include 'pages/mapping.html' %}
+        </section>
+
+        <!-- Company -->
+        <section class="page" id="page-company" hidden>
             {% include 'pages/company.html' %}
-        </div>
-    </div>
+        </section>
+
+        <!-- Settings -->
+        <section class="page" id="page-settings" hidden>
+            {% include 'pages/settings.html' %}
+        </section>
+
+    </main>
 
     <script src="/static/scripts/app.js"></script>
 </body>
