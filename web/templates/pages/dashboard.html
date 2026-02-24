@@ -1,54 +1,56 @@
-<div class="card">
-    <div class="card-header">
-        <h3>Quick Actions</h3>
+<div id="dashboard" class="page active">
+    <div class="card">
+        <div class="card-header">
+            <h3>Quick Actions</h3>
+        </div>
+        <div class="quick-actions">
+            <div class="action-card" onclick="navigateTo('converter')">
+                <div class="icon">🔄</div>
+                <div>Convert Excel → XML</div>
+            </div>
+            <div class="action-card" onclick="navigateTo('image2excel')">
+                <div class="icon">📷</div>
+                <div>PDF/Image → Excel</div>
+            </div>
+            <div class="action-card" onclick="navigateTo('mapping')">
+                <div class="icon">⚙️</div>
+                <div>Edit Mapping</div>
+            </div>
+            <div class="action-card" onclick="navigateTo('company')">
+                <div class="icon">🏢</div>
+                <div>Company Rules</div>
+            </div>
+        </div>
     </div>
-    <div class="quick-actions">
-        <div class="action-card" onclick="navigateTo('converter')">
-            <div class="icon">🔄</div>
-            <div>Convert Excel</div>
-        </div>
-        <div class="action-card" onclick="navigateTo('mapping')">
-            <div class="icon">⚙️</div>
-            <div>Edit Mapping</div>
-        </div>
-        <div class="action-card" onclick="downloadTemplate()">
-            <div class="icon">📥</div>
-            <div>Get Template</div>
-        </div>
-        <div class="action-card" onclick="viewReports()">
-            <div class="icon">📊</div>
-            <div>View Reports</div>
-        </div>
-    </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h3>Key Features</h3>
+    <div class="card">
+        <div class="card-header">
+            <h3>Key Features</h3>
+        </div>
+        <div class="features-grid">
+            <div class="feature-item">
+                <span class="feature-icon">🚀</span>
+                <div><b>Fast XML</b><br><small>1000+ invoices/sec</small></div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">📷</span>
+                <div><b>OCR Extraction</b><br><small>PDF/Image → Excel</small></div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🔧</span>
+                <div><b>Flexible Mapping</b><br><small>Custom ledgers</small></div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🏢</span>
+                <div><b>Company Rules</b><br><small>Add your own</small></div>
+            </div>
+        </div>
     </div>
-    <div class="features-grid">
-        <div class="feature-item">
-            <span class="feature-icon">🚀</span>
-            <div><b>Fast Conversion</b><br><small>1000+ invoices/sec</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">📊</span>
-            <div><b>GST Compliant</b><br><small>Accurate GST</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">🔧</span>
-            <div><b>Flexible Mapping</b><br><small>Custom ledgers</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">💾</span>
-            <div><b>Auto Backup</b><br><small>Never lose data</small></div>
-        </div>
-    </div>
-</div>
 
-<div class="card">
-    <div class="card-header">
-        <h3>Recent Activity</h3>
+    <div class="card">
+        <div class="card-header">
+            <h3>Recent Activity</h3>
+        </div>
+        <div class="activity-log" id="activityLog">Loading...</div>
     </div>
-    <div class="activity-log" id="activityLog">Loading...</div>
 </div>

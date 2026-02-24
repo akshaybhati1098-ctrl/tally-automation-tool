@@ -1,25 +1,27 @@
-<div class="card">
-    <div class="card-header">
-        <h3>Settings</h3>
+<div id="settings" class="page">
+    <div class="card">
+        <div class="card-header">
+            <h3>Settings</h3>
+        </div>
+        <div class="form-group">
+            <label>Theme</label>
+            <select id="themeSelect">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Default Voucher Type</label>
+            <select id="defaultVtype">
+                <option value="sale">Sales</option>
+                <option value="purchase">Purchase</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Default Sheet Name</label>
+            <input type="text" id="defaultSheet" value="Sheet1">
+        </div>
+        <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
+        <div id="settingsMessage" class="message"></div>
     </div>
-    <div class="form-group">
-        <label>Theme</label>
-        <select id="themeSelect">
-            <option value="light">Light</option>
-            <option value="dark">Dark</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Default Voucher Type</label>
-        <select id="defaultVtype">
-            <option value="sale">Sales</option>
-            <option value="purchase">Purchase</option>
-        </select>
-    </div>
-    <div class="form-group">
-        <label>Default Sheet Name</label>
-        <input type="text" id="defaultSheet" value="Sheet1">
-    </div>
-    <button class="btn btn-primary" id="saveSettingsBtn">Save Settings</button>
-    <div id="settingsMessage" class="message" style="margin-top: 1rem;"></div>
 </div>
