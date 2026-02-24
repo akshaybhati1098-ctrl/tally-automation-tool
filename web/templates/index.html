@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% include 'partials/head.html' %}
+</head>
+<body>
+    {% include 'partials/navbar.html' %}
+
+    <div class="main-content">
+        <div id="dashboard" class="page active">
+            {% include 'pages/dashboard.html' %}
+        </div>
+        <div id="converter" class="page">
+            {% include 'pages/excel_to_xml.html' %}
+        </div>
+        <div id="mapping" class="page">
+            {% include 'pages/mapping.html' %}
+        </div>
+        <div id="settings" class="page">
+            {% include 'pages/settings.html' %}
+        </div>
+        <!-- Additional pages for future use -->
+        <div id="image_to_excel" class="page">
+            {% include 'pages/image_to_excel.html' %}
+        </div>
+        <div id="company" class="page">
+            {% include 'pages/company.html' %}
+        </div>
+    </div>
+
+    <script src="/static/scripts/app.js"></script>
+</body>
+</html>

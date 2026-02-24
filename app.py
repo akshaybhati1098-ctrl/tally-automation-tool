@@ -1,19 +1,23 @@
-from fastapi import FastAPI, UploadFile, Form, HTTPException
-from fastapi.responses import Response, FileResponse, JSONResponse
+from fastapi import FastAPI, UploadFile, Form, HTTPException, Request
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 from core.excel_service import excel_to_xml
 from core.mapping import load_mapping_json, save_mapping_json
 import logging
 
 app = FastAPI(title="Tally Excel to XML Converter")
 
-# Serve static files (HTML, CSS, JS)
+# Mount static files (CSS, JS, images)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
+# Set up Jinja2 templates
+templates = Jinja2Templates(directory="templates")
+
 @app.get("/")
-async def serve_ui():
-    """Serve the main HTML page."""
-    return FileResponse("static/index.html")
+async def serve_ui(request: Request):
+    """Serve the main HTML page using templates."""
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.post("/api/convert")
 async def convert_excel(
@@ -21,10 +25,7 @@ async def convert_excel(
     sheet_name: str = Form(...),
     vtype: str = Form("sale")
 ):
-    """
-    Convert uploaded Excel file to Tally XML.
-    Returns the XML file with a custom header X-Records-Processed.
-    """
+    """Convert uploaded Excel file to Tally XML."""
     if not file.filename.endswith(('.xlsx', '.xls')):
         raise HTTPException(400, "Only Excel files (.xlsx, .xls) are allowed")
 
@@ -32,7 +33,6 @@ async def convert_excel(
         file_bytes = await file.read()
         xml_content, count = excel_to_xml(file_bytes, sheet_name, vtype)
 
-        # Return XML as downloadable file
         return Response(
             content=xml_content,
             media_type="application/xml",
@@ -45,7 +45,6 @@ async def convert_excel(
         logging.error(f"Conversion failed: {e}")
         raise HTTPException(500, f"Conversion failed: {str(e)}")
 
-# ---------- Mapping endpoints for the web editor ----------
 @app.get("/api/mapping")
 async def get_mapping():
     """Return the current mapping JSON."""
