@@ -4,14 +4,17 @@ import os
 import shutil
 
 from core import convert_menu
-from core.mapping import load_mapping_json
+from core.mapping import get_company_mapping   # new import
 
-def excel_to_xml(file_bytes: bytes, sheet_name: str, vtype: str) -> tuple[str, int]:
+def excel_to_xml(file_bytes: bytes, sheet_name: str, vtype: str, company: str = "Default") -> tuple[str, int]:
+    """
+    Convert Excel data to Tally XML using the mapping of the specified company.
+    """
     # 1. Read Excel from bytes
     df = pd.read_excel(file_bytes, sheet_name=sheet_name).fillna("")
 
-    # 2. Load mapping
-    mapping = load_mapping_json()
+    # 2. Load mapping for the selected company
+    mapping = get_company_mapping(company)
 
     # 3. Create temporary output directory
     out_dir = tempfile.mkdtemp()
