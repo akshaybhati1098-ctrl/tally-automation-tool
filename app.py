@@ -37,14 +37,20 @@ def load_users():
     return users
 
 # Session middleware (needed for login)
+# First define AuthMiddleware class (keep its definition unchanged)
+class AuthMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        # ... your existing code (no changes) ...
+
+# Then add middlewares in the correct order:
+# AuthMiddleware first (so it runs after SessionMiddleware)
+app.add_middleware(AuthMiddleware)
+
+# SessionMiddleware second (so it runs before AuthMiddleware)
 app.add_middleware(
     SessionMiddleware,
     secret_key=os.getenv("SESSION_SECRET", "default-insecure-change-me")
 )
-
-# Authentication middleware - protects all routes
-class AuthMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
         # Don't require authentication for static files and login page
         if request.url.path.startswith("/static") or request.url.path == "/login":
             return await call_next(request)
