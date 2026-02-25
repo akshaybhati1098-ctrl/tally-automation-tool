@@ -319,3 +319,16 @@ input[type="radio"]:checked + .voucher-type-btn {
         flex-direction: column;
     }
 }/* excel to xml page styles */
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+}
+.btn-secondary:hover {
+    background: #5a6268;
+}
+.dark-theme .btn-secondary {
+    background: #4b5563;
+}
+.dark-theme .btn-secondary:hover {
+    background: #374151;
+}
