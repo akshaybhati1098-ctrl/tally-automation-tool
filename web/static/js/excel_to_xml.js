@@ -1,17 +1,4 @@
 // excel_to_xml.js
-// ---------- STATE ----------
-let companies = [];
-let currentCompany = null;
-let currentMapping = null;
-let currentGroup = null;
-let currentModalGroup = null;   // for add rate
-let editGroup = null;           // for edit rate
-let editRateKey = null;         // for edit rate
-let deleteGroup = null;         // for delete rate
-let deleteRateKey = null;       // for delete rate
-let companyModalMode = 'add';   // 'add' or 'rename'
-let oldCompanyName = null;
-
 // ---------- EXCEL TO XML: COMPANY & SHEET DETECTION ----------
 const fileInput = document.getElementById('fileInput');
 const sheetSelect = document.getElementById('sheetSelect');
@@ -360,8 +347,8 @@ function renderRateList(group) {
                     item.innerHTML = `
                         <span><b>${rate}%</b> → ${ledger}</span>
                         <div class="rate-actions">
-                            <button class="btn-edit" onclick="openEditRateModal('${group}', '${rate}', '${ledger}')">✏️</button>
-                            <button class="btn-delete" onclick="openDeleteRateModal('${group}', '${rate}')">🗑️</button>
+                            <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')">✏️</button>
+                            <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')">🗑️</button>
                         </div>
                     `;
                     rateListDiv.appendChild(item);
@@ -372,7 +359,6 @@ function renderRateList(group) {
     }
 }
 
-// ---------- ADD RATE MODAL ----------
 function addRate(group) {
     currentModalGroup = group;
     const modal = document.getElementById('rateModal');
@@ -417,6 +403,7 @@ if (modalOkBtn) {
         currentMapping[group][rateKey] = ledger;
 
         renderRateList(group);
+
         modal.classList.remove('show');
         currentModalGroup = null;
     });
@@ -430,118 +417,29 @@ if (modalCancelBtn) {
     });
 }
 
-// ---------- EDIT RATE MODAL ----------
-function openEditRateModal(group, rate, ledger) {
-    editGroup = group;
-    editRateKey = rate;
-    document.getElementById('editModalRate').value = rate;
-    document.getElementById('editModalLedger').value = ledger;
-    document.getElementById('editRateModal').classList.add('show');
-}
-
-const editModalOkBtn = document.getElementById('editModalOkBtn');
-if (editModalOkBtn) {
-    editModalOkBtn.addEventListener('click', () => {
-        const rateInput = document.getElementById('editModalRate');
-        const ledgerInput = document.getElementById('editModalLedger');
-        const newRate = rateInput.value.trim();
-        const newLedger = ledgerInput.value.trim();
-
-        if (!newRate || !newLedger) {
-            alert('Please fill both fields');
-            return;
-        }
-
-        const floatRate = parseFloat(newRate);
-        if (isNaN(floatRate) || floatRate < 0 || floatRate > 100) {
-            alert('Invalid rate (must be between 0 and 100)');
-            return;
-        }
-
-        if (!editGroup || !editRateKey) {
-            alert('No rate selected for editing');
-            document.getElementById('editRateModal').classList.remove('show');
-            return;
-        }
-
-        // If rate changed, delete old key and add new one
-        if (newRate !== editRateKey) {
-            delete currentMapping[editGroup][editRateKey];
-            currentMapping[editGroup][newRate] = newLedger;
-        } else {
-            currentMapping[editGroup][editRateKey] = newLedger;
-        }
-
-        renderRateList(editGroup);
-        document.getElementById('editRateModal').classList.remove('show');
-        editGroup = null;
-        editRateKey = null;
-    });
-}
-
-const editModalCancelBtn = document.getElementById('editModalCancelBtn');
-if (editModalCancelBtn) {
-    editModalCancelBtn.addEventListener('click', () => {
-        document.getElementById('editRateModal').classList.remove('show');
-        editGroup = null;
-        editRateKey = null;
-    });
-}
-
-// ---------- DELETE CONFIRMATION MODAL ----------
-function openDeleteRateModal(group, rate) {
-    deleteGroup = group;
-    deleteRateKey = rate;
-    document.getElementById('deleteRateValue').textContent = rate;
-    document.getElementById('deleteRateModal').classList.add('show');
-}
-
-const deleteModalConfirmBtn = document.getElementById('deleteModalConfirmBtn');
-if (deleteModalConfirmBtn) {
-    deleteModalConfirmBtn.addEventListener('click', () => {
-        if (deleteGroup && deleteRateKey) {
-            delete currentMapping[deleteGroup][deleteRateKey];
-            renderRateList(deleteGroup);
-        }
-        document.getElementById('deleteRateModal').classList.remove('show');
-        deleteGroup = null;
-        deleteRateKey = null;
-    });
-}
-
-const deleteModalCancelBtn = document.getElementById('deleteModalCancelBtn');
-if (deleteModalCancelBtn) {
-    deleteModalCancelBtn.addEventListener('click', () => {
-        document.getElementById('deleteRateModal').classList.remove('show');
-        deleteGroup = null;
-        deleteRateKey = null;
-    });
-}
-
-// ---------- CLOSE MODALS ON OUTSIDE CLICK ----------
 window.addEventListener('click', (e) => {
     const rateModal = document.getElementById('rateModal');
     if (e.target === rateModal) {
         rateModal.classList.remove('show');
         currentModalGroup = null;
     }
-
-    const editModal = document.getElementById('editRateModal');
-    if (e.target === editModal) {
-        editModal.classList.remove('show');
-        editGroup = null;
-        editRateKey = null;
-    }
-
-    const deleteModal = document.getElementById('deleteRateModal');
-    if (e.target === deleteModal) {
-        deleteModal.classList.remove('show');
-        deleteGroup = null;
-        deleteRateKey = null;
-    }
 });
 
-// ---------- SAVE MAPPING ----------
+window.editRate = function(group, rate, oldLedger) {
+    const newLedger = prompt(`Edit ledger for ${rate}%:`, oldLedger);
+    if (newLedger) {
+        currentMapping[group][rate] = newLedger;
+        renderRateList(group);
+    }
+};
+
+window.deleteRate = function(group, rate) {
+    if (confirm(`Delete mapping for ${rate}%?`)) {
+        delete currentMapping[group][rate];
+        renderRateList(group);
+    }
+};
+
 const saveMappingBtn = document.getElementById('saveMappingBtn');
 if (saveMappingBtn) {
     saveMappingBtn.addEventListener('click', async () => {
@@ -563,7 +461,6 @@ if (saveMappingBtn) {
     });
 }
 
-// ---------- COMPANY MANAGEMENT ----------
 const addCompanyBtn = document.getElementById('addCompanyBtn');
 if (addCompanyBtn) {
     addCompanyBtn.addEventListener('click', () => {
@@ -698,7 +595,6 @@ if (deleteCompanyBtn) {
     });
 }
 
-// ---------- INIT ----------
 if (document.getElementById('companyList')) {
     loadCompaniesForMapping();
 }
