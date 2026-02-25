@@ -119,7 +119,7 @@ body.dark-theme {
     color: #60A5FA;
 }
 
-/* Buttons - enhanced */
+/* Buttons */
 .btn {
     padding: 0.6rem 1.2rem;
     border-radius: 6px;
@@ -128,17 +128,6 @@ body.dark-theme {
     font-size: 0.9rem;
     cursor: pointer;
     transition: all 0.2s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-}
-
-.btn:active {
-    transform: translateY(0);
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
 .btn-primary {
@@ -207,12 +196,6 @@ body.dark-theme {
 
 .dark-theme .btn-danger:hover {
     background: #B91C1C;
-}
-
-/* Small button variant */
-.btn-sm {
-    padding: 0.3rem 0.8rem;
-    font-size: 0.85rem;
 }
 
 /* Forms */
@@ -313,6 +296,7 @@ input[type="radio"]:checked + .voucher-type-btn {
     color: white;
 }
 
+/* Dark theme overrides for voucher type buttons */
 .dark-theme .voucher-type-btn {
     background: #1E293B;
     border-color: #475569;
@@ -466,161 +450,75 @@ input[type="radio"]:checked + .voucher-type-btn {
     color: #F1F5F9;
 }
 
-/* Mapping editor improvements */
-.company-panel {
-    flex: 0 0 280px;
-    background: #F8FAFC;
-    border-radius: 12px;
-    padding: 1.2rem;
-    transition: background-color 0.3s;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+/* Mapping editor */
+.mapping-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
 }
 
-.dark-theme .company-panel {
+.group-list {
+    flex: 0 0 250px;
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .group-list {
     background: #1E293B;
 }
 
-.company-panel h4 {
+.group-list h4 {
     color: #0F52BA;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
     margin-bottom: 1rem;
 }
 
-.dark-theme .company-panel h4 {
+.dark-theme .group-list h4 {
     color: #60A5FA;
 }
 
-.company-list {
-    max-height: 400px;
-    overflow-y: auto;
-    margin-bottom: 1rem;
-}
-
-.company-list .group-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 0.8rem;
-    border-radius: 6px;
-    margin-bottom: 0.2rem;
+.group-item {
+    padding: 0.6rem;
+    border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
+    margin-bottom: 0.2rem;
+    transition: background-color 0.2s;
 }
 
-.company-list .group-item:hover {
+.group-item:hover {
     background: #E2E8F0;
 }
 
-.dark-theme .company-list .group-item:hover {
+.dark-theme .group-item:hover {
     background: #334155;
 }
 
-.company-list .group-item.active {
+.group-item.active {
     background: #0F52BA;
     color: white;
 }
 
-.dark-theme .company-list .group-item.active {
+.dark-theme .group-item.active {
     background: #2563EB;
 }
 
-/* Add Company button - make it prominent */
-#addCompanyBtn {
-    width: 100%;
-    margin-top: 0.5rem;
-    font-weight: 600;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.mapping-panel {
+.rate-editor {
     flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
-
-.group-panel {
     background: #F8FAFC;
-    border-radius: 12px;
-    padding: 1.2rem;
+    border-radius: 8px;
+    padding: 1rem;
     transition: background-color 0.3s;
 }
 
-.dark-theme .group-panel {
+.dark-theme .rate-editor {
     background: #1E293B;
-}
-
-.group-panel h4 {
-    color: #0F52BA;
-    font-size: 1.1rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-}
-
-.dark-theme .group-panel h4 {
-    color: #60A5FA;
-}
-
-.company-name {
-    font-weight: 600;
-    color: #1E293B;
-    background: rgba(15,82,186,0.1);
-    padding: 0.2rem 0.5rem;
-    border-radius: 4px;
-}
-
-.dark-theme .company-name {
-    color: #F1F5F9;
-    background: rgba(96,165,250,0.2);
-}
-
-/* Rename/Delete buttons container */
-.group-panel .btn-warning,
-.group-panel .btn-danger {
-    margin-left: 0.5rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.rate-panel {
-    background: #F8FAFC;
-    border-radius: 12px;
-    padding: 1.2rem;
-    transition: background-color 0.3s;
-}
-
-.dark-theme .rate-panel {
-    background: #1E293B;
-}
-
-.rate-panel h4 {
-    color: #0F52BA;
-    margin-bottom: 1rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-}
-
-.dark-theme .rate-panel h4 {
-    color: #60A5FA;
 }
 
 .rate-list {
     margin: 1rem 0;
     max-height: 400px;
     overflow-y: auto;
-    border: 1px solid #E2E8F0;
-    border-radius: 6px;
-    padding: 0.5rem;
-    background: white;
-}
-
-.dark-theme .rate-list {
-    background: #0F172A;
-    border-color: #334155;
 }
 
 .rate-item {
@@ -636,7 +534,7 @@ input[type="radio"]:checked + .voucher-type-btn {
 }
 
 .dark-theme .rate-item {
-    background: #1E293B;
+    background: #0F172A;
     border-color: #334155;
     color: #F1F5F9;
 }
@@ -647,75 +545,8 @@ input[type="radio"]:checked + .voucher-type-btn {
     border: none;
     border-radius: 4px;
     cursor: pointer;
-    transition: all 0.2s;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.rate-actions button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.15);
-}
-
-/* Icon styles */
-.icon {
-    font-style: normal;
-    font-size: 1.2rem;
-}
-
-/* Modal styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
-}
-
-.modal.show {
-    display: flex;
-}
-
-.modal-content {
-    background: white;
-    border-radius: 12px;
-    padding: 2rem;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.dark-theme .modal-content {
-    background: #1E293B;
-    border: 1px solid #334155;
-}
-
-.modal-content h3 {
-    color: #0F52BA;
-    margin-bottom: 1.5rem;
-    font-size: 1.3rem;
-}
-
-.dark-theme .modal-content h3 {
-    color: #60A5FA;
-}
-
-.modal-actions {
-    display: flex;
-    gap: 1rem;
-    margin-top: 1.5rem;
-    justify-content: flex-end;
-}
-
-.modal-actions .btn {
-    min-width: 80px;
-}
-
-/* Mapping editor specific buttons */
 .btn-edit {
     background: #3B82F6;
     color: white;
@@ -732,12 +563,6 @@ input[type="radio"]:checked + .voucher-type-btn {
 
 .dark-theme .btn-delete {
     background: #DC2626;
-}
-
-/* Make action buttons in group panel more visible */
-.group-panel .btn-warning,
-.group-panel .btn-danger {
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
 }
 
 /* Responsive */
