@@ -259,6 +259,61 @@ input:focus, select:focus, textarea:focus {
     font-weight: normal;
 }
 
+/* Voucher type button group */
+.voucher-type-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.voucher-type-group input[type="radio"] {
+    display: none;
+}
+
+.voucher-type-btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    background: white;
+    border: 2px solid #CBD5E1;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1 1 auto;
+    text-align: center;
+    color: #1E293B;
+}
+
+.voucher-type-btn:hover {
+    background: #F1F5F9;
+    border-color: #94A3B8;
+}
+
+input[type="radio"]:checked + .voucher-type-btn {
+    background: #0F52BA;
+    border-color: #0F52BA;
+    color: white;
+}
+
+/* Dark theme overrides for voucher type buttons */
+.dark-theme .voucher-type-btn {
+    background: #1E293B;
+    border-color: #475569;
+    color: #F1F5F9;
+}
+
+.dark-theme .voucher-type-btn:hover {
+    background: #334155;
+    border-color: #64748B;
+}
+
+.dark-theme input[type="radio"]:checked + .voucher-type-btn {
+    background: #2563EB;
+    border-color: #2563EB;
+    color: white;
+}
+
 .progress {
     height: 6px;
     background: #E2E8F0;
@@ -395,103 +450,191 @@ input:focus, select:focus, textarea:focus {
     color: #F1F5F9;
 }
 
-/* Mapping editor */
-.mapping-container {
-    display: flex;
-    gap: 2rem;
-    flex-wrap: wrap;
-}
-
-.group-list {
-    flex: 0 0 250px;
+/* Mapping editor improvements */
+.company-panel {
+    flex: 0 0 280px;
     background: #F8FAFC;
-    border-radius: 8px;
-    padding: 1rem;
+    border-radius: 12px;
+    padding: 1.2rem;
     transition: background-color 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.dark-theme .group-list {
+.dark-theme .company-panel {
     background: #1E293B;
 }
 
-.group-list h4 {
+.company-panel h4 {
     color: #0F52BA;
-    margin-bottom: 1rem;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
 }
 
-.dark-theme .group-list h4 {
+.dark-theme .company-panel h4 {
     color: #60A5FA;
 }
 
-.group-item {
-    padding: 0.6rem;
-    border-radius: 4px;
-    cursor: pointer;
-    margin-bottom: 0.2rem;
-    transition: background-color 0.2s;
+.company-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
 }
 
-.group-item:hover {
+.company-list .group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.company-list .group-item:hover {
     background: #E2E8F0;
 }
 
-.dark-theme .group-item:hover {
+.dark-theme .company-list .group-item:hover {
     background: #334155;
 }
 
-.group-item.active {
+.company-list .group-item.active {
     background: #0F52BA;
     color: white;
 }
 
-.dark-theme .group-item.active {
+.dark-theme .company-list .group-item.active {
     background: #2563EB;
 }
 
-.rate-editor {
+.btn-sm {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.mapping-panel {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.group-panel {
     background: #F8FAFC;
-    border-radius: 8px;
-    padding: 1rem;
+    border-radius: 12px;
+    padding: 1.2rem;
     transition: background-color 0.3s;
 }
 
-.dark-theme .rate-editor {
+.dark-theme .group-panel {
     background: #1E293B;
 }
 
-.rate-list {
-    margin: 1rem 0;
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.rate-item {
+.group-panel h4 {
+    color: #0F52BA;
+    font-size: 1.1rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 0.6rem;
-    background: white;
-    border: 1px solid #E2E8F0;
-    border-radius: 4px;
-    margin-bottom: 0.3rem;
-    transition: background-color 0.3s, border-color 0.3s;
+    gap: 0.5rem;
 }
 
-.dark-theme .rate-item {
-    background: #0F172A;
-    border-color: #334155;
+.dark-theme .group-panel h4 {
+    color: #60A5FA;
+}
+
+.company-name {
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.dark-theme .company-name {
     color: #F1F5F9;
 }
 
-.rate-actions button {
-    padding: 0.3rem 0.6rem;
-    margin-left: 0.3rem;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
+.rate-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
 }
 
+.dark-theme .rate-panel {
+    background: #1E293B;
+}
+
+.rate-panel h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.dark-theme .rate-panel h4 {
+    color: #60A5FA;
+}
+
+/* Icon styles */
+.icon {
+    font-style: normal;
+    font-size: 1.2rem;
+}
+
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.dark-theme .modal-content {
+    background: #1E293B;
+    border: 1px solid #334155;
+}
+
+.modal-content h3 {
+    color: #0F52BA;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.dark-theme .modal-content h3 {
+    color: #60A5FA;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    justify-content: flex-end;
+}
+
+.modal-actions .btn {
+    min-width: 80px;
+}
+
+/* Mapping editor specific buttons */
 .btn-edit {
     background: #3B82F6;
     color: white;
