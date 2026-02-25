@@ -170,7 +170,34 @@ async def remove_company(company: str):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to delete company: {str(e)}")
+# =========================================================
+# Rename company
+# =========================================================
+@app.put("/api/companies/{old_name}")
+async def rename_company(old_name: str, new_name: str = Form(...)):
+    """Rename an existing company. Cannot rename 'Default'."""
+    if old_name == "Default":
+        raise HTTPException(400, "Cannot rename the Default company")
+    try:
+        full = load_full_mapping()
+        if old_name not in full["companies"]:
+            raise HTTPException(404, f"Company '{old_name}' not found")
+        if new_name in full["companies"]:
+            raise HTTPException(400, f"Company '{new_name}' already exists")
 
+        # Update the companies list
+        idx = full["companies"].index(old_name)
+        full["companies"][idx] = new_name
+
+        # Rename the key in the mappings dictionary
+        full["mappings"][new_name] = full["mappings"].pop(old_name)
+
+        save_full_mapping(full)
+        return {"status": "success", "message": f"Company renamed to '{new_name}'"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(500, f"Failed to rename company: {str(e)}")
 # =========================================================
 # Per‑company mapping endpoints
 # =========================================================

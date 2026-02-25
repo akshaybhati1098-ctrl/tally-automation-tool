@@ -4,26 +4,33 @@
     </div>
     <div class="mapping-container" style="display: flex; gap: 2rem;">
         <!-- Left: Company List -->
-        <div class="company-list" style="flex: 0 0 250px; background: #F8FAFC; border-radius: 8px; padding: 1rem;">
-            <h4 style="color: #0F52BA; margin-bottom: 1rem;">Companies</h4>
-            <div id="companyList"></div>
-            <button class="btn btn-success" id="addCompanyBtn" style="width: 100%; margin-top: 1rem;">➕ Add Company</button>
+        <div class="company-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                <h4><i class="icon">🏢</i> Companies</h4>
+                <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
+            </div>
+            <div id="companyList" class="company-list"></div>
         </div>
 
         <!-- Right: Mapping Editor for selected company -->
-        <div style="flex: 1;">
-            <div class="group-list" style="background: #F8FAFC; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
-                <h4 style="color: #0F52BA; margin-bottom: 1rem;">Ledger Groups for <span id="selectedCompany">Select a company</span></h4>
-                <div id="groupList"></div>
+        <div class="mapping-panel">
+            <div class="group-panel">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <h4><i class="icon">📋</i> Ledger Groups for <span id="selectedCompany" class="company-name">Select a company</span></h4>
+                    <div>
+                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn" title="Rename company" style="display: none;">✏️ Rename</button>
+                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn" title="Delete company" style="display: none;">🗑️ Delete</button>
+                    </div>
+                </div>
+                <div id="groupList" class="group-list"></div>
             </div>
 
-            <div class="rate-editor" style="background: #F8FAFC; border-radius: 8px; padding: 1rem;">
+            <div class="rate-panel">
                 <h4 id="currentGroupTitle">Select a group</h4>
                 <div id="rateList" class="rate-list"></div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                     <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
                     <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
-                    <button class="btn btn-danger" id="deleteCompanyBtn" style="display: none;">🗑️ Delete Company</button>
                 </div>
             </div>
         </div>
