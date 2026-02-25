@@ -3,6 +3,7 @@ let companies = [];
 let currentCompany = null;
 let currentMapping = null;   // mapping for the selected company
 let currentGroup = null;
+let currentModalGroup = null; // group for which we are adding a rate
 let settings = {
     theme: 'light',
     default_vtype: 'sale',
@@ -287,9 +288,12 @@ async function selectCompany(name) {
             break;
         }
     }
-    // Show delete button only if not Default
+    // Show rename/delete only if not Default
+    const isDefault = (name === 'Default');
     const deleteBtn = document.getElementById('deleteCompanyBtn');
-    if (deleteBtn) deleteBtn.style.display = (name === 'Default') ? 'none' : 'inline-block';
+    if (deleteBtn) deleteBtn.style.display = isDefault ? 'none' : 'inline-block';
+    const renameBtn = document.getElementById('renameCompanyBtn');
+    if (renameBtn) renameBtn.style.display = isDefault ? 'none' : 'inline-block';
 
     // Load mapping for this company
     try {
@@ -378,19 +382,84 @@ function renderRateList(group) {
 }
 
 function addRate(group) {
-    const rate = prompt('Enter GST Rate (%):', '');
-    if (!rate) return;
-    const floatRate = parseFloat(rate);
-    if (isNaN(floatRate) || floatRate < 0 || floatRate > 100) {
-        alert('Invalid rate');
+    currentModalGroup = group;
+    const modal = document.getElementById('rateModal');
+    const rateInput = document.getElementById('modalRate');
+    const ledgerInput = document.getElementById('modalLedger');
+    
+    // Clear previous values
+    rateInput.value = '';
+    ledgerInput.value = '';
+    
+    // Show modal
+    modal.classList.add('show');
+}
+
+// Modal OK button
+document.getElementById('modalOkBtn').addEventListener('click', () => {
+    const modal = document.getElementById('rateModal');
+    const rateInput = document.getElementById('modalRate');
+    const ledgerInput = document.getElementById('modalLedger');
+    const rate = rateInput.value.trim();
+    const ledger = ledgerInput.value.trim();
+    
+    if (!rate || !ledger) {
+        alert('Please fill both fields');
         return;
     }
-    const ledger = prompt('Enter Ledger Name:', '');
-    if (!ledger) return;
+    
+    const floatRate = parseFloat(rate);
+    if (isNaN(floatRate) || floatRate < 0 || floatRate > 100) {
+        alert('Invalid rate (must be between 0 and 100)');
+        return;
+    }
+    
+    const group = currentModalGroup;
+    if (!group) {
+        alert('No group selected');
+        modal.classList.remove('show');
+        return;
+    }
+    
     const rateKey = String(floatRate);
     if (!currentMapping[group]) currentMapping[group] = {};
     currentMapping[group][rateKey] = ledger;
+    
+    // Refresh the rate list
     renderRateList(group);
+    
+    // Hide modal
+    modal.classList.remove('show');
+    currentModalGroup = null;
+});
+
+// Modal Cancel button
+document.getElementById('modalCancelBtn').addEventListener('click', () => {
+    document.getElementById('rateModal').classList.remove('show');
+    currentModalGroup = null;
+});
+
+// Close modal when clicking outside
+window.addEventListener('click', (e) => {
+    const modal = document.getElementById('rateModal');
+    if (e.target === modal) {
+        modal.classList.remove('show');
+        currentModalGroup = null;
+    }
+});
+
+function addRate(group) {
+    currentModalGroup = group;
+    const modal = document.getElementById('rateModal');
+    const rateInput = document.getElementById('modalRate');
+    const ledgerInput = document.getElementById('modalLedger');
+    
+    // Clear previous values
+    rateInput.value = '';
+    ledgerInput.value = '';
+    
+    // Show modal
+    modal.classList.add('show');
 }
 
 window.editRate = function(group, rate, oldLedger) {
@@ -426,7 +495,7 @@ document.getElementById('saveMappingBtn').addEventListener('click', async () => 
     }
 });
 
-// UPDATED: Add Company button now auto-selects the new company
+// Add Company button
 document.getElementById('addCompanyBtn')?.addEventListener('click', async () => {
     const name = prompt('Enter new company name:');
     if (!name) return;
@@ -438,7 +507,7 @@ document.getElementById('addCompanyBtn')?.addEventListener('click', async () => 
             body: formData
         });
         if (response.ok) {
-            await loadCompaniesForMapping();    // reload list (will select first company by default)
+            await loadCompaniesForMapping();
             // Automatically select the newly created company
             await selectCompany(name);
             // Also refresh the converter dropdown
@@ -452,6 +521,7 @@ document.getElementById('addCompanyBtn')?.addEventListener('click', async () => 
     }
 });
 
+// Delete Company button
 document.getElementById('deleteCompanyBtn')?.addEventListener('click', async () => {
     if (!currentCompany || currentCompany === 'Default') return;
     if (!confirm(`Are you sure you want to delete company "${currentCompany}"?`)) return;
@@ -465,6 +535,39 @@ document.getElementById('deleteCompanyBtn')?.addEventListener('click', async () 
         } else {
             const err = await response.text();
             alert('Failed to delete company: ' + err);
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
+// Rename Company button
+document.getElementById('renameCompanyBtn')?.addEventListener('click', async () => {
+    if (!currentCompany || currentCompany === 'Default') {
+        alert('Cannot rename the Default company');
+        return;
+    }
+    const newName = prompt('Enter new company name:', currentCompany);
+    if (!newName || newName === currentCompany) return;
+
+    const formData = new FormData();
+    formData.append('new_name', newName);
+
+    try {
+        const response = await fetch(`/api/companies/${encodeURIComponent(currentCompany)}`, {
+            method: 'PUT',
+            body: formData
+        });
+        if (response.ok) {
+            // Refresh company list
+            await loadCompaniesForMapping();
+            // Select the renamed company
+            await selectCompany(newName);
+            // Also refresh converter dropdown
+            await loadCompaniesForConverter();
+        } else {
+            const err = await response.text();
+            alert('Failed to rename company: ' + err);
         }
     } catch (err) {
         alert('Error: ' + err.message);

@@ -36,3 +36,22 @@
         </div>
     </div>
 </div>
+
+<!-- Add Rate Modal -->
+<div id="rateModal" class="modal">
+    <div class="modal-content">
+        <h3>Add GST Rate</h3>
+        <div class="form-group">
+            <label for="modalRate">GST Rate (%)</label>
+            <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
+        </div>
+        <div class="form-group">
+            <label for="modalLedger">Ledger Name</label>
+            <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-success" id="modalOkBtn">OK</button>
+            <button class="btn btn-danger" id="modalCancelBtn">Cancel</button>
+        </div>
+    </div>
+</div>
