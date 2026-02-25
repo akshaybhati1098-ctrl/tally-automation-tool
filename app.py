@@ -22,7 +22,6 @@ app = FastAPI(title="Tally Automation Tool")
 # Authentication Setup
 # -------------------------
 
-# Load users from environment variables (set in Hugging Face Secrets)
 def load_users():
     """Read USERx_NAME and USERx_PASSWORD from environment variables."""
     users = {}
@@ -36,24 +35,13 @@ def load_users():
         i += 1
     return users
 
-# First define AuthMiddleware class (keep its definition unchanged)
+# Authentication middleware
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        # ... your existing code (no changes) ...
-
-# Then add middlewares in the correct order:
-# AuthMiddleware first (so it runs after SessionMiddleware)
-app.add_middleware(AuthMiddleware)
-
-# SessionMiddleware second (so it runs before AuthMiddleware)
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=os.getenv("SESSION_SECRET", "default-insecure-change-me")
-)
         # Don't require authentication for static files and login page
         if request.url.path.startswith("/static") or request.url.path == "/login":
             return await call_next(request)
-        
+
         # Check if user is logged in
         user = request.session.get("user")
         if not user:
@@ -62,11 +50,18 @@ app.add_middleware(
                 return JSONResponse(status_code=401, content={"detail": "Not authenticated"})
             # Web requests get redirected to login
             return RedirectResponse(url="/login", status_code=302)
-        
+
         # User is authenticated, proceed
         return await call_next(request)
 
+# Add middlewares in correct order: AuthMiddleware first (runs after SessionMiddleware)
 app.add_middleware(AuthMiddleware)
+
+# SessionMiddleware must be added after AuthMiddleware to run first
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=os.getenv("SESSION_SECRET", "default-insecure-change-me")
+)
 
 # Load users on startup
 @app.on_event("startup")
@@ -75,6 +70,12 @@ async def startup_event():
     if not users:
         logging.warning("No users defined in secrets. Authentication will reject all logins.")
     app.state.users = users
+
+# -------------------------
+# Static files & templates
+# -------------------------
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
+templates = Jinja2Templates(directory="web/templates")
 
 # -------------------------
 # Login Routes
@@ -103,12 +104,6 @@ async def logout(request: Request):
     """Clear session and redirect to login."""
     request.session.clear()
     return RedirectResponse(url="/login", status_code=302)
-
-# -------------------------
-# Static files & templates
-# -------------------------
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
-templates = Jinja2Templates(directory="web/templates")
 
 # -------------------------
 # Helper functions for multi‑company mapping
