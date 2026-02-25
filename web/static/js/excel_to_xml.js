@@ -14,12 +14,11 @@ async function loadCompaniesForConverter() {
         companies = data.companies;
         companySelect.innerHTML = '<option value="">-- Select company --</option>';
         companies.forEach(c => {
-    const name = c.name ?? c;   // supports string or object
-    const opt = document.createElement('option');
-    opt.value = name;
-    opt.textContent = name;
-    companySelect.appendChild(opt);
-});
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            companySelect.appendChild(opt);
+        });
     } catch (err) {
         console.error('Failed to load companies', err);
     }
