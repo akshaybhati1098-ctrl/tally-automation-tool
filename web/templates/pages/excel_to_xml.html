@@ -2,26 +2,51 @@
     <div class="card-header">
         <h3>Excel to XML Converter</h3>
     </div>
+
     <form id="convertForm">
+        <!-- Excel file -->
         <div class="form-group">
             <label>Excel File</label>
-            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput">
+            <input
+                type="file"
+                name="file"
+                id="excelFileInput"
+                accept=".xlsx,.xls"
+                required
+            >
         </div>
+
+        <!-- Sheet name (auto populated) -->
         <div class="form-group">
             <label>Sheet Name</label>
-            <input type="text" name="sheet_name" value="Sheet1" required>
+            <select name="sheet_name" id="sheetNameSelect" required>
+                <option value="">-- Select Sheet --</option>
+            </select>
         </div>
+
+        <!-- Voucher type -->
         <div class="form-group">
             <label>Voucher Type</label>
             <div class="radio-group">
-                <label><input type="radio" name="vtype" value="sale" checked> Sales Invoice</label>
-                <label><input type="radio" name="vtype" value="purchase"> Purchase Invoice</label>
+                <label>
+                    <input type="radio" name="vtype" value="sale" checked>
+                    Sales Invoice
+                </label>
+                <label>
+                    <input type="radio" name="vtype" value="purchase">
+                    Purchase Invoice
+                </label>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;">Generate XML</button>
+
+        <button type="submit" class="btn btn-primary" style="width: 100%;">
+            Generate XML
+        </button>
     </form>
+
     <div class="progress" id="progress">
         <div class="progress-bar" id="progressBar"></div>
     </div>
+
     <div id="message" class="message"></div>
 </div>
