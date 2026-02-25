@@ -368,14 +368,13 @@ function renderRateList(group) {
                 .forEach(([rate, ledger]) => {
                     const item = document.createElement('div');
                     item.className = 'rate-item';
-                    item.innerHTML = `
-                        <span><b>${rate}%</b> → ${ledger}</span>
-                        <div class="rate-actions">
-                            <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')">✏️</button>
-                            <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')">🗑️</button>
-                        </div>
-                    `;
-                    rateListDiv.appendChild(item);
+                     item.innerHTML = `
+    <span><b>${rate}%</b> → ${ledger}</span>
+    <div class="rate-actions">
+        <button class="btn-edit" onclick="editRate('${group}', '${rate}', '${ledger}')" title="Edit rate">✏️</button>
+        <button class="btn-delete" onclick="deleteRate('${group}', '${rate}')" title="Delete rate">🗑️</button>
+    </div>
+`;                  rateListDiv.appendChild(item);
                 });
         }
         addBtn.textContent = '➕ Add Rate';
