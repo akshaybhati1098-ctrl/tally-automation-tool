@@ -583,6 +583,136 @@ input[type="radio"]:checked + .voucher-type-btn {
 .dark-theme .btn-delete {
     background: #DC2626;
 }
+/* Mapping editor improvements */
+.company-panel {
+    flex: 0 0 280px;
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dark-theme .company-panel {
+    background: #1E293B;
+}
+
+.company-panel h4 {
+    color: #0F52BA;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dark-theme .company-panel h4 {
+    color: #60A5FA;
+}
+
+.company-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+}
+
+.company-list .group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.company-list .group-item:hover {
+    background: #E2E8F0;
+}
+
+.dark-theme .company-list .group-item:hover {
+    background: #334155;
+}
+
+.company-list .group-item.active {
+    background: #0F52BA;
+    color: white;
+}
+
+.dark-theme .company-list .group-item.active {
+    background: #2563EB;
+}
+
+.btn-sm {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.mapping-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.group-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .group-panel {
+    background: #1E293B;
+}
+
+.group-panel h4 {
+    color: #0F52BA;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dark-theme .group-panel h4 {
+    color: #60A5FA;
+}
+
+.company-name {
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.dark-theme .company-name {
+    color: #F1F5F9;
+}
+
+.rate-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .rate-panel {
+    background: #1E293B;
+}
+
+.rate-panel h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.dark-theme .rate-panel h4 {
+    color: #60A5FA;
+}
+
+/* Icon styles */
+.icon {
+    font-style: normal;
+    font-size: 1.2rem;
+}
 
 /* Responsive */
 @media (max-width: 768px) {
