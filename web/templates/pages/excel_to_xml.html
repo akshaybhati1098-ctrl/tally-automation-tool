@@ -18,9 +18,12 @@
         </div>
         <div class="form-group">
             <label>Voucher Type</label>
-            <div class="radio-group">
-                <label><input type="radio" name="vtype" value="sale" checked> Sales Invoice</label>
-                <label><input type="radio" name="vtype" value="purchase"> Purchase Invoice</label>
+            <div class="voucher-type-group">
+                <input type="radio" name="vtype" id="vtype-sale" value="sale" checked>
+                <label for="vtype-sale" class="voucher-type-btn">🛒 Sales Invoice</label>
+
+                <input type="radio" name="vtype" id="vtype-purchase" value="purchase">
+                <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
             </div>
         </div>
         <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn" disabled>Generate XML</button>

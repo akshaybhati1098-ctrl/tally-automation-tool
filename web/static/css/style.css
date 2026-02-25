@@ -259,6 +259,61 @@ input:focus, select:focus, textarea:focus {
     font-weight: normal;
 }
 
+/* Voucher type button group */
+.voucher-type-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.voucher-type-group input[type="radio"] {
+    display: none;
+}
+
+.voucher-type-btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    background: white;
+    border: 2px solid #CBD5E1;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1 1 auto;
+    text-align: center;
+    color: #1E293B;
+}
+
+.voucher-type-btn:hover {
+    background: #F1F5F9;
+    border-color: #94A3B8;
+}
+
+input[type="radio"]:checked + .voucher-type-btn {
+    background: #0F52BA;
+    border-color: #0F52BA;
+    color: white;
+}
+
+/* Dark theme overrides for voucher type buttons */
+.dark-theme .voucher-type-btn {
+    background: #1E293B;
+    border-color: #475569;
+    color: #F1F5F9;
+}
+
+.dark-theme .voucher-type-btn:hover {
+    background: #334155;
+    border-color: #64748B;
+}
+
+.dark-theme input[type="radio"]:checked + .voucher-type-btn {
+    background: #2563EB;
+    border-color: #2563EB;
+    color: white;
+}
+
 .progress {
     height: 6px;
     background: #E2E8F0;
