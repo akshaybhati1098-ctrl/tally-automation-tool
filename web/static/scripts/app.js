@@ -46,7 +46,6 @@ const sheetLoading = document.getElementById('sheetLoading');
 const submitBtn = document.getElementById('submitBtn');
 const companySelect = document.getElementById('companySelect');
 
-// Load companies for the converter dropdown
 async function loadCompaniesForConverter() {
     try {
         const response = await fetch('/api/companies');
@@ -65,7 +64,6 @@ async function loadCompaniesForConverter() {
 }
 
 companySelect.addEventListener('change', () => {
-    // Enable submit only when file, sheet and company are selected
     submitBtn.disabled = !(fileInput.files.length && sheetSelect.value && companySelect.value);
 });
 
@@ -252,7 +250,6 @@ const groupNames = [
     'DEBUG'
 ];
 
-// Load companies for mapping page
 async function loadCompaniesForMapping() {
     try {
         const response = await fetch('/api/companies');
@@ -271,7 +268,7 @@ function renderCompanyList() {
     companyListDiv.innerHTML = '';
     companies.forEach(name => {
         const div = document.createElement('div');
-        div.className = 'group-item'; // reuse group-item style
+        div.className = 'group-item';
         div.textContent = name;
         div.onclick = () => selectCompany(name);
         companyListDiv.appendChild(div);
@@ -429,6 +426,7 @@ document.getElementById('saveMappingBtn').addEventListener('click', async () => 
     }
 });
 
+// UPDATED: Add Company button now auto-selects the new company
 document.getElementById('addCompanyBtn')?.addEventListener('click', async () => {
     const name = prompt('Enter new company name:');
     if (!name) return;
@@ -440,8 +438,10 @@ document.getElementById('addCompanyBtn')?.addEventListener('click', async () => 
             body: formData
         });
         if (response.ok) {
-            await loadCompaniesForMapping();
-            // Also refresh converter dropdown
+            await loadCompaniesForMapping();    // reload list (will select first company by default)
+            // Automatically select the newly created company
+            await selectCompany(name);
+            // Also refresh the converter dropdown
             await loadCompaniesForConverter();
         } else {
             const err = await response.text();
@@ -461,7 +461,6 @@ document.getElementById('deleteCompanyBtn')?.addEventListener('click', async () 
         });
         if (response.ok) {
             await loadCompaniesForMapping();
-            // Also refresh converter dropdown
             await loadCompaniesForConverter();
         } else {
             const err = await response.text();
