@@ -374,3 +374,12 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
+@app.get("/")
+async def serve_ui(request: Request):
+    user = request.state.user
+    # Choose default page: dashboard if logged in, otherwise converter (or any other page)
+    default_page = "dashboard" if user else "converter"
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "default_page": default_page}
+    )
