@@ -2,17 +2,29 @@
     <div class="card-header">
         <h3>Ledger Mapping Editor</h3>
     </div>
-    <div class="mapping-container">
-        <div class="group-list">
-            <h4>Ledger Groups</h4>
-            <div id="groupList"></div>
+    <div class="mapping-container" style="display: flex; gap: 2rem;">
+        <!-- Left: Company List -->
+        <div class="company-list" style="flex: 0 0 250px; background: #F8FAFC; border-radius: 8px; padding: 1rem;">
+            <h4 style="color: #0F52BA; margin-bottom: 1rem;">Companies</h4>
+            <div id="companyList"></div>
+            <button class="btn btn-success" id="addCompanyBtn" style="width: 100%; margin-top: 1rem;">➕ Add Company</button>
         </div>
-        <div class="rate-editor">
-            <h4 id="currentGroupTitle">Select a group</h4>
-            <div id="rateList" class="rate-list"></div>
-            <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
-                <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
+
+        <!-- Right: Mapping Editor for selected company -->
+        <div style="flex: 1;">
+            <div class="group-list" style="background: #F8FAFC; border-radius: 8px; padding: 1rem; margin-bottom: 1rem;">
+                <h4 style="color: #0F52BA; margin-bottom: 1rem;">Ledger Groups for <span id="selectedCompany">Select a company</span></h4>
+                <div id="groupList"></div>
+            </div>
+
+            <div class="rate-editor" style="background: #F8FAFC; border-radius: 8px; padding: 1rem;">
+                <h4 id="currentGroupTitle">Select a group</h4>
+                <div id="rateList" class="rate-list"></div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
+                    <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
+                    <button class="btn btn-danger" id="deleteCompanyBtn" style="display: none;">🗑️ Delete Company</button>
+                </div>
             </div>
         </div>
     </div>

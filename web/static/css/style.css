@@ -511,10 +511,30 @@ input[type="radio"]:checked + .voucher-type-btn {
     transition: background-color 0.3s;
 }
 
+
 .dark-theme .rate-editor {
     background: #1E293B;
 }
+/* Company list (mapping editor) */
+.company-list {
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
 
+.dark-theme .company-list {
+    background: #1E293B;
+}
+
+.company-list h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+}
+
+.dark-theme .company-list h4 {
+    color: #60A5FA;
+}
 .rate-list {
     margin: 1rem 0;
     max-height: 400px;

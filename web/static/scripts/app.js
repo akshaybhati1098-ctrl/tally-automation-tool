@@ -1,5 +1,7 @@
 // ---------- STATE ----------
-let currentMapping = null;
+let companies = [];
+let currentCompany = null;
+let currentMapping = null;   // mapping for the selected company
 let currentGroup = null;
 let settings = {
     theme: 'light',
@@ -9,11 +11,8 @@ let settings = {
 
 // ---------- NAVIGATION ----------
 function navigateTo(pageId) {
-    // Hide all pages
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    // Show selected page
     document.getElementById(pageId).classList.add('active');
-    // Update active nav button
     document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
     document.querySelector(`.nav-link[data-page="${pageId}"]`).classList.add('active');
 }
@@ -32,7 +31,6 @@ function viewReports() {
 }
 
 async function loadActivity() {
-    // Simulate recent activity (in real app, could fetch from server logs)
     document.getElementById('activityLog').innerHTML = `
         <div>[12:34] Converted 25 records from sales.xlsx</div>
         <div>[11:20] Mapping updated</div>
@@ -41,7 +39,95 @@ async function loadActivity() {
 }
 loadActivity();
 
-// ---------- EXCEL TO XML CONVERTER ----------
+// ---------- EXCEL TO XML: COMPANY & SHEET DETECTION ----------
+const fileInput = document.getElementById('fileInput');
+const sheetSelect = document.getElementById('sheetSelect');
+const sheetLoading = document.getElementById('sheetLoading');
+const submitBtn = document.getElementById('submitBtn');
+const companySelect = document.getElementById('companySelect');
+
+// Load companies for the converter dropdown
+async function loadCompaniesForConverter() {
+    try {
+        const response = await fetch('/api/companies');
+        const data = await response.json();
+        companies = data.companies;
+        companySelect.innerHTML = '<option value="">-- Select company --</option>';
+        companies.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            companySelect.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Failed to load companies', err);
+    }
+}
+
+companySelect.addEventListener('change', () => {
+    // Enable submit only when file, sheet and company are selected
+    submitBtn.disabled = !(fileInput.files.length && sheetSelect.value && companySelect.value);
+});
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+        sheetSelect.disabled = true;
+        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+        submitBtn.disabled = true;
+        return;
+    }
+
+    sheetSelect.disabled = true;
+    sheetLoading.style.display = 'block';
+    sheetSelect.innerHTML = '<option value="">Loading...</option>';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/sheets', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) throw new Error('Failed to load sheets');
+
+        const data = await response.json();
+        const sheets = data.sheets;
+
+        sheetSelect.innerHTML = '';
+        sheets.forEach(sheet => {
+            const option = document.createElement('option');
+            option.value = sheet;
+            option.textContent = sheet;
+            sheetSelect.appendChild(option);
+        });
+
+        sheetSelect.disabled = false;
+        submitBtn.disabled = !companySelect.value;
+    } catch (err) {
+        console.error(err);
+        sheetSelect.innerHTML = '<option value="">Error loading sheets</option>';
+        sheetSelect.disabled = true;
+        submitBtn.disabled = true;
+        showMessage('Error reading sheet names. Please check the file.', 'error');
+    } finally {
+        sheetLoading.style.display = 'none';
+    }
+});
+
+function showMessage(text, type) {
+    const msgDiv = document.getElementById('message');
+    msgDiv.className = `message ${type}`;
+    msgDiv.innerHTML = text;
+    msgDiv.style.display = 'block';
+    setTimeout(() => {
+        msgDiv.style.display = 'none';
+    }, 5000);
+}
+
+// ---------- EXCEL TO XML CONVERTER (SUBMIT) ----------
 document.getElementById('convertForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
@@ -154,7 +240,7 @@ document.getElementById('pdfConvertForm')?.addEventListener('submit', async (e) 
     }
 });
 
-// ---------- MAPPING EDITOR ----------
+// ---------- MAPPING EDITOR (multi‑company) ----------
 const groupNames = [
     'COMPANY_STATE',
     'SALES',
@@ -166,14 +252,56 @@ const groupNames = [
     'DEBUG'
 ];
 
-async function loadMapping() {
+// Load companies for mapping page
+async function loadCompaniesForMapping() {
     try {
-        const response = await fetch('/api/mapping');
+        const response = await fetch('/api/companies');
+        const data = await response.json();
+        companies = data.companies;
+        renderCompanyList();
+        if (companies.length > 0) selectCompany(companies[0]);
+    } catch (err) {
+        alert('Failed to load companies. Is the server running?');
+    }
+}
+
+function renderCompanyList() {
+    const companyListDiv = document.getElementById('companyList');
+    if (!companyListDiv) return;
+    companyListDiv.innerHTML = '';
+    companies.forEach(name => {
+        const div = document.createElement('div');
+        div.className = 'group-item'; // reuse group-item style
+        div.textContent = name;
+        div.onclick = () => selectCompany(name);
+        companyListDiv.appendChild(div);
+    });
+}
+
+async function selectCompany(name) {
+    currentCompany = name;
+    document.getElementById('selectedCompany').textContent = name;
+    // Update active class
+    document.querySelectorAll('#companyList .group-item').forEach(item => item.classList.remove('active'));
+    const items = document.querySelectorAll('#companyList .group-item');
+    for (let item of items) {
+        if (item.textContent.trim() === name) {
+            item.classList.add('active');
+            break;
+        }
+    }
+    // Show delete button only if not Default
+    const deleteBtn = document.getElementById('deleteCompanyBtn');
+    if (deleteBtn) deleteBtn.style.display = (name === 'Default') ? 'none' : 'inline-block';
+
+    // Load mapping for this company
+    try {
+        const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
         currentMapping = await response.json();
         renderGroupList();
         if (groupNames.length > 0) selectGroup(groupNames[0]);
     } catch (err) {
-        alert('Failed to load mapping. Is the server running?');
+        alert('Failed to load mapping for this company.');
     }
 }
 
@@ -191,10 +319,8 @@ function renderGroupList() {
 
 function selectGroup(name) {
     currentGroup = name;
-    // Update active class
-    document.querySelectorAll('.group-item').forEach(item => item.classList.remove('active'));
-    // Find the one with matching text
-    const items = document.querySelectorAll('.group-item');
+    document.querySelectorAll('#groupList .group-item').forEach(item => item.classList.remove('active'));
+    const items = document.querySelectorAll('#groupList .group-item');
     for (let item of items) {
         if (item.textContent.trim() === name) {
             item.classList.add('active');
@@ -208,7 +334,7 @@ function selectGroup(name) {
 function renderRateList(group) {
     const rateListDiv = document.getElementById('rateList');
     const addBtn = document.getElementById('addRateBtn');
-    const data = currentMapping[group];
+    const data = currentMapping ? currentMapping[group] : null;
 
     if (group === 'DEBUG') {
         const value = data || false;
@@ -230,7 +356,6 @@ function renderRateList(group) {
             }
         };
     } else {
-        // Object of rate -> ledger
         rateListDiv.innerHTML = '';
         if (!data || Object.keys(data).length === 0) {
             rateListDiv.innerHTML = '<div class="rate-item">No mappings found. Click "Add Rate" to create one.</div>';
@@ -287,8 +412,9 @@ window.deleteRate = function(group, rate) {
 };
 
 document.getElementById('saveMappingBtn').addEventListener('click', async () => {
+    if (!currentCompany) return alert('No company selected');
     try {
-        const response = await fetch('/api/mapping', {
+        const response = await fetch(`/api/mapping/${encodeURIComponent(currentCompany)}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(currentMapping)
@@ -303,9 +429,51 @@ document.getElementById('saveMappingBtn').addEventListener('click', async () => 
     }
 });
 
+document.getElementById('addCompanyBtn')?.addEventListener('click', async () => {
+    const name = prompt('Enter new company name:');
+    if (!name) return;
+    const formData = new FormData();
+    formData.append('name', name);
+    try {
+        const response = await fetch('/api/companies', {
+            method: 'POST',
+            body: formData
+        });
+        if (response.ok) {
+            await loadCompaniesForMapping();
+            // Also refresh converter dropdown
+            await loadCompaniesForConverter();
+        } else {
+            const err = await response.text();
+            alert('Failed to create company: ' + err);
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
+document.getElementById('deleteCompanyBtn')?.addEventListener('click', async () => {
+    if (!currentCompany || currentCompany === 'Default') return;
+    if (!confirm(`Are you sure you want to delete company "${currentCompany}"?`)) return;
+    try {
+        const response = await fetch(`/api/companies/${encodeURIComponent(currentCompany)}`, {
+            method: 'DELETE'
+        });
+        if (response.ok) {
+            await loadCompaniesForMapping();
+            // Also refresh converter dropdown
+            await loadCompaniesForConverter();
+        } else {
+            const err = await response.text();
+            alert('Failed to delete company: ' + err);
+        }
+    } catch (err) {
+        alert('Error: ' + err.message);
+    }
+});
+
 // ---------- SETTINGS ----------
 async function loadSettings() {
-    // Load from localStorage
     const saved = localStorage.getItem('settings');
     if (saved) {
         settings = JSON.parse(saved);
@@ -339,79 +507,9 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     }, 2000);
 });
 
-
-// ---------- EXCEL TO XML: SHEET DETECTION ----------
-const fileInput = document.getElementById('fileInput');
-const sheetSelect = document.getElementById('sheetSelect');
-const sheetLoading = document.getElementById('sheetLoading');
-const submitBtn = document.getElementById('submitBtn');
-
-fileInput.addEventListener('change', async (e) => {
-    const file = e.target.files[0];
-    if (!file) {
-        sheetSelect.disabled = true;
-        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
-        submitBtn.disabled = true;
-        return;
-    }
-
-    // Show loading indicator
-    sheetSelect.disabled = true;
-    sheetLoading.style.display = 'block';
-    sheetSelect.innerHTML = '<option value="">Loading...</option>';
-
-    const formData = new FormData();
-    formData.append('file', file);
-
-    try {
-        const response = await fetch('/api/sheets', {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to load sheets');
-        }
-
-        const data = await response.json();
-        const sheets = data.sheets;
-
-        // Populate dropdown
-        sheetSelect.innerHTML = '';
-        sheets.forEach(sheet => {
-            const option = document.createElement('option');
-            option.value = sheet;
-            option.textContent = sheet;
-            sheetSelect.appendChild(option);
-        });
-
-        // Enable dropdown and submit button
-        sheetSelect.disabled = false;
-        submitBtn.disabled = false;
-    } catch (err) {
-        console.error(err);
-        sheetSelect.innerHTML = '<option value="">Error loading sheets</option>';
-        sheetSelect.disabled = true;
-        submitBtn.disabled = true;
-        showMessage('Error reading sheet names. Please check the file.', 'error');
-    } finally {
-        sheetLoading.style.display = 'none';
-    }
-});
-
-// Helper to show message (you can reuse existing message div or create a new one)
-function showMessage(text, type) {
-    const msgDiv = document.getElementById('message');
-    msgDiv.className = `message ${type}`;
-    msgDiv.innerHTML = text;
-    msgDiv.style.display = 'block';
-    setTimeout(() => {
-        msgDiv.style.display = 'none';
-    }, 5000);
-}
-
-// Modify the existing convert form submission to use the selected sheet
-// (No changes needed; the form already sends sheet_name from the select)
 // ---------- INIT ----------
-loadMapping();
+if (document.getElementById('companyList')) {
+    loadCompaniesForMapping();
+}
+loadCompaniesForConverter();
 loadSettings();
