@@ -653,15 +653,6 @@ input[type="radio"]:checked + .voucher-type-btn {
     background: #DC2626;
 }
 
-/* NEW HOVER EFFECTS (add after the above) */
-.btn-edit:hover {
-    background: #2563EB;
-}
-
-.btn-delete:hover {
-    background: #DC2626;
-}
-
 /* Responsive */
 @media (max-width: 768px) {
     .top-nav {
