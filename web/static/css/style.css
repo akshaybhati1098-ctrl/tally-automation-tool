@@ -713,7 +713,58 @@ input[type="radio"]:checked + .voucher-type-btn {
     font-style: normal;
     font-size: 1.2rem;
 }
+/* Modal styles */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
 
+.modal.show {
+    display: flex;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.dark-theme .modal-content {
+    background: #1E293B;
+    border: 1px solid #334155;
+}
+
+.modal-content h3 {
+    color: #0F52BA;
+    margin-bottom: 1.5rem;
+    font-size: 1.3rem;
+}
+
+.dark-theme .modal-content h3 {
+    color: #60A5FA;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    justify-content: flex-end;
+}
+
+.modal-actions .btn {
+    min-width: 80px;
+}
 /* Responsive */
 @media (max-width: 768px) {
     .top-nav {
