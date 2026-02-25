@@ -2,51 +2,31 @@
     <div class="card-header">
         <h3>Excel to XML Converter</h3>
     </div>
-
     <form id="convertForm">
-        <!-- Excel file -->
         <div class="form-group">
             <label>Excel File</label>
-            <input
-                type="file"
-                name="file"
-                id="excelFileInput"
-                accept=".xlsx,.xls"
-                required
-            >
+            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput">
         </div>
-
-        <!-- Sheet name (auto populated) -->
         <div class="form-group">
             <label>Sheet Name</label>
-            <select name="sheet_name" id="sheetNameSelect" required>
-                <option value="">-- Select Sheet --</option>
+            <select name="sheet_name" id="sheetSelect" required disabled>
+                <option value="">-- Select a sheet --</option>
             </select>
+            <div id="sheetLoading" style="display: none; margin-top: 0.5rem; color: #666;">
+                <small>Loading sheets...</small>
+            </div>
         </div>
-
-        <!-- Voucher type -->
         <div class="form-group">
             <label>Voucher Type</label>
             <div class="radio-group">
-                <label>
-                    <input type="radio" name="vtype" value="sale" checked>
-                    Sales Invoice
-                </label>
-                <label>
-                    <input type="radio" name="vtype" value="purchase">
-                    Purchase Invoice
-                </label>
+                <label><input type="radio" name="vtype" value="sale" checked> Sales Invoice</label>
+                <label><input type="radio" name="vtype" value="purchase"> Purchase Invoice</label>
             </div>
         </div>
-
-        <button type="submit" class="btn btn-primary" style="width: 100%;">
-            Generate XML
-        </button>
+        <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn" disabled>Generate XML</button>
     </form>
-
     <div class="progress" id="progress">
         <div class="progress-bar" id="progressBar"></div>
     </div>
-
     <div id="message" class="message"></div>
 </div>

@@ -102,3 +102,29 @@ async def get_mapping():
 async def update_mapping(mapping: dict):
     save_mapping_json(mapping)
     return {"status": "success"}
+from fastapi import UploadFile
+import openpyxl
+import pandas as pd
+
+@app.post("/api/sheets")
+async def get_sheet_names(file: UploadFile):
+    """Return list of sheet names from uploaded Excel file."""
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(400, "Only Excel files (.xlsx, .xls) are allowed")
+    
+    try:
+        contents = await file.read()
+        # Use openpyxl for .xlsx, could also use pandas
+        if file.filename.endswith('.xlsx'):
+            from openpyxl import load_workbook
+            from io import BytesIO
+            wb = load_workbook(filename=BytesIO(contents), read_only=True)
+            sheets = wb.sheetnames
+        else:  # .xls (older format) - use pandas
+            df_dict = pd.read_excel(BytesIO(contents), sheet_name=None)
+            sheets = list(df_dict.keys())
+        
+        return {"sheets": sheets}
+    except Exception as e:
+        logging.error(f"Failed to read sheets: {e}")
+        raise HTTPException(500, f"Could not read sheet names: {str(e)}")

@@ -342,3 +342,75 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
 // ---------- INIT ----------
 loadMapping();
 loadSettings();
+// ---------- EXCEL TO XML: SHEET DETECTION ----------
+const fileInput = document.getElementById('fileInput');
+const sheetSelect = document.getElementById('sheetSelect');
+const sheetLoading = document.getElementById('sheetLoading');
+const submitBtn = document.getElementById('submitBtn');
+
+fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) {
+        sheetSelect.disabled = true;
+        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+        submitBtn.disabled = true;
+        return;
+    }
+
+    // Show loading indicator
+    sheetSelect.disabled = true;
+    sheetLoading.style.display = 'block';
+    sheetSelect.innerHTML = '<option value="">Loading...</option>';
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('/api/sheets', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load sheets');
+        }
+
+        const data = await response.json();
+        const sheets = data.sheets;
+
+        // Populate dropdown
+        sheetSelect.innerHTML = '';
+        sheets.forEach(sheet => {
+            const option = document.createElement('option');
+            option.value = sheet;
+            option.textContent = sheet;
+            sheetSelect.appendChild(option);
+        });
+
+        // Enable dropdown and submit button
+        sheetSelect.disabled = false;
+        submitBtn.disabled = false;
+    } catch (err) {
+        console.error(err);
+        sheetSelect.innerHTML = '<option value="">Error loading sheets</option>';
+        sheetSelect.disabled = true;
+        submitBtn.disabled = true;
+        showMessage('Error reading sheet names. Please check the file.', 'error');
+    } finally {
+        sheetLoading.style.display = 'none';
+    }
+});
+
+// Helper to show message (you can reuse existing message div or create a new one)
+function showMessage(text, type) {
+    const msgDiv = document.getElementById('message');
+    msgDiv.className = `message ${type}`;
+    msgDiv.innerHTML = text;
+    msgDiv.style.display = 'block';
+    setTimeout(() => {
+        msgDiv.style.display = 'none';
+    }, 5000);
+}
+
+// Modify the existing convert form submission to use the selected sheet
+// (No changes needed; the form already sends sheet_name from the select)
