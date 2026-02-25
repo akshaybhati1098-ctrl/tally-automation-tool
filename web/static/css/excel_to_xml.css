@@ -1,0 +1,321 @@
+.voucher-type-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.voucher-type-group input[type="radio"] {
+    display: none;
+}
+
+.voucher-type-btn {
+    display: inline-block;
+    padding: 0.6rem 1.2rem;
+    background: white;
+    border: 2px solid #CBD5E1;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1 1 auto;
+    text-align: center;
+    color: #1E293B;
+}
+
+.voucher-type-btn:hover {
+    background: #F1F5F9;
+    border-color: #94A3B8;
+}
+
+input[type="radio"]:checked + .voucher-type-btn {
+    background: #0F52BA;
+    border-color: #0F52BA;
+    color: white;
+}
+
+.dark-theme .voucher-type-btn {
+    background: #1E293B;
+    border-color: #475569;
+    color: #F1F5F9;
+}
+
+.dark-theme .voucher-type-btn:hover {
+    background: #334155;
+    border-color: #64748B;
+}
+
+.dark-theme input[type="radio"]:checked + .voucher-type-btn {
+    background: #2563EB;
+    border-color: #2563EB;
+    color: white;
+}
+
+.mapping-container {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+}
+
+.group-list {
+    flex: 0 0 250px;
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .group-list {
+    background: #1E293B;
+}
+
+.group-list h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+}
+
+.dark-theme .group-list h4 {
+    color: #60A5FA;
+}
+
+.company-list {
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .company-list {
+    background: #1E293B;
+}
+
+.company-list h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+}
+
+.dark-theme .company-list h4 {
+    color: #60A5FA;
+}
+
+.group-item {
+    padding: 0.6rem;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 0.2rem;
+    transition: background-color 0.2s;
+}
+
+.group-item:hover {
+    background: #E2E8F0;
+}
+
+.dark-theme .group-item:hover {
+    background: #334155;
+}
+
+.group-item.active {
+    background: #0F52BA;
+    color: white;
+}
+
+.dark-theme .group-item.active {
+    background: #2563EB;
+}
+
+.rate-editor {
+    flex: 1;
+    background: #F8FAFC;
+    border-radius: 8px;
+    padding: 1rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .rate-editor {
+    background: #1E293B;
+}
+
+.rate-list {
+    margin: 1rem 0;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.rate-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 4px;
+    margin-bottom: 0.3rem;
+    transition: background-color 0.3s, border-color 0.3s;
+}
+
+.dark-theme .rate-item {
+    background: #0F172A;
+    border-color: #334155;
+    color: #F1F5F9;
+}
+
+.rate-actions button {
+    padding: 0.3rem 0.6rem;
+    margin-left: 0.3rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-edit {
+    background: #3B82F6;
+    color: white;
+}
+
+.dark-theme .btn-edit {
+    background: #2563EB;
+}
+
+.btn-delete {
+    background: #EF4444;
+    color: white;
+}
+
+.dark-theme .btn-delete {
+    background: #DC2626;
+}
+
+.company-panel {
+    flex: 0 0 280px;
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dark-theme .company-panel {
+    background: #1E293B;
+}
+
+.company-panel h4 {
+    color: #0F52BA;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dark-theme .company-panel h4 {
+    color: #60A5FA;
+}
+
+.company-list {
+    max-height: 400px;
+    overflow-y: auto;
+    margin-top: 0.5rem;
+}
+
+.company-list .group-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.6rem 0.8rem;
+    border-radius: 6px;
+    margin-bottom: 0.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.company-list .group-item:hover {
+    background: #E2E8F0;
+}
+
+.dark-theme .company-list .group-item:hover {
+    background: #334155;
+}
+
+.company-list .group-item.active {
+    background: #0F52BA;
+    color: white;
+}
+
+.dark-theme .company-list .group-item.active {
+    background: #2563EB;
+}
+
+.btn-sm {
+    padding: 0.3rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+.mapping-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.group-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .group-panel {
+    background: #1E293B;
+}
+
+.group-panel h4 {
+    color: #0F52BA;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dark-theme .group-panel h4 {
+    color: #60A5FA;
+}
+
+.company-name {
+    font-weight: 600;
+    color: #1E293B;
+}
+
+.dark-theme .company-name {
+    color: #F1F5F9;
+}
+
+.rate-panel {
+    background: #F8FAFC;
+    border-radius: 12px;
+    padding: 1.2rem;
+    transition: background-color 0.3s;
+}
+
+.dark-theme .rate-panel {
+    background: #1E293B;
+}
+
+.rate-panel h4 {
+    color: #0F52BA;
+    margin-bottom: 1rem;
+    font-size: 1.1rem;
+}
+
+.dark-theme .rate-panel h4 {
+    color: #60A5FA;
+}
+
+.icon {
+    font-style: normal;
+    font-size: 1.2rem;
+}
+
+@media (max-width: 768px) {
+    .mapping-container {
+        flex-direction: column;
+    }
+}/* excel to xml page styles */
