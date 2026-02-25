@@ -7,3 +7,6 @@ pytesseract
 pdf2image
 openpyxl
 jinja2
+python-jose[cryptography]
+passlib[bcrypt]
+python-dotenv

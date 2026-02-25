@@ -1,11 +1,12 @@
 from io import BytesIO
 from fastapi import FastAPI, Request, UploadFile, Form, HTTPException
-from fastapi.responses import Response, JSONResponse
+from fastapi.responses import Response, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import openpyxl
 import pandas as pd
+import sqlite3                     # <-- NEW: for database access
 
 # Existing services
 from core.excel_service import excel_to_xml
@@ -14,6 +15,14 @@ from core.mapping import load_mapping_json, save_mapping_json   # these will now
 # Image → Excel service
 from core.process_service import image_to_excel
 
+# ========== NEW AUTH IMPORTS ==========
+from database import get_db, init_db
+from auth import (
+    verify_password, get_password_hash, create_access_token,
+    get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
+)
+# =======================================
+
 app = FastAPI(title="Tally Automation Tool")
 
 # -------------------------
@@ -21,6 +30,21 @@ app = FastAPI(title="Tally Automation Tool")
 # -------------------------
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
+
+# ========== NEW: DATABASE INIT ON STARTUP ==========
+@app.on_event("startup")
+def startup_event():
+    init_db()
+# ====================================================
+
+# ========== NEW: MIDDLEWARE TO ATTACH USER TO REQUEST ==========
+@app.middleware("http")
+async def add_user_to_request(request: Request, call_next):
+    user = await get_current_user(request)
+    request.state.user = user
+    response = await call_next(request)
+    return response
+# ================================================================
 
 # -------------------------
 # Helper functions for multi‑company mapping
@@ -47,6 +71,103 @@ def save_full_mapping(data):
 @app.get("/")
 async def serve_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
+
+# ========== NEW AUTH ROUTES ==========
+@app.post("/register")
+async def register(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...),
+    confirm_password: str = Form(...)
+):
+    if password != confirm_password:
+        return templates.TemplateResponse(
+            "pages/register.html",
+            {"request": request, "error": "Passwords do not match"}
+        )
+    if len(password) < 6:
+        return templates.TemplateResponse(
+            "pages/register.html",
+            {"request": request, "error": "Password must be at least 6 characters"}
+        )
+
+    hashed = get_password_hash(password)
+    try:
+        with get_db() as conn:
+            conn.execute(
+                "INSERT INTO users (username, password) VALUES (?, ?)",
+                (username, hashed)
+            )
+            conn.commit()
+    except sqlite3.IntegrityError:
+        return templates.TemplateResponse(
+            "pages/register.html",
+            {"request": request, "error": "Username already taken"}
+        )
+
+    response = RedirectResponse(url="/login?registered=1", status_code=302)
+    return response
+
+@app.post("/login")
+async def login(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    with get_db() as conn:
+        user = conn.execute(
+            "SELECT * FROM users WHERE username = ?", (username,)
+        ).fetchone()
+
+    if not user or not verify_password(password, user["password"]):
+        return templates.TemplateResponse(
+            "pages/login.html",
+            {"request": request, "error": "Invalid username or password"}
+        )
+
+    token = create_access_token(data={"sub": str(user["id"]), "username": user["username"]})
+    response = RedirectResponse(url="/dashboard", status_code=302)
+    response.set_cookie(
+        key="access_token",
+        value=token,
+        httponly=True,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        secure=False,          # Set to True if you have HTTPS
+        samesite="lax"
+    )
+    return response
+
+@app.get("/logout")
+async def logout():
+    response = RedirectResponse(url="/login")
+    response.delete_cookie("access_token")
+    return response
+
+@app.get("/login", response_class=HTMLResponse)
+async def login_page(request: Request, registered: int = 0):
+    return templates.TemplateResponse(
+        "pages/login.html",
+        {
+            "request": request,
+            "success": "Registration successful! Please log in." if registered else None
+        }
+    )
+
+@app.get("/register", response_class=HTMLResponse)
+async def register_page(request: Request):
+    return templates.TemplateResponse("pages/register.html", {"request": request})
+
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    # Protect this page – redirect if not logged in
+    user = request.state.user
+    if not user:
+        return RedirectResponse(url="/login", status_code=302)
+    return templates.TemplateResponse(
+        "pages/dashboard.html",
+        {"request": request, "username": user["username"]}
+    )
+# ========================================
 
 # =========================================================
 # Excel → XML API (with company selection)
@@ -170,6 +291,7 @@ async def remove_company(company: str):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to delete company: {str(e)}")
+
 # =========================================================
 # Rename company
 # =========================================================
@@ -198,6 +320,7 @@ async def rename_company(old_name: str, new_name: str = Form(...)):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to rename company: {str(e)}")
+
 # =========================================================
 # Per‑company mapping endpoints
 # =========================================================
