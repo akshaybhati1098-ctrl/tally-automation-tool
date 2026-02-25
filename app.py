@@ -1,12 +1,12 @@
 from io import BytesIO
 from fastapi import FastAPI, Request, UploadFile, Form, HTTPException
-from fastapi.responses import Response, JSONResponse, RedirectResponse
+from fastapi.responses import Response, JSONResponse, RedirectResponse, HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import openpyxl
 import pandas as pd
-import sqlite3                     # <-- NEW: for database access
+import sqlite3
 
 # Existing services
 from core.excel_service import excel_to_xml
