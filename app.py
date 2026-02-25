@@ -36,7 +36,6 @@ def load_users():
         i += 1
     return users
 
-# Session middleware (needed for login)
 # First define AuthMiddleware class (keep its definition unchanged)
 class AuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
