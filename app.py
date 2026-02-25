@@ -129,3 +129,16 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
+# =========================================================
+# Companies API (required by frontend)
+# =========================================================
+@app.get("/api/companies")
+async def get_companies():
+    return {
+        "companies": [
+            {
+                "key": "default",
+                "name": "Default Company"
+            }
+        ]
+    }
