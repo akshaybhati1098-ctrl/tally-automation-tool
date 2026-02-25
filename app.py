@@ -95,13 +95,16 @@ async def image_to_excel_api(
 # =========================================================
 # Mapping APIs
 # =========================================================
-@app.get("/api/mapping")
-async def get_mapping():
-    return JSONResponse(content=load_mapping_json())
+@app.get("/api/mapping/{company}")
+async def get_mapping(company: str):
+    all_mapping = load_mapping_json()
+    return all_mapping.get(company, {})
 
-@app.post("/api/mapping")
-async def update_mapping(mapping: dict):
-    save_mapping_json(mapping)
+@app.post("/api/mapping/{company}")
+async def update_mapping(company: str, mapping: dict):
+    all_mapping = load_mapping_json()
+    all_mapping[company] = mapping
+    save_mapping_json(all_mapping)
     return {"status": "success"}
 from fastapi import UploadFile
 import openpyxl
@@ -142,3 +145,36 @@ async def get_companies():
             }
         ]
     }
+# =========================================================
+# Companies API
+# =========================================================
+
+companies_store = ["Default"]
+
+@app.get("/api/companies")
+async def get_companies():
+    return {"companies": companies_store}
+
+@app.post("/api/companies")
+async def add_company(name: str = Form(...)):
+    if name in companies_store:
+        raise HTTPException(400, "Company already exists")
+    companies_store.append(name)
+    return {"status": "created"}
+
+@app.put("/api/companies/{old_name}")
+async def rename_company(old_name: str, new_name: str = Form(...)):
+    if old_name not in companies_store:
+        raise HTTPException(404, "Company not found")
+    idx = companies_store.index(old_name)
+    companies_store[idx] = new_name
+    return {"status": "renamed"}
+
+@app.delete("/api/companies/{name}")
+async def delete_company(name: str):
+    if name == "Default":
+        raise HTTPException(400, "Cannot delete Default company")
+    if name not in companies_store:
+        raise HTTPException(404, "Company not found")
+    companies_store.remove(name)
+    return {"status": "deleted"}
