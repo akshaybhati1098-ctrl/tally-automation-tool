@@ -339,9 +339,7 @@ document.getElementById('saveSettingsBtn').addEventListener('click', () => {
     }, 2000);
 });
 
-// ---------- INIT ----------
-loadMapping();
-loadSettings();
+
 // ---------- EXCEL TO XML: SHEET DETECTION ----------
 const fileInput = document.getElementById('fileInput');
 const sheetSelect = document.getElementById('sheetSelect');
@@ -414,3 +412,6 @@ function showMessage(text, type) {
 
 // Modify the existing convert form submission to use the selected sheet
 // (No changes needed; the form already sends sheet_name from the select)
+// ---------- INIT ----------
+loadMapping();
+loadSettings();
