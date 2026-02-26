@@ -7,10 +7,8 @@
 <body>
     {% include 'partials/navbar.html' %}
 
-    <main class="container">
+   <main style="display: flex; justify-content: center; align-items: center; min-height: 80vh;">
+    <div class="auth-box" style="background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 0 10px rgba(0,0,0,0.1); width: 100%; max-width: 400px;">
         {% block content %}{% endblock %}
-    </main>
-
-    {% block scripts %}{% endblock %}
-</body>
-</html>
+    </div>
+</main>

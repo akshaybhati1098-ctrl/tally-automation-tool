@@ -80,95 +80,43 @@ async def register(
     password: str = Form(...),
     confirm_password: str = Form(...)
 ):
-    if password != confirm_password:
-        return templates.TemplateResponse(
-            "pages/register.html",
-            {"request": request, "error": "Passwords do not match"}
-        )
-    if len(password) < 6:
-        return templates.TemplateResponse(
-            "pages/register.html",
-            {"request": request, "error": "Password must be at least 6 characters"}
-        )
-
-    hashed = get_password_hash(password)
     try:
+        if password != confirm_password:
+            return templates.TemplateResponse(
+                "pages/register.html",
+                {"request": request, "error": "Passwords do not match"}
+            )
+        if len(password) < 6:
+            return templates.TemplateResponse(
+                "pages/register.html",
+                {"request": request, "error": "Password must be at least 6 characters"}
+            )
+
+        hashed = get_password_hash(password)
         with get_db() as conn:
             conn.execute(
                 "INSERT INTO users (username, password) VALUES (?, ?)",
                 (username, hashed)
             )
             conn.commit()
+
+        # Success – redirect to login with a success message
+        response = RedirectResponse(url="/login?registered=1", status_code=302)
+        return response
+
     except sqlite3.IntegrityError:
+        # Username already exists
         return templates.TemplateResponse(
             "pages/register.html",
             {"request": request, "error": "Username already taken"}
         )
-
-    response = RedirectResponse(url="/login?registered=1", status_code=302)
-    return response
-
-@app.post("/login")
-async def login(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
-):
-    with get_db() as conn:
-        user = conn.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
-        ).fetchone()
-
-    if not user or not verify_password(password, user["password"]):
+    except Exception as e:
+        # Log the full error for debugging
+        logging.error(f"Registration error: {str(e)}", exc_info=True)
         return templates.TemplateResponse(
-            "pages/login.html",
-            {"request": request, "error": "Invalid username or password"}
+            "pages/register.html",
+            {"request": request, "error": "An unexpected error occurred. Please try again."}
         )
-
-    token = create_access_token(data={"sub": str(user["id"]), "username": user["username"]})
-    response = RedirectResponse(url="/dashboard", status_code=302)
-    response.set_cookie(
-        key="access_token",
-        value=token,
-        httponly=True,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        secure=False,          # Set to True if you have HTTPS
-        samesite="lax"
-    )
-    return response
-
-@app.get("/logout")
-async def logout():
-    response = RedirectResponse(url="/login")
-    response.delete_cookie("access_token")
-    return response
-
-@app.get("/login", response_class=HTMLResponse)
-async def login_page(request: Request, registered: int = 0):
-    return templates.TemplateResponse(
-        "pages/login.html",
-        {
-            "request": request,
-            "success": "Registration successful! Please log in." if registered else None
-        }
-    )
-
-@app.get("/register", response_class=HTMLResponse)
-async def register_page(request: Request):
-    return templates.TemplateResponse("pages/register.html", {"request": request})
-
-@app.get("/dashboard", response_class=HTMLResponse)
-async def dashboard(request: Request):
-    # Protect this page – redirect if not logged in
-    user = request.state.user
-    if not user:
-        return RedirectResponse(url="/login", status_code=302)
-    return templates.TemplateResponse(
-        "pages/dashboard.html",
-        {"request": request, "username": user["username"]}
-    )
-# ========================================
-
 # =========================================================
 # Excel → XML API (with company selection)
 # =========================================================
