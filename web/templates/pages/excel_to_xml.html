@@ -66,7 +66,176 @@
 </div>
 
 <style>
-/* Additional styles for the guidance card (reuse existing) */
+/* ===== Form Styles (matching dashboard aesthetics) ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #1e2b4f;
+    font-size: 0.95rem;
+}
+
+.file-input,
+.form-select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    color: #1e2b4f;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.file-input:hover,
+.form-select:hover {
+    border-color: #b0c4de;
+    background: white;
+}
+
+.file-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #2a3f6e;
+    box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
+}
+
+.form-select:disabled {
+    background: #eef2f6;
+    color: #8a9bb5;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    margin-top: 0.5rem;
+    color: #2f5b9c;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Voucher type toggle buttons */
+.voucher-type-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.voucher-type-group input[type="radio"] {
+    display: none;
+}
+
+.voucher-type-btn {
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 40px;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e2b4f;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.voucher-type-btn:hover {
+    background: #e4edfc;
+    border-color: #b0c4de;
+    transform: translateY(-2px);
+}
+
+input[type="radio"]:checked + .voucher-type-btn {
+    background: #1e2b4f;
+    border-color: #1e2b4f;
+    color: white;
+    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
+}
+
+/* Primary button - ENLARGED */
+.btn-primary {
+    background: #1e2b4f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    padding: 1rem 2rem;        /* increased from 0.9rem 1.5rem */
+    font-size: 1.1rem;          /* increased from 1rem */
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #2a3f6e;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    background: #b0c4de;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Progress bar */
+.progress {
+    margin-top: 1.5rem;
+    height: 8px;
+    background: #e4edfc;
+    border-radius: 20px;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+/* Message */
+.message {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.message.success {
+    display: block;
+    background: #e1f7e3;
+    color: #1e5f2e;
+    border: 1px solid #a5d6a7;
+}
+
+.message.error {
+    display: block;
+    background: #ffe9e9;
+    color: #b00020;
+    border: 1px solid #ffb3b3;
+}
+
+/* Guidance card styles */
 .guidance-content {
     padding: 1rem 0;
 }
@@ -107,6 +276,17 @@
 }
 .btn-icon {
     font-size: 1.1rem;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .voucher-type-group {
+        flex-direction: column;
+    }
+    .voucher-type-btn {
+        width: 100%;
+        justify-content: center;
+    }
 }
 </style>
 
