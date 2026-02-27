@@ -251,3 +251,24 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
+@app.route('/download-template')
+def download_template():
+    import csv
+    from io import StringIO
+    import flask
+
+    si = StringIO()
+    cw = csv.writer(si)
+    cw.writerow(['Sr','GSTIN','Recipient Name','Invoice Number','Invoice date','Invoice Value','Taxable Value','IGST','CGST','SGST','Cess'])
+    cw.writerows([
+        [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20', '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
+        [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21', '23600.00', '20000.00', '3600.00', '0', '0', '0'],
+        [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22', '5900.00', '5000.00', '0', '450.00', '450.00', '0']
+    ])
+    output = si.getvalue().encode('utf-8-sig')
+    return flask.send_file(
+        io.BytesIO(output),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='invoice_template.xlsx'
+    )
