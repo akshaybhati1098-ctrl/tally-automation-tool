@@ -1,12 +1,11 @@
 from io import BytesIO
 from fastapi import FastAPI, Request, UploadFile, Form, HTTPException
-from fastapi.responses import Response, JSONResponse, RedirectResponse, HTMLResponse
+from fastapi.responses import Response, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 import logging
 import openpyxl
 import pandas as pd
-import sqlite3
 
 # Existing services
 from core.excel_service import excel_to_xml
@@ -15,14 +14,6 @@ from core.mapping import load_mapping_json, save_mapping_json   # these will now
 # Image → Excel service
 from core.process_service import image_to_excel
 
-# ========== NEW AUTH IMPORTS ==========
-from database import get_db, init_db
-from auth import (
-    verify_password, get_password_hash, create_access_token,
-    get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
-)
-# =======================================
-
 app = FastAPI(title="Tally Automation Tool")
 
 # -------------------------
@@ -30,21 +21,6 @@ app = FastAPI(title="Tally Automation Tool")
 # -------------------------
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
-
-# ========== NEW: DATABASE INIT ON STARTUP ==========
-@app.on_event("startup")
-def startup_event():
-    init_db()
-# ====================================================
-
-# ========== NEW: MIDDLEWARE TO ATTACH USER TO REQUEST ==========
-@app.middleware("http")
-async def add_user_to_request(request: Request, call_next):
-    user = await get_current_user(request)
-    request.state.user = user
-    response = await call_next(request)
-    return response
-# ================================================================
 
 # -------------------------
 # Helper functions for multi‑company mapping
@@ -72,51 +48,6 @@ def save_full_mapping(data):
 async def serve_ui(request: Request):
     return templates.TemplateResponse("index.html", {"request": request})
 
-# ========== NEW AUTH ROUTES ==========
-@app.post("/register")
-async def register(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    confirm_password: str = Form(...)
-):
-    try:
-        if password != confirm_password:
-            return templates.TemplateResponse(
-                "pages/register.html",
-                {"request": request, "error": "Passwords do not match"}
-            )
-        if len(password) < 6:
-            return templates.TemplateResponse(
-                "pages/register.html",
-                {"request": request, "error": "Password must be at least 6 characters"}
-            )
-
-        hashed = get_password_hash(password)
-        with get_db() as conn:
-            conn.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                (username, hashed)
-            )
-            conn.commit()
-
-        # Success – redirect to login with a success message
-        response = RedirectResponse(url="/login?registered=1", status_code=302)
-        return response
-
-    except sqlite3.IntegrityError:
-        # Username already exists
-        return templates.TemplateResponse(
-            "pages/register.html",
-            {"request": request, "error": "Username already taken"}
-        )
-    except Exception as e:
-        # Log the full error for debugging
-        logging.error(f"Registration error: {str(e)}", exc_info=True)
-        return templates.TemplateResponse(
-            "pages/register.html",
-            {"request": request, "error": "An unexpected error occurred. Please try again."}
-        )
 # =========================================================
 # Excel → XML API (with company selection)
 # =========================================================
@@ -239,7 +170,6 @@ async def remove_company(company: str):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to delete company: {str(e)}")
-
 # =========================================================
 # Rename company
 # =========================================================
@@ -268,7 +198,6 @@ async def rename_company(old_name: str, new_name: str = Form(...)):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to rename company: {str(e)}")
-
 # =========================================================
 # Per‑company mapping endpoints
 # =========================================================
@@ -322,12 +251,3 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
-@app.get("/")
-async def serve_ui(request: Request):
-    user = request.state.user
-    # Choose default page: dashboard if logged in, otherwise converter (or any other page)
-    default_page = "dashboard" if user else "converter"
-    return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "default_page": default_page}
-    )

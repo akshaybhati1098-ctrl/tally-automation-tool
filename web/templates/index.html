@@ -15,35 +15,33 @@
     <!-- Main SPA Content -->
     <div class="main-content">
 
-        <!-- Dashboard – only shown when logged in -->
-        {% if request.state.user %}
-        <div id="dashboard" class="page {% if default_page == 'dashboard' %}active{% endif %}">
+        <!-- Dashboard -->
+        <div id="dashboard" class="page active">
             {% include 'pages/dashboard.html' %}
         </div>
-        {% endif %}
 
         <!-- Excel to XML -->
-        <div id="converter" class="page {% if default_page == 'converter' %}active{% endif %}">
+        <div id="converter" class="page">
             {% include 'pages/excel_to_xml.html' %}
         </div>
 
         <!-- Mapping Editor -->
-        <div id="mapping" class="page {% if default_page == 'mapping' %}active{% endif %}">
+        <div id="mapping" class="page">
             {% include 'pages/mapping.html' %}
         </div>
 
         <!-- Settings -->
-        <div id="settings" class="page {% if default_page == 'settings' %}active{% endif %}">
+        <div id="settings" class="page">
             {% include 'pages/settings.html' %}
         </div>
 
         <!-- Image / PDF to Excel -->
-        <div id="image_to_excel" class="page {% if default_page == 'image_to_excel' %}active{% endif %}">
+        <div id="image_to_excel" class="page">
             {% include 'pages/image_to_excel.html' %}
         </div>
 
         <!-- Company -->
-        <div id="company" class="page {% if default_page == 'company' %}active{% endif %}">
+        <div id="company" class="page">
             {% include 'pages/company.html' %}
         </div>
 

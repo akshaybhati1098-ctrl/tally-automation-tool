@@ -10,16 +10,3 @@
         <button class="nav-link" data-page="settings">⚙️ Settings</button>
     </div>
 </div>
-<nav>
-    <!-- Your existing navbar items -->
-    <div class="nav-right">
-        {% if request.state.user %}
-            <span>Welcome, {{ request.state.user.username }}</span>
-            <a href="/dashboard">Dashboard</a>
-            <a href="/logout">Logout</a>
-        {% else %}
-            <a href="/login">Login</a>
-            <a href="/register">Register</a>
-        {% endif %}
-    </div>
-</nav>
