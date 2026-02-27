@@ -1,5 +1,5 @@
 ---
-title: Tally Automation
+title: 'Tally Automation tools '
 emoji: 📊
 colorFrom: blue
 colorTo: green
