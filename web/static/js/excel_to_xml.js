@@ -601,3 +601,44 @@ if (document.getElementById('companyList')) {
 if (document.getElementById('companySelect')) {
     loadCompaniesForConverter();
 }
+document.addEventListener("DOMContentLoaded", () => {
+    const btn = document.getElementById("getTemplateBtn");
+    if (btn) {
+        btn.addEventListener("click", downloadExcelTemplate);
+    }
+});
+
+function downloadExcelTemplate() {
+    const headers = [
+        "Sr",
+        "GSTIN",
+        "Recipient Name",
+        "Invoice Number",
+        "Invoice Date",
+        "Invoice Value",
+        "Taxable Value",
+        "IGST",
+        "CGST",
+        "SGST",
+        "Cess"
+    ];
+
+    // Create CSV content
+    let csvContent = headers.join(",") + "\n";
+
+    // Optional: add one sample row
+    csvContent += "1,22AAAAA0000A1Z5,ABC Traders,INV-001,01-04-2025,10000,9000,0,450,450,0\n";
+
+    // Create file
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    // Download
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "excel_to_xml_template.csv";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+}
