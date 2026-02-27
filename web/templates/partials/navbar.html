@@ -1,4 +1,4 @@
-<!-- Improved Top Navigation - matches dashboard style -->
+<!-- Improved Top Navigation - now matches dashboard width -->
 <div class="top-nav">
     <div class="logo">
         <h2>Akshay's Tally Tool</h2>
@@ -13,7 +13,7 @@
 </div>
 
 <style>
-/* Top Navigation Styles - matches your dashboard design */
+/* Top Navigation Styles - FIXED to match dashboard width */
 .top-nav {
     background: white;
     border-radius: 28px;
@@ -28,6 +28,11 @@
     backdrop-filter: blur(2px);
     transition: all 0.2s ease;
     margin-bottom: 1.5rem;
+    /* FIX: Add max-width to match dashboard cards */
+    max-width: 1200px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .top-nav:hover {
@@ -89,6 +94,14 @@
     transform: scale(0.96);
 }
 
+/* FIX: Ensure the container holding everything has same max-width */
+.dashboard-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
 /* Responsive */
 @media (max-width: 700px) {
     .top-nav {
@@ -110,17 +123,14 @@
 </style>
 
 <script>
-// Optional: Function to handle active state (add this to your existing JS)
 function setActive(clickedButton) {
     const navLinks = document.querySelectorAll('.nav-link');
     navLinks.forEach(btn => btn.classList.remove('active'));
     clickedButton.classList.add('active');
 }
 
-// Optional: Navigation function (replace with your actual routing)
 function navigateTo(page) {
     console.log(`Navigating to: ${page}`);
-    // Your existing navigation logic here
-    // window.location.href = `/${page}.html`;
+    // Your existing navigation logic
 }
 </script>
