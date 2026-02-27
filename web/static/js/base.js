@@ -125,3 +125,49 @@ loadSettings();// common js logic
         initTheme();
     }
 })();
+// Template download function
+function downloadTemplate() {
+    // Define headers
+    const headers = [
+        'Sr',
+        'GSTIN',
+        'Recipient Name',
+        'Invoice Number',
+        'Invoice date',
+        'Invoice Value',
+        'Taxable Value',
+        'IGST',
+        'CGST',
+        'SGST',
+        'Cess'
+    ];
+
+    // Example rows
+    const exampleRows = [
+        [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20', '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
+        [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21', '23600.00', '20000.00', '3600.00', '0', '0', '0'],
+        [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22', '5900.00', '5000.00', '0', '450.00', '450.00', '0']
+    ];
+
+    // Build CSV content
+    let csvContent = headers.join(',') + '\n';
+    exampleRows.forEach(row => {
+        const escapedRow = row.map(cell => 
+            typeof cell === 'string' && (cell.includes(',') || cell.includes('"')) 
+                ? `"${cell.replace(/"/g, '""')}"` 
+                : cell
+        ).join(',');
+        csvContent += escapedRow + '\n';
+    });
+
+    // Create download
+    const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'invoice_template.xlsx';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+}
