@@ -111,19 +111,19 @@
 </style>
 
 <script>
-// (Keep the existing form simulation script – it's fine for now)
+// ===== FORM HANDLING WITH IMPROVED BUTTON FEEDBACK =====
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const sheetSelect = document.getElementById('sheetSelect');
     const sheetLoading = document.getElementById('sheetLoading');
     const submitBtn = document.getElementById('submitBtn');
-    const companySelect = document.getElementById('companySelect');
 
     if (file) {
         sheetSelect.disabled = true;
         sheetLoading.style.display = 'flex';
         sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
 
+        // Simulate async sheet loading (replace with actual API call later)
         setTimeout(() => {
             const dummySheets = ['Sheet1', 'Sheet2', 'Sheet3', 'Invoice Data', 'Sales'];
             sheetSelect.disabled = false;
@@ -162,6 +162,7 @@ function toggleSubmitButton() {
     submitBtn.disabled = !(fileSelected && sheetSelected && companySelected);
 }
 
+// Form submission with improved button feedback
 document.getElementById('convertForm').addEventListener('submit', function(e) {
     e.preventDefault();
 
@@ -170,11 +171,17 @@ document.getElementById('convertForm').addEventListener('submit', function(e) {
     const progressBar = document.getElementById('progressBar');
     const messageDiv = document.getElementById('message');
 
+    // Save original button text and update to processing state
+    const originalButtonText = submitBtn.innerHTML;
+    submitBtn.innerHTML = '⏳ Processing...';
     submitBtn.disabled = true;
+
+    // Show progress bar
     progress.style.display = 'block';
     messageDiv.style.display = 'none';
     progressBar.style.width = '0%';
 
+    // Simulate conversion progress
     let width = 0;
     const interval = setInterval(() => {
         width += 5;
@@ -185,7 +192,9 @@ document.getElementById('convertForm').addEventListener('submit', function(e) {
                 progress.style.display = 'none';
                 messageDiv.className = 'message success';
                 messageDiv.textContent = '✅ XML generated successfully! (Demo)';
-                submitBtn.disabled = false;
+                // Restore button
+                submitBtn.innerHTML = originalButtonText;
+                submitBtn.disabled = false; // Re-enable for demo
             }, 300);
         }
     }, 100);
