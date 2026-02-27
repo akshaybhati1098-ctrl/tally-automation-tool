@@ -251,3 +251,27 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
+from fastapi.responses import StreamingResponse
+import io
+
+@app.get("/download-template")
+def download_template():
+    headers = [
+        "Sr","GSTIN","Recipient Name","Invoice Number",
+        "Invoice Date","Invoice Value","Taxable Value",
+        "IGST","CGST","SGST","Cess"
+    ]
+
+    csv_content = ",".join(headers) + "\n"
+
+    buffer = io.StringIO()
+    buffer.write(csv_content)
+    buffer.seek(0)
+
+    return StreamingResponse(
+        buffer,
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": "attachment; filename=excel_to_xml_template.csv"
+        }
+    )
