@@ -257,21 +257,33 @@
             alert('📈 Opening reports dashboard (demo)');
         }
 
-        // ----- POPULATE RECENT ACTIVITY -----
-        function loadRecentActivity() {
-            const activities = [
-                { time: '2 min ago', text: 'Converted 15 invoices to Excel format', icon: '🔄' },
-                { time: '1 hour ago', text: 'Updated GST mapping for "Consulting Services"', icon: '⚙️' },
-                { time: '3 hours ago', text: 'Downloaded invoice template', icon: '📥' },
-                { time: 'Yesterday', text: 'Generated monthly GST report', icon: '📊' },
-                { time: 'Yesterday', text: 'Auto-backup completed successfully', icon: '💾' }
-            ];
+        // ----- REAL-TIME RECENT ACTIVITY -----
+        async function fetchRecentActivity() {
+            try {
+                const response = await fetch('/api/recent-activity');
+                if (!response.ok) throw new Error('Network response was not ok');
+                const data = await response.json();
+                // Expect data to be an array of { icon, text, time }
+                renderActivity(data);
+            } catch (error) {
+                console.error('Failed to fetch recent activity:', error);
+                // Fallback to demo data if API fails
+                const fallbackActivities = [
+                    { time: '2 min ago', text: 'Converted 15 invoices to Excel format', icon: '🔄' },
+                    { time: '1 hour ago', text: 'Updated GST mapping for "Consulting Services"', icon: '⚙️' },
+                    { time: '3 hours ago', text: 'Downloaded invoice template', icon: '📥' },
+                    { time: 'Yesterday', text: 'Generated monthly GST report', icon: '📊' },
+                    { time: 'Yesterday', text: 'Auto-backup completed successfully', icon: '💾' }
+                ];
+                renderActivity(fallbackActivities);
+            }
+        }
 
+        function renderActivity(activities) {
             const container = document.getElementById('activityLog');
             if (!container) return;
 
             container.innerHTML = '';
-
             activities.forEach(act => {
                 const item = document.createElement('div');
                 item.className = 'activity-item';
@@ -284,9 +296,15 @@
             });
         }
 
-        // Initialize on page load
+        // Initial load
+        fetchRecentActivity();
+
+        // Refresh every 10 seconds
+        setInterval(fetchRecentActivity, 10000);
+
+        // Optionally, you can also use window.onload to ensure the container exists
         window.onload = function() {
-            loadRecentActivity();
+            // Already called fetchRecentActivity above, but fine.
         };
     </script>
 </body>
