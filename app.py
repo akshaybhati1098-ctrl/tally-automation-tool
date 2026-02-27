@@ -1,4 +1,4 @@
-from flask import send_file
+from flask import send_file  # might not be needed but left as is
 import io
 import csv
 from io import BytesIO
@@ -9,6 +9,8 @@ from fastapi.templating import Jinja2Templates
 import logging
 import openpyxl
 import pandas as pd
+from openpyxl import Workbook
+from openpyxl.styles import Font
 
 # Existing services
 from core.excel_service import excel_to_xml
@@ -258,38 +260,62 @@ async def get_sheet_names(file: UploadFile):
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
 
 # =========================================================
-# Download Excel Template (CORRECTED for FastAPI)
+# Download Excel Template (UPDATED: uses openpyxl for real .xlsx)
 # =========================================================
 @app.get("/download-template")
 async def download_template():
-    # Create CSV in memory
-    output = io.StringIO()
-    writer = csv.writer(output)
+    # Create a new Excel workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Template"
 
-    # Write header
-    writer.writerow([
+    # Define headers
+    headers = [
         'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
         'Invoice date', 'Invoice Value', 'Taxable Value',
         'IGST', 'CGST', 'SGST', 'Cess'
-    ])
+    ]
 
-    # Write example rows
-    writer.writerows([
+    # Add headers (bold)
+    ws.append(headers)
+    for cell in ws[1]:  # first row
+        cell.font = Font(bold=True)
+
+    # Add example rows
+    data = [
         [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20',
-         '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
+         11800.00, 10000.00, 0, 900.00, 900.00, 0],
         [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21',
-         '23600.00', '20000.00', '3600.00', '0', '0', '0'],
+         23600.00, 20000.00, 3600.00, 0, 0, 0],
         [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22',
-         '5900.00', '5000.00', '0', '450.00', '450.00', '0']
-    ])
+         5900.00, 5000.00, 0, 450.00, 450.00, 0]
+    ]
 
-    # Prepare response
-    output.seek(0)
-    csv_bytes = output.getvalue().encode('utf-8-sig')
+    for row in data:
+        ws.append(row)
+
+    # Auto-adjust column widths (optional but nice)
+    for column in ws.columns:
+        max_length = 0
+        column_letter = column[0].column_letter
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length = len(str(cell.value))
+            except:
+                pass
+        adjusted_width = (max_length + 2)
+        ws.column_dimensions[column_letter].width = adjusted_width
+
+    # Save to BytesIO
+    excel_bytes = io.BytesIO()
+    wb.save(excel_bytes)
+    excel_bytes.seek(0)
+
     return Response(
-        content=csv_bytes,
-        media_type='text/csv',
+        content=excel_bytes.read(),
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
-            'Content-Disposition': 'attachment; filename="invoice_template.xlsx"'
+            "Content-Disposition": 'attachment; filename="invoice_template.xlsx"'
         }
     )
