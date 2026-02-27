@@ -371,3 +371,252 @@ input:focus, select:focus, textarea:focus {
         flex-wrap: wrap;
     }
 }/* common styles */
+/* Dark theme – add to base.css or as dark-theme.css */
+.dark-theme {
+    --bg-primary: #1a1f2e;
+    --bg-secondary: #242a3a;
+    --bg-card: #2d3445;
+    --bg-input: #2d3445;
+    --border-color: #3f4a5c;
+    --text-primary: #e9edf2;
+    --text-secondary: #b0c0d0;
+    --text-muted: #7e8b9f;
+    --accent-primary: #2a3f6e;
+    --accent-hover: #34518c;
+    --accent-success: #1e5f2e;
+    --accent-success-hover: #2a7a3a;
+    --accent-warning: #b85c1a;
+    --accent-danger: #b00020;
+}
+
+.dark-theme body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+}
+
+/* Cards */
+.dark-theme .card {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.dark-theme .card-header h3 {
+    background: linear-gradient(135deg, #a0b8d4, #c0d0e8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Quick actions */
+.dark-theme .action-card {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .action-card:hover {
+    background: var(--bg-card);
+    border-color: var(--accent-primary);
+}
+
+/* Features */
+.dark-theme .feature-item {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.dark-theme .feature-item b {
+    color: var(--text-primary);
+}
+
+.dark-theme .feature-item small {
+    color: var(--text-secondary);
+}
+
+/* Activity log */
+.dark-theme .activity-log {
+    background: var(--bg-secondary);
+}
+
+.dark-theme .activity-item {
+    border-bottom-color: var(--border-color);
+}
+
+.dark-theme .activity-text {
+    color: var(--text-primary);
+}
+
+.dark-theme .activity-time {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* Top navigation */
+.dark-theme .top-nav {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.dark-theme .logo h2 {
+    background: linear-gradient(135deg, #a0b8d4, #c0d0e8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.dark-theme .nav-link {
+    color: var(--text-primary);
+}
+
+.dark-theme .nav-link:hover {
+    background: var(--bg-secondary);
+    color: white;
+}
+
+.dark-theme .nav-link.active {
+    background: var(--accent-primary);
+    color: white;
+}
+
+/* Form elements */
+.dark-theme .form-group label {
+    color: var(--text-secondary);
+}
+
+.dark-theme .file-input,
+.dark-theme .form-select,
+.dark-theme .form-input {
+    background: var(--bg-input);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .file-input:hover,
+.dark-theme .form-select:hover,
+.dark-theme .form-input:hover {
+    border-color: var(--accent-primary);
+    background: var(--bg-secondary);
+}
+
+/* Voucher type buttons */
+.dark-theme .voucher-type-btn {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme input[type="radio"]:checked + .voucher-type-btn {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+/* Buttons */
+.dark-theme .btn-primary {
+    background: var(--accent-primary);
+}
+
+.dark-theme .btn-primary:hover {
+    background: var(--accent-hover);
+}
+
+.dark-theme .btn-success {
+    background: var(--accent-success);
+}
+
+.dark-theme .btn-success:hover {
+    background: var(--accent-success-hover);
+}
+
+.dark-theme .btn-warning {
+    background: var(--accent-warning);
+}
+
+.dark-theme .btn-danger {
+    background: var(--accent-danger);
+}
+
+/* Progress bar */
+.dark-theme .progress {
+    background: var(--bg-secondary);
+}
+
+.dark-theme .progress-bar {
+    background: linear-gradient(90deg, var(--accent-primary), var(--accent-hover));
+}
+
+/* Messages */
+.dark-theme .message.success {
+    background: #1e3a2a;
+    color: #b8f0c0;
+    border-color: #2a5a34;
+}
+
+.dark-theme .message.error {
+    background: #3a1e1e;
+    color: #ffb3b3;
+    border-color: #b00020;
+}
+
+/* Mapping editor panels */
+.dark-theme .company-panel,
+.dark-theme .group-panel,
+.dark-theme .rate-panel {
+    background: var(--bg-secondary);
+    border-color: var(--border-color);
+}
+
+.dark-theme .company-item,
+.dark-theme .group-item {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    color: var(--text-primary);
+}
+
+.dark-theme .company-item.active,
+.dark-theme .group-item.active {
+    background: var(--accent-primary);
+    border-color: var(--accent-primary);
+    color: white;
+}
+
+.dark-theme .rate-item {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.dark-theme .rate-percent {
+    background: var(--accent-primary);
+    color: white;
+}
+
+.dark-theme .rate-ledger {
+    color: var(--text-primary);
+}
+
+/* Modals */
+.dark-theme .modal-content {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.dark-theme .modal-title {
+    color: var(--text-primary);
+}
+
+/* Scrollbars (optional) */
+.dark-theme ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.dark-theme ::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+.dark-theme ::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.dark-theme ::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-primary);
+}

@@ -86,3 +86,42 @@ if (saveSettingsBtn) {
 }
 
 loadSettings();// common js logic
+// Theme management
+(function() {
+    // Get saved theme from localStorage or default to 'light'
+    function getSavedTheme() {
+        return localStorage.getItem('theme') || 'light';
+    }
+
+    // Apply theme by adding/removing dark-theme class on body
+    function applyTheme(theme) {
+        document.body.classList.toggle('dark-theme', theme === 'dark');
+        localStorage.setItem('theme', theme);
+    }
+
+    // Initialize theme on page load
+    function initTheme() {
+        const savedTheme = getSavedTheme();
+        applyTheme(savedTheme);
+
+        // If there's a theme selector on the page, set its value
+        const themeSelect = document.getElementById('themeSelect');
+        if (themeSelect) {
+            themeSelect.value = savedTheme;
+        }
+    }
+
+    // Listen for theme changes (from any page)
+    document.addEventListener('change', function(e) {
+        if (e.target && e.target.id === 'themeSelect') {
+            applyTheme(e.target.value);
+        }
+    });
+
+    // Run initialization when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTheme);
+    } else {
+        initTheme();
+    }
+})();
