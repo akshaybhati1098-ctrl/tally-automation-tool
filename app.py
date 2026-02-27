@@ -1,3 +1,4 @@
+
 from flask import send_file  # might not be needed but left as is
 import io
 import csv
@@ -11,7 +12,6 @@ import openpyxl
 import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font
-import random  # Added for demo data
 
 # Existing services
 from core.excel_service import excel_to_xml
@@ -259,30 +259,6 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
-
-# =========================================================
-# Recent Activity API (for real-time dashboard updates)
-# =========================================================
-@app.get("/api/recent-activity")
-async def get_recent_activity():
-    """Return recent activities for the dashboard."""
-    # In a real app, fetch this from a database or log file
-    # For now, return demo data that changes slightly each time
-    
-    activities = [
-        {"icon": "🔄", "text": "Converted 15 invoices to Excel format", "time": "2 min ago"},
-        {"icon": "⚙️", "text": "Updated GST mapping for 'Consulting Services'", "time": "1 hour ago"},
-        {"icon": "📥", "text": "Downloaded invoice template", "time": "3 hours ago"},
-        {"icon": "📊", "text": "Generated monthly GST report", "time": "Yesterday"},
-        {"icon": "💾", "text": "Auto-backup completed successfully", "time": "Yesterday"},
-        {"icon": "🔄", "text": f"Processed {random.randint(5, 25)} invoices", "time": "Just now"},
-        {"icon": "⚙️", "text": "Modified mapping for 'ABC Enterprises'", "time": "5 min ago"},
-        {"icon": "📥", "text": "Template downloaded by user", "time": "15 min ago"},
-        {"icon": "🏢", "text": "New company 'PQR Solutions' added", "time": "25 min ago"},
-    ]
-    
-    # Return a random subset to simulate real-time changes
-    return random.sample(activities, 5)
 
 # =========================================================
 # Download Excel Template (UPDATED: uses openpyxl for real .xlsx)
