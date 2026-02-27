@@ -1,27 +1,33 @@
 <div class="card">
     <div class="card-header">
-        <h3>Excel to XML Converter</h3>
+        <h3>🔄 Excel to XML Converter</h3>
     </div>
     <form id="convertForm">
         <div class="form-group">
-            <label>Excel File</label>
-            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput">
+            <label for="fileInput">Excel File</label>
+            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
         </div>
+
         <div class="form-group">
-            <label>Sheet Name</label>
-            <select name="sheet_name" id="sheetSelect" required disabled>
+            <label for="sheetSelect">Sheet Name</label>
+            <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
                 <option value="">-- Select a sheet --</option>
             </select>
-            <div id="sheetLoading" style="display: none; margin-top: 0.5rem; color: #666;">
-                <small>Loading sheets...</small>
+            <div id="sheetLoading" class="loading-indicator" style="display: none;">
+                <small>⏳ Loading sheets...</small>
             </div>
         </div>
+
         <div class="form-group">
-            <label>Company</label>
-            <select name="company" id="companySelect" required>
+            <label for="companySelect">Company</label>
+            <select name="company" id="companySelect" required class="form-select">
                 <option value="">-- Select company --</option>
+                <option value="company1">ABC Enterprises</option>
+                <option value="company2">XYZ Traders</option>
+                <option value="company3">LMN Pvt Ltd</option>
             </select>
         </div>
+
         <div class="form-group">
             <label>Voucher Type</label>
             <div class="voucher-type-group">
@@ -32,10 +38,285 @@
                 <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
             </div>
         </div>
-        <button type="submit" class="btn btn-primary" style="width: 100%;" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
+
+        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
     </form>
+
     <div class="progress" id="progress">
         <div class="progress-bar" id="progressBar"></div>
     </div>
     <div id="message" class="message"></div>
 </div>
+
+<style>
+/* ===== Form Styles (matching dashboard aesthetics) ===== */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #1e2b4f;
+    font-size: 0.95rem;
+}
+
+.file-input,
+.form-select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    color: #1e2b4f;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+
+.file-input:hover,
+.form-select:hover {
+    border-color: #b0c4de;
+    background: white;
+}
+
+.file-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: #2a3f6e;
+    box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
+}
+
+.form-select:disabled {
+    background: #eef2f6;
+    color: #8a9bb5;
+    cursor: not-allowed;
+}
+
+.loading-indicator {
+    margin-top: 0.5rem;
+    color: #2f5b9c;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* Voucher type toggle buttons */
+.voucher-type-group {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.voucher-type-group input[type="radio"] {
+    display: none;
+}
+
+.voucher-type-btn {
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 40px;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e2b4f;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.voucher-type-btn:hover {
+    background: #e4edfc;
+    border-color: #b0c4de;
+    transform: translateY(-2px);
+}
+
+input[type="radio"]:checked + .voucher-type-btn {
+    background: #1e2b4f;
+    border-color: #1e2b4f;
+    color: white;
+    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
+}
+
+/* Primary button */
+.btn-primary {
+    background: #1e2b4f;
+    color: white;
+    border: none;
+    border-radius: 40px;
+    padding: 0.9rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #2a3f6e;
+    transform: translateY(-2px);
+    box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
+}
+
+.btn-primary:active:not(:disabled) {
+    transform: scale(0.98);
+}
+
+.btn-primary:disabled {
+    background: #b0c4de;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+/* Progress bar */
+.progress {
+    margin-top: 1.5rem;
+    height: 8px;
+    background: #e4edfc;
+    border-radius: 20px;
+    overflow: hidden;
+    display: none;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
+    border-radius: 20px;
+    transition: width 0.3s ease;
+}
+
+/* Message */
+.message {
+    margin-top: 1rem;
+    padding: 0.8rem 1rem;
+    border-radius: 16px;
+    font-size: 0.9rem;
+    display: none;
+}
+
+.message.success {
+    display: block;
+    background: #e1f7e3;
+    color: #1e5f2e;
+    border: 1px solid #a5d6a7;
+}
+
+.message.error {
+    display: block;
+    background: #ffe9e9;
+    color: #b00020;
+    border: 1px solid #ffb3b3;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .voucher-type-group {
+        flex-direction: column;
+    }
+    .voucher-type-btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// Simulate loading sheets when a file is selected
+document.getElementById('fileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const sheetSelect = document.getElementById('sheetSelect');
+    const sheetLoading = document.getElementById('sheetLoading');
+    const submitBtn = document.getElementById('submitBtn');
+    const companySelect = document.getElementById('companySelect');
+
+    if (file) {
+        // Disable sheet select and show loading
+        sheetSelect.disabled = true;
+        sheetLoading.style.display = 'flex';
+        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+
+        // Simulate async sheet loading (e.g., from backend)
+        setTimeout(() => {
+            // Dummy sheet names
+            const dummySheets = ['Sheet1', 'Sheet2', 'Sheet3', 'Invoice Data', 'Sales'];
+            sheetSelect.disabled = false;
+            sheetLoading.style.display = 'none';
+
+            // Populate sheet options
+            dummySheets.forEach(sheet => {
+                const option = document.createElement('option');
+                option.value = sheet;
+                option.textContent = sheet;
+                sheetSelect.appendChild(option);
+            });
+
+            // Enable submit if both sheet and company are selected
+            toggleSubmitButton();
+        }, 1200); // simulate network delay
+    } else {
+        sheetSelect.disabled = true;
+        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+        sheetLoading.style.display = 'none';
+    }
+    toggleSubmitButton();
+});
+
+// Company select change
+document.getElementById('companySelect').addEventListener('change', toggleSubmitButton);
+document.getElementById('sheetSelect').addEventListener('change', toggleSubmitButton);
+
+function toggleSubmitButton() {
+    const fileInput = document.getElementById('fileInput');
+    const sheetSelect = document.getElementById('sheetSelect');
+    const companySelect = document.getElementById('companySelect');
+    const submitBtn = document.getElementById('submitBtn');
+
+    const fileSelected = fileInput.files.length > 0;
+    const sheetSelected = sheetSelect.value && !sheetSelect.disabled;
+    const companySelected = companySelect.value;
+
+    submitBtn.disabled = !(fileSelected && sheetSelected && companySelected);
+}
+
+// Form submission with simulated progress
+document.getElementById('convertForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+
+    const submitBtn = document.getElementById('submitBtn');
+    const progress = document.getElementById('progress');
+    const progressBar = document.getElementById('progressBar');
+    const messageDiv = document.getElementById('message');
+
+    // Disable button during process
+    submitBtn.disabled = true;
+    progress.style.display = 'block';
+    messageDiv.style.display = 'none';
+    progressBar.style.width = '0%';
+
+    // Simulate conversion progress
+    let width = 0;
+    const interval = setInterval(() => {
+        width += 5;
+        progressBar.style.width = width + '%';
+        if (width >= 100) {
+            clearInterval(interval);
+            setTimeout(() => {
+                progress.style.display = 'none';
+                messageDiv.className = 'message success';
+                messageDiv.textContent = '✅ XML generated successfully! (Demo)';
+                submitBtn.disabled = false; // re-enable for demo
+            }, 300);
+        }
+    }, 100);
+});
+</script>
