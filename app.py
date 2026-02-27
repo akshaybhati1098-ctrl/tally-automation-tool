@@ -173,6 +173,7 @@ async def remove_company(company: str):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to delete company: {str(e)}")
+
 # =========================================================
 # Rename company
 # =========================================================
@@ -201,6 +202,7 @@ async def rename_company(old_name: str, new_name: str = Form(...)):
         raise
     except Exception as e:
         raise HTTPException(500, f"Failed to rename company: {str(e)}")
+
 # =========================================================
 # Per‑company mapping endpoints
 # =========================================================
@@ -254,11 +256,12 @@ async def get_sheet_names(file: UploadFile):
     except Exception as e:
         logging.error(f"Failed to read sheets: {e}")
         raise HTTPException(500, f"Could not read sheet names: {str(e)}")
-from fastapi.responses import StreamingResponse
-import io
 
-@app.route('/download-template')
-def download_template():
+# =========================================================
+# Download Excel Template (CORRECTED for FastAPI)
+# =========================================================
+@app.get("/download-template")
+async def download_template():
     # Create CSV in memory
     output = io.StringIO()
     writer = csv.writer(output)
@@ -280,11 +283,13 @@ def download_template():
          '5900.00', '5000.00', '0', '450.00', '450.00', '0']
     ])
 
-    # Prepare the file for download
+    # Prepare response
     output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode('utf-8-sig')),
-        mimetype='text/csv',
-        as_attachment=True,
-        download_name='invoice_template.xlsx'
+    csv_bytes = output.getvalue().encode('utf-8-sig')
+    return Response(
+        content=csv_bytes,
+        media_type='text/csv',
+        headers={
+            'Content-Disposition': 'attachment; filename="invoice_template.xlsx"'
+        }
     )
