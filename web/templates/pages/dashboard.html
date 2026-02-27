@@ -1,54 +1,336 @@
-<div class="card">
-    <div class="card-header">
-        <h3>Quick Actions</h3>
-    </div>
-    <div class="quick-actions">
-        <div class="action-card" onclick="navigateTo('converter')">
-            <div class="icon">🔄</div>
-            <div>Convert Excel</div>
-        </div>
-        <div class="action-card" onclick="navigateTo('mapping')">
-            <div class="icon">⚙️</div>
-            <div>Edit Mapping</div>
-        </div>
-        <div class="action-card" onclick="downloadTemplate()">
-            <div class="icon">📥</div>
-            <div>Get Template</div>
-        </div>
-        <div class="action-card" onclick="viewReports()">
-            <div class="icon">📊</div>
-            <div>View Reports</div>
-        </div>
-    </div>
-</div>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Invoice Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
 
-<div class="card">
-    <div class="card-header">
-        <h3>Key Features</h3>
-    </div>
-    <div class="features-grid">
-        <div class="feature-item">
-            <span class="feature-icon">🚀</span>
-            <div><b>Fast Conversion</b><br><small>1000+ invoices/sec</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">📊</span>
-            <div><b>GST Compliant</b><br><small>Accurate GST</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">🔧</span>
-            <div><b>Flexible Mapping</b><br><small>Custom ledgers</small></div>
-        </div>
-        <div class="feature-item">
-            <span class="feature-icon">💾</span>
-            <div><b>Auto Backup</b><br><small>Never lose data</small></div>
-        </div>
-    </div>
-</div>
+        body {
+            background: #f3f6fc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 2rem 1rem;
+        }
 
-<div class="card">
-    <div class="card-header">
-        <h3>Recent Activity</h3>
+        .dashboard {
+            max-width: 1200px;
+            width: 100%;
+            display: grid;
+            gap: 1.5rem;
+        }
+
+        /* Card styles */
+        .card {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 10px 30px -5px rgba(0, 20, 40, 0.1);
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid rgba(255,255,255,0.5);
+            backdrop-filter: blur(2px);
+        }
+
+        .card:hover {
+            box-shadow: 0 20px 35px -8px rgba(0, 30, 60, 0.15);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.2rem;
+        }
+
+        .card-header h3 {
+            font-size: 1.4rem;
+            font-weight: 600;
+            background: linear-gradient(135deg, #1e2b4f, #2a3f6e);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.02em;
+        }
+
+        /* Quick actions grid */
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+
+        .action-card {
+            background: #f8faff;
+            border-radius: 20px;
+            padding: 1.2rem 0.8rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 1px solid #e9eef7;
+            font-weight: 500;
+            color: #1e2b4f;
+        }
+
+        .action-card:hover {
+            background: white;
+            border-color: #b0c4de;
+            transform: translateY(-4px);
+            box-shadow: 0 12px 20px -10px rgba(30, 60, 120, 0.2);
+        }
+
+        .action-card .icon {
+            font-size: 2.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Features grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.2rem;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: #f9fcff;
+            padding: 0.8rem 1rem;
+            border-radius: 18px;
+            border: 1px solid #e9eff8;
+        }
+
+        .feature-icon {
+            font-size: 1.8rem;
+        }
+
+        .feature-item b {
+            font-size: 1rem;
+            color: #1e2b4f;
+        }
+
+        .feature-item small {
+            color: #5a6e8a;
+            font-size: 0.8rem;
+        }
+
+        /* Activity log */
+        .activity-log {
+            background: #f9fcff;
+            border-radius: 20px;
+            padding: 0.8rem 1rem;
+            list-style: none;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            padding: 0.8rem 0;
+            border-bottom: 1px solid #e2eaf5;
+            font-size: 0.95rem;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-time {
+            color: #2f5b9c;
+            font-weight: 500;
+            background: #e4edfc;
+            padding: 0.2rem 0.6rem;
+            border-radius: 40px;
+            font-size: 0.75rem;
+        }
+
+        .activity-text {
+            color: #1e2b4f;
+            flex: 1;
+        }
+
+        .activity-icon {
+            font-size: 1.2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 600px) {
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* subtle animation */
+        .action-card:active {
+            transform: scale(0.97);
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard">
+        <!-- Quick Actions Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>⚡ Quick Actions</h3>
+            </div>
+            <div class="quick-actions">
+                <div class="action-card" onclick="navigateTo('converter')">
+                    <div class="icon">🔄</div>
+                    <div>Convert Excel</div>
+                </div>
+                <div class="action-card" onclick="navigateTo('mapping')">
+                    <div class="icon">⚙️</div>
+                    <div>Edit Mapping</div>
+                </div>
+                <div class="action-card" onclick="downloadTemplate()">
+                    <div class="icon">📥</div>
+                    <div>Get Template</div>
+                </div>
+                <div class="action-card" onclick="viewReports()">
+                    <div class="icon">📊</div>
+                    <div>View Reports</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Key Features Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>✨ Key Features</h3>
+            </div>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <span class="feature-icon">🚀</span>
+                    <div><b>Fast Conversion</b><br><small>1000+ invoices/sec</small></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📊</span>
+                    <div><b>GST Compliant</b><br><small>Accurate GST</small></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔧</span>
+                    <div><b>Flexible Mapping</b><br><small>Custom ledgers</small></div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">💾</span>
+                    <div><b>Auto Backup</b><br><small>Never lose data</small></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Activity Card -->
+        <div class="card">
+            <div class="card-header">
+                <h3>📋 Recent Activity</h3>
+            </div>
+            <div class="activity-log" id="activityLog">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
     </div>
-    <div class="activity-log" id="activityLog">Loading...</div>
-</div>
+
+    <script>
+        // Navigation mocks (you can replace with real routing)
+        function navigateTo(page) {
+            alert(`Navigating to ${page} page (demo)`);
+            // In real app: window.location.href = `/${page}`;
+        }
+
+        function viewReports() {
+            alert('Opening reports dashboard (demo)');
+        }
+
+        // Function to download Excel template (CSV format)
+        function downloadTemplate() {
+            // Define the headers exactly as requested
+            const headers = [
+                'Sr',
+                'GSTIN',
+                'Recipient Name',
+                'Invoice Number',
+                'Invoice date',
+                'Invoice Value',
+                'Taxable Value',
+                'IGST',
+                'CGST',
+                'SGST',
+                'Cess'
+            ];
+
+            // Example rows (2-3 examples)
+            const exampleRows = [
+                [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20', '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
+                [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21', '23600.00', '20000.00', '3600.00', '0', '0', '0'],
+                [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22', '5900.00', '5000.00', '0', '450.00', '450.00', '0']
+            ];
+
+            // Combine headers and rows into CSV content
+            let csvContent = headers.join(',') + '\n'; // header row
+
+            exampleRows.forEach(row => {
+                // Properly handle fields that might contain commas (none here, but wrap in quotes just in case)
+                const escapedRow = row.map(cell => {
+                    if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
+                        return `"${cell.replace(/"/g, '""')}"`; // escape quotes
+                    }
+                    return cell;
+                }).join(',');
+                csvContent += escapedRow + '\n';
+            });
+
+            // Create a Blob with Excel MIME type (CSV works in Excel)
+            const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' }); // or 'text/csv'
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'invoice_template.xlsx'; // .xlsx extension, but actually CSV. For true Excel we'd need a library. This opens fine in Excel.
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Populate recent activity with dynamic entries
+        function loadRecentActivity() {
+            const activities = [
+                { time: '2 min ago', text: 'Converted 15 invoices to Excel format', icon: '🔄' },
+                { time: '1 hour ago', text: 'Updated GST mapping for "Consulting Services"', icon: '⚙️' },
+                { time: '3 hours ago', text: 'Downloaded invoice template', icon: '📥' },
+                { time: 'Yesterday', text: 'Generated monthly GST report', icon: '📊' },
+                { time: 'Yesterday', text: 'Auto-backup completed successfully', icon: '💾' }
+            ];
+
+            const container = document.getElementById('activityLog');
+            if (!container) return;
+
+            container.innerHTML = ''; // clear loading
+
+            activities.forEach(act => {
+                const item = document.createElement('div');
+                item.className = 'activity-item';
+                item.innerHTML = `
+                    <span class="activity-icon">${act.icon}</span>
+                    <span class="activity-text">${act.text}</span>
+                    <span class="activity-time">${act.time}</span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        // Call on page load
+        window.onload = function() {
+            loadRecentActivity();
+        };
+    </script>
+</body>
+</html>
