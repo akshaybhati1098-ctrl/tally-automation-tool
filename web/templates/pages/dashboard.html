@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel Invoice Dashboard</title>
+    <title>Akshay's Tally Tool · Dashboard</title>
     <style>
         * {
             margin: 0;
@@ -14,21 +14,22 @@
 
         body {
             background: #f3f6fc;
-            display: flex;
-            justify-content: center;
-            align-items: center;
             min-height: 100vh;
             padding: 2rem 1rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
-        .dashboard {
+        .dashboard-container {
             max-width: 1200px;
             width: 100%;
-            display: grid;
+            display: flex;
+            flex-direction: column;
             gap: 1.5rem;
         }
 
-        /* Card styles */
+        /* ===== CARD STYLES ===== */
         .card {
             background: white;
             border-radius: 24px;
@@ -37,6 +38,7 @@
             transition: transform 0.2s, box-shadow 0.2s;
             border: 1px solid rgba(255,255,255,0.5);
             backdrop-filter: blur(2px);
+            width: 100%;
         }
 
         .card:hover {
@@ -83,6 +85,13 @@
             border-color: #b0c4de;
             transform: translateY(-4px);
             box-shadow: 0 12px 20px -10px rgba(30, 60, 120, 0.2);
+            color: #1e2b4f;
+        }
+
+        .action-card:active {
+            transform: scale(0.97);
+            background: #e4edfc;
+            color: #1e2b4f;
         }
 
         .action-card .icon {
@@ -126,7 +135,6 @@
             background: #f9fcff;
             border-radius: 20px;
             padding: 0.8rem 1rem;
-            list-style: none;
         }
 
         .activity-item {
@@ -169,15 +177,10 @@
                 grid-template-columns: 1fr;
             }
         }
-
-        /* subtle animation */
-        .action-card:active {
-            transform: scale(0.97);
-        }
     </style>
 </head>
 <body>
-    <div class="dashboard">
+    <div class="dashboard-container">
         <!-- Quick Actions Card -->
         <div class="card">
             <div class="card-header">
@@ -240,19 +243,19 @@
     </div>
 
     <script>
-        // Navigation mocks (you can replace with real routing)
+        // ----- NAVIGATION FUNCTIONS -----
         function navigateTo(page) {
-            alert(`Navigating to ${page} page (demo)`);
-            // In real app: window.location.href = `/${page}`;
+            console.log(`Navigating to: ${page}`);
+            // Replace with your actual routing logic
+            alert(`🌐 Navigating to ${page} (demo)`);
         }
 
         function viewReports() {
-            alert('Opening reports dashboard (demo)');
+            alert('📈 Opening reports dashboard (demo)');
         }
 
-        // Function to download Excel template (CSV format)
+        // ----- TEMPLATE DOWNLOAD FUNCTION -----
         function downloadTemplate() {
-            // Define the headers exactly as requested
             const headers = [
                 'Sr',
                 'GSTIN',
@@ -267,40 +270,36 @@
                 'Cess'
             ];
 
-            // Example rows (2-3 examples)
             const exampleRows = [
                 [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20', '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
                 [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21', '23600.00', '20000.00', '3600.00', '0', '0', '0'],
                 [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22', '5900.00', '5000.00', '0', '450.00', '450.00', '0']
             ];
 
-            // Combine headers and rows into CSV content
-            let csvContent = headers.join(',') + '\n'; // header row
+            let csvContent = headers.join(',') + '\n';
 
             exampleRows.forEach(row => {
-                // Properly handle fields that might contain commas (none here, but wrap in quotes just in case)
                 const escapedRow = row.map(cell => {
                     if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
-                        return `"${cell.replace(/"/g, '""')}"`; // escape quotes
+                        return `"${cell.replace(/"/g, '""')}"`;
                     }
                     return cell;
                 }).join(',');
                 csvContent += escapedRow + '\n';
             });
 
-            // Create a Blob with Excel MIME type (CSV works in Excel)
-            const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' }); // or 'text/csv'
+            const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = url;
-            link.download = 'invoice_template.xlsx'; // .xlsx extension, but actually CSV. For true Excel we'd need a library. This opens fine in Excel.
+            link.download = 'invoice_template.xlsx';
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
             window.URL.revokeObjectURL(url);
         }
 
-        // Populate recent activity with dynamic entries
+        // ----- POPULATE RECENT ACTIVITY -----
         function loadRecentActivity() {
             const activities = [
                 { time: '2 min ago', text: 'Converted 15 invoices to Excel format', icon: '🔄' },
@@ -313,7 +312,7 @@
             const container = document.getElementById('activityLog');
             if (!container) return;
 
-            container.innerHTML = ''; // clear loading
+            container.innerHTML = '';
 
             activities.forEach(act => {
                 const item = document.createElement('div');
@@ -327,7 +326,7 @@
             });
         }
 
-        // Call on page load
+        // Initialize on page load
         window.onload = function() {
             loadRecentActivity();
         };
