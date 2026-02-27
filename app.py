@@ -1,3 +1,6 @@
+from flask import send_file
+import io
+import csv
 from io import BytesIO
 from fastapi import FastAPI, Request, UploadFile, Form, HTTPException
 from fastapi.responses import Response, JSONResponse
@@ -254,24 +257,34 @@ async def get_sheet_names(file: UploadFile):
 from fastapi.responses import StreamingResponse
 import io
 
-@app.get("/download-template")
+@app.route('/download-template')
 def download_template():
-    headers = [
-        "Sr","GSTIN","Recipient Name","Invoice Number",
-        "Invoice Date","Invoice Value","Taxable Value",
-        "IGST","CGST","SGST","Cess"
-    ]
+    # Create CSV in memory
+    output = io.StringIO()
+    writer = csv.writer(output)
 
-    csv_content = ",".join(headers) + "\n"
+    # Write header
+    writer.writerow([
+        'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
+        'Invoice date', 'Invoice Value', 'Taxable Value',
+        'IGST', 'CGST', 'SGST', 'Cess'
+    ])
 
-    buffer = io.StringIO()
-    buffer.write(csv_content)
-    buffer.seek(0)
+    # Write example rows
+    writer.writerows([
+        [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20',
+         '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
+        [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21',
+         '23600.00', '20000.00', '3600.00', '0', '0', '0'],
+        [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22',
+         '5900.00', '5000.00', '0', '450.00', '450.00', '0']
+    ])
 
-    return StreamingResponse(
-        buffer,
-        media_type="text/csv",
-        headers={
-            "Content-Disposition": "attachment; filename=excel_to_xml_template.csv"
-        }
+    # Prepare the file for download
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode('utf-8-sig')),
+        mimetype='text/csv',
+        as_attachment=True,
+        download_name='invoice_template.xlsx'
     )

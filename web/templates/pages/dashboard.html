@@ -78,6 +78,8 @@
             border: 1px solid #e9eef7;
             font-weight: 500;
             color: #1e2b4f;
+            text-decoration: none;  /* for anchor tags */
+            display: block;
         }
 
         .action-card:hover {
@@ -195,10 +197,11 @@
                     <div class="icon">⚙️</div>
                     <div>Edit Mapping</div>
                 </div>
-                <div class="action-card" onclick="downloadTemplate()">
+                <!-- Get Template now links to Flask route -->
+                <a href="/download-template" class="action-card">
                     <div class="icon">📥</div>
                     <div>Get Template</div>
-                </div>
+                </a>
                 <div class="action-card" onclick="viewReports()">
                     <div class="icon">📊</div>
                     <div>View Reports</div>
@@ -252,51 +255,6 @@
 
         function viewReports() {
             alert('📈 Opening reports dashboard (demo)');
-        }
-
-        // ----- TEMPLATE DOWNLOAD FUNCTION -----
-        function downloadTemplate() {
-            const headers = [
-                'Sr',
-                'GSTIN',
-                'Recipient Name',
-                'Invoice Number',
-                'Invoice date',
-                'Invoice Value',
-                'Taxable Value',
-                'IGST',
-                'CGST',
-                'SGST',
-                'Cess'
-            ];
-
-            const exampleRows = [
-                [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20', '11800.00', '10000.00', '0', '900.00', '900.00', '0'],
-                [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21', '23600.00', '20000.00', '3600.00', '0', '0', '0'],
-                [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22', '5900.00', '5000.00', '0', '450.00', '450.00', '0']
-            ];
-
-            let csvContent = headers.join(',') + '\n';
-
-            exampleRows.forEach(row => {
-                const escapedRow = row.map(cell => {
-                    if (typeof cell === 'string' && (cell.includes(',') || cell.includes('"'))) {
-                        return `"${cell.replace(/"/g, '""')}"`;
-                    }
-                    return cell;
-                }).join(',');
-                csvContent += escapedRow + '\n';
-            });
-
-            const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.href = url;
-            link.download = 'invoice_template.xlsx';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
         }
 
         // ----- POPULATE RECENT ACTIVITY -----
