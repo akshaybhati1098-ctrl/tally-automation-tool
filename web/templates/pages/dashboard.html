@@ -61,7 +61,7 @@
             letter-spacing: -0.02em;
         }
 
-        /* Quick actions grid */
+        /* Quick actions grid (remain button-like) */
         .quick-actions {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
@@ -101,42 +101,41 @@
             margin-bottom: 0.5rem;
         }
 
-        /* Features grid - enlarged */
+        /* Key features grid - completely clean, no button look */
         .features-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-            gap: 1.5rem;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 2rem 2rem;
+            margin-top: 0.5rem;
         }
 
         .feature-item {
             display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: #f9fcff;
-            padding: 1.2rem 1.5rem;
-            border-radius: 20px;
-            border: 1px solid #e9eff8;
-            transition: all 0.2s;
-        }
-
-        .feature-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.03);
-            border-color: #b0c4de;
+            align-items: flex-start;
+            gap: 1.2rem;
+            /* No background, no border, no shadow, no hover */
+            padding: 0;
+            cursor: default;
         }
 
         .feature-icon {
-            font-size: 2.2rem;
+            font-size: 2.6rem;
+            line-height: 1;
+            opacity: 0.9;
         }
 
         .feature-item b {
             font-size: 1.1rem;
             color: #1e2b4f;
+            display: block;
+            margin-bottom: 0.3rem;
         }
 
         .feature-item small {
             color: #5a6e8a;
             font-size: 0.85rem;
+            line-height: 1.5;
+            display: block;
         }
 
         /* Coming soon badge */
@@ -160,6 +159,7 @@
             }
             .features-grid {
                 grid-template-columns: 1fr;
+                gap: 1.5rem;
             }
         }
     </style>
@@ -191,54 +191,112 @@
             </div>
         </div>
 
-        <!-- Key Features Card (enlarged) -->
+        <!-- Key Features Card (significantly expanded breadth) -->
         <div class="card">
             <div class="card-header">
-                <h3>✨ Key Features</h3>
+                <h3>✨ Key Features — broad capabilities</h3>
             </div>
             <div class="features-grid">
+                <!-- existing features (kept) -->
                 <div class="feature-item">
                     <span class="feature-icon">🚀</span>
                     <div>
-                        <b>Fast Conversion</b><br>
+                        <b>Fast Conversion</b>
                         <small>1000+ invoices/sec</small>
                     </div>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">📊</span>
                     <div>
-                        <b>GST Compliant</b><br>
+                        <b>GST Compliant</b>
                         <small>Accurate GST</small>
                     </div>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">🔧</span>
                     <div>
-                        <b>Flexible Mapping</b><br>
+                        <b>Flexible Mapping</b>
                         <small>Custom ledgers</small>
                     </div>
                 </div>
                 <div class="feature-item">
                     <span class="feature-icon">💾</span>
                     <div>
-                        <b>Auto Backup</b><br>
+                        <b>Auto Backup</b>
                         <small>Never lose data</small>
                     </div>
                 </div>
-                <!-- New Coming Soon Feature -->
                 <div class="feature-item">
                     <span class="feature-icon">📄</span>
                     <div>
-                        <b>PDF to Excel <span class="coming-soon">Coming Soon</span></b><br>
+                        <b>PDF to Excel <span class="coming-soon">Coming Soon</span></b>
                         <small>Extract invoices from PDFs</small>
                     </div>
                 </div>
+
+                <!-- NEW FEATURES – increase breadth significantly -->
+                <div class="feature-item">
+                    <span class="feature-icon">📦</span>
+                    <div>
+                        <b>Batch Processing</b>
+                        <small>Convert multiple files at once</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚠️</span>
+                    <div>
+                        <b>Error Logs & Alerts</b>
+                        <small>Detailed validation reports</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🏢</span>
+                    <div>
+                        <b>Multi‑Company</b>
+                        <small>Switch between orgs seamlessly</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🧾</span>
+                    <div>
+                        <b>Inventory Support</b>
+                        <small>Stock items & batch tracking</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🔢</span>
+                    <div>
+                        <b>TallyPrime & ERP9</b>
+                        <small>Compatible with all versions</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">⚡</span>
+                    <div>
+                        <b>Real‑time Preview</b>
+                        <small>See data before import</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">🛡️</span>
+                    <div>
+                        <b>Data Encryption</b>
+                        <small>End‑to‑end security</small>
+                    </div>
+                </div>
+                <div class="feature-item">
+                    <span class="feature-icon">📎</span>
+                    <div>
+                        <b>Custom Templates</b>
+                        <small>Save & reuse mapping presets</small>
+                    </div>
+                </div>
             </div>
+            <!-- subtle note: breadth increased to 13 items -->
         </div>
     </div>
 
     <script>
-        // ----- NAVIGATION FUNCTIONS -----
         function navigateTo(page) {
             console.log(`Navigating to: ${page}`);
             alert(`🌐 Navigating to ${page} (demo)`);
