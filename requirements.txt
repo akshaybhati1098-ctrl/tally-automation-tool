@@ -10,3 +10,4 @@ jinja2
 python-jose[cryptography]
 passlib[bcrypt]
 python-dotenv
+flask
