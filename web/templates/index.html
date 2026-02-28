@@ -16,6 +16,15 @@
         .page.active {
             display: block;
         }
+
+        /* ===== FIX: Constrain main content width ===== */
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            width: 100%;
+            padding: 0 1rem;
+            box-sizing: border-box; /* ensures padding doesn't add to width */
+        }
     </style>
 
     <!-- Page-specific CSS -->
@@ -31,7 +40,7 @@
     {% include 'partials/navbar.html' %}
 
     <!-- =========================
-         MAIN SPA CONTENT
+         MAIN SPA CONTENT (now width‑constrained)
     ========================== -->
     <div class="main-content">
 
@@ -67,7 +76,7 @@
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
     <!-- =========================
-         BASE SPA SCRIPT (MUST BE FIRST)
+         BASE SPA SCRIPT
     ========================== -->
     <script>
         function showPage(pageId) {
@@ -95,9 +104,9 @@
     <script src="/static/js/excel_to_xml.js"></script>
     <script src="/static/js/auth.js"></script>
 
-    <!-- Pass username to JS if needed -->
+    <!-- ===== FIX: Pass username to global window object ===== -->
     <script>
-        const currentUser = "{{ username }}";
+        window.currentUser = "{{ username if username else '' }}";
     </script>
 
 </body>
