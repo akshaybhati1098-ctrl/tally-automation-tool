@@ -1,13 +1,21 @@
+# =========================
+# Imports
+# =========================
 import os
 import io
-import json
 import logging
+import sqlite3
 import bcrypt
 from typing import Optional
 from io import BytesIO
 
-from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends
-from fastapi.responses import Response, JSONResponse, RedirectResponse
+from fastapi import (
+    FastAPI, Request, UploadFile, Form,
+    HTTPException, Depends
+)
+from fastapi.responses import (
+    Response, JSONResponse, RedirectResponse
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -17,61 +25,81 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
+# =========================
 # Existing services
+# =========================
 from core.excel_service import excel_to_xml
 from core.mapping import load_mapping_json, save_mapping_json
 from core.process_service import image_to_excel
 
+# =========================
+# App
+# =========================
 app = FastAPI(title="Tally Automation Tool")
 
-# -------------------------
-# Session Middleware (NEW)
-# -------------------------
-SECRET_KEY = os.environ.get("SECRET_KEY", "change-this-in-production-please")
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
+# =========================
+# Session Middleware (HF SAFE)
+# =========================
+SECRET_KEY = os.environ.get("SECRET_KEY", "change-this")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY,
+    same_site="lax",
+    https_only=False
+)
 
-# -------------------------
-# Static files & templates
-# -------------------------
+# =========================
+# Static & Templates
+# =========================
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
-# -------------------------
-# User management (NEW)
-# -------------------------
-USER_DATA_FILE = 'users.json'
+# =========================
+# User Database (SQLite)
+# =========================
+DB_PATH = "users.db"
 
-def load_users():
-    if not os.path.exists(USER_DATA_FILE):
-        return {}
-    with open(USER_DATA_FILE, 'r') as f:
-        return json.load(f)
+def init_user_db():
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL
+        )
+    """)
+    conn.commit()
+    conn.close()
 
-def save_users(users):
-    with open(USER_DATA_FILE, 'w') as f:
-        json.dump(users, f, indent=4)
+init_user_db()
 
-def hash_password(password: str) -> str:
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+def get_user(username: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    cur = conn.cursor()
+    cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+    user = cur.fetchone()
+    conn.close()
+    return user
 
-def check_password(password: str, hashed: str) -> bool:
-    return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
+def create_user(username: str, password: str):
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+        (username, hashed)
+    )
+    conn.commit()
+    conn.close()
 
-# -------------------------
-# Flash helpers (NEW)
-# -------------------------
-def set_flash(request: Request, message: str, category: str = "success"):
-    if "_flashes" not in request.session:
-        request.session["_flashes"] = []
-    request.session["_flashes"].append({"category": category, "message": message})
+def verify_password(password: str, hashed: str) -> bool:
+    return bcrypt.checkpw(password.encode(), hashed.encode())
 
-def get_flashes(request: Request):
-    return request.session.pop("_flashes", [])
-
-# -------------------------
-# Auth dependency (NEW)
-# -------------------------
+# =========================
+# Auth helpers
+# =========================
 def get_current_user(request: Request) -> Optional[str]:
     return request.session.get("username")
 
@@ -81,90 +109,68 @@ def require_login(request: Request):
         raise HTTPException(status_code=401, detail="Not authenticated")
     return user
 
-# -------------------------
-# Public routes (NEW) - login, signup, logout
-# -------------------------
+# =========================
+# UI ROUTES
+# =========================
 @app.get("/")
 async def serve_ui(request: Request):
-    """If logged in, show the main SPA; otherwise redirect to login."""
     user = get_current_user(request)
-    if user:
-        return templates.TemplateResponse("index.html", {"request": request, "username": user})
-    return RedirectResponse(url="/login")
+    if not user:
+        return RedirectResponse("/login")
+    return templates.TemplateResponse(
+        "index.html",
+        {"request": request, "username": user}
+    )
 
 @app.get("/login")
 async def login_page(request: Request):
-    flashes = get_flashes(request)
-    return templates.TemplateResponse("pages/login.html", {"request": request, "flashes": flashes})
+    return templates.TemplateResponse("pages/login.html", {"request": request})
 
 @app.post("/login")
-async def login_post(request: Request, username: str = Form(...), password: str = Form(...)):
-    users = load_users()
-    username = username.strip()
-    if username in users and check_password(password, users[username]):
+async def login_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
+    user = get_user(username.strip())
+    if user and verify_password(password, user["password_hash"]):
         request.session["username"] = username
-        # AJAX support
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JSONResponse({"success": True, "redirect": "/"})
-        set_flash(request, "Logged in successfully.", "success")
-        return RedirectResponse(url="/", status_code=302)
-    else:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JSONResponse({"success": False, "error": "Invalid username or password."})
-        set_flash(request, "Invalid username or password.", "error")
-        return RedirectResponse(url="/login", status_code=302)
+        return RedirectResponse("/", status_code=302)
+    return RedirectResponse("/login?error=1", status_code=302)
 
 @app.get("/signup")
 async def signup_page(request: Request):
-    flashes = get_flashes(request)
-    return templates.TemplateResponse("pages/signup.html", {"request": request, "flashes": flashes})
+    return templates.TemplateResponse("pages/signup.html", {"request": request})
 
 @app.post("/signup")
-async def signup_post(request: Request, username: str = Form(...), password: str = Form(...)):
+async def signup_post(
+    request: Request,
+    username: str = Form(...),
+    password: str = Form(...)
+):
     username = username.strip()
     if not username or not password:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JSONResponse({"success": False, "error": "Username and password are required."})
-        set_flash(request, "Username and password are required.", "error")
-        return RedirectResponse(url="/signup", status_code=302)
-    users = load_users()
-    if username in users:
-        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-            return JSONResponse({"success": False, "error": "Username already exists."})
-        set_flash(request, "Username already exists.", "error")
-        return RedirectResponse(url="/signup", status_code=302)
-    users[username] = hash_password(password)
-    save_users(users)
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JSONResponse({"success": True, "redirect": "/login"})
-    set_flash(request, "Account created! Please log in.", "success")
-    return RedirectResponse(url="/login", status_code=302)
+        return RedirectResponse("/signup?error=1", status_code=302)
+    if get_user(username):
+        return RedirectResponse("/signup?exists=1", status_code=302)
+    create_user(username, password)
+    return RedirectResponse("/login?created=1", status_code=302)
 
 @app.get("/logout")
 async def logout(request: Request):
-    request.session.pop("username", None)
-    if request.headers.get("X-Requested-With") == "XMLHttpRequest":
-        return JSONResponse({"success": True, "redirect": "/login"})
-    set_flash(request, "You have been logged out.", "success")
-    return RedirectResponse(url="/login")
+    request.session.clear()
+    return RedirectResponse("/login")
 
-# -------------------------
-# API endpoint to check current user (for SPA)
-# -------------------------
 @app.get("/api/me")
-async def get_me(request: Request):
+async def api_me(request: Request):
     user = get_current_user(request)
-    if user:
-        return {"authenticated": True, "username": user}
-    return {"authenticated": False}
+    return {"authenticated": bool(user), "username": user}
 
-# -------------------------
-# Helper functions for multi‑company mapping (unchanged)
-# -------------------------
+# =========================
+# Mapping helpers
+# =========================
 def load_full_mapping():
-    """Load the full mapping structure (companies + per‑company mappings)."""
     data = load_mapping_json()
-    # Migrate old single‑company format
     if "companies" not in data:
         data = {
             "companies": ["Default"],
@@ -174,266 +180,142 @@ def load_full_mapping():
     return data
 
 def save_full_mapping(data):
-    """Save the full mapping structure."""
     save_mapping_json(data)
 
 # =========================================================
-# Protected API endpoints (all now require login)
+# PROTECTED APIs (ALL REQUIRE LOGIN)
 # =========================================================
 
 @app.post("/api/convert")
 async def convert_excel_api(
-    request: Request,                      # added request for dependency
+    request: Request,
     file: UploadFile,
     sheet_name: str = Form(...),
     vtype: str = Form("sale"),
     company: str = Form("Default"),
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
     if not file.filename.endswith((".xlsx", ".xls")):
         raise HTTPException(400, "Only Excel files allowed")
 
-    try:
-        file_bytes = await file.read()
-        xml_content, count = excel_to_xml(file_bytes, sheet_name, vtype, company)
+    xml_content, count = excel_to_xml(
+        await file.read(),
+        sheet_name,
+        vtype,
+        company
+    )
 
-        return Response(
-            content=xml_content,
-            media_type="application/xml",
-            headers={
-                "Content-Disposition": (
-                    f"attachment; filename="
-                    f"{file.filename.rsplit('.', 1)[0]}_output.xml"
-                ),
-                "X-Records-Processed": str(count)
-            }
-        )
-    except Exception as e:
-        logging.error(e)
-        raise HTTPException(500, str(e))
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={
+            "Content-Disposition": f"attachment; filename={file.filename}_output.xml",
+            "X-Records-Processed": str(count)
+        }
+    )
 
 @app.post("/api/image-to-excel")
 async def image_to_excel_api(
     request: Request,
     file: UploadFile,
     company_key: str = Form(...),
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    if not file.filename.lower().endswith((".pdf", ".jpg", ".jpeg", ".png")):
-        raise HTTPException(400, "Only PDF or image files allowed")
-
-    try:
-        file_bytes = await file.read()
-        excel_bytes, output_filename = image_to_excel(
-            file_bytes=file_bytes,
-            original_filename=file.filename,
-            company_key=company_key
-        )
-
-        return Response(
-            content=excel_bytes,
-            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={
-                "Content-Disposition": f"attachment; filename={output_filename}"
-            }
-        )
-    except Exception as e:
-        logging.error(e)
-        raise HTTPException(500, str(e))
+    excel_bytes, output_filename = image_to_excel(
+        await file.read(),
+        file.filename,
+        company_key
+    )
+    return Response(
+        content=excel_bytes,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={"Content-Disposition": f"attachment; filename={output_filename}"}
+    )
 
 @app.get("/api/companies")
 async def get_companies(
     request: Request,
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    """Return list of all company names."""
-    try:
-        full = load_full_mapping()
-        return JSONResponse(content={"companies": full.get("companies", [])})
-    except Exception as e:
-        raise HTTPException(500, f"Failed to load companies: {str(e)}")
+    return {"companies": load_full_mapping().get("companies", [])}
 
 @app.post("/api/companies")
 async def create_company(
     request: Request,
     name: str = Form(...),
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    """Create a new company with default mapping."""
-    try:
-        full = load_full_mapping()
-        if name in full["companies"]:
-            raise HTTPException(400, f"Company '{name}' already exists")
-        full["companies"].append(name)
-        full["mappings"][name] = {
-            "COMPANY_STATE": "Not set",
-            "SALES": {},
-            "SALES_IGST": {},
-            "PURCHASE": {},
-            "CGST_RATES": {},
-            "SGST_RATES": {},
-            "IGST_RATES": {},
-            "DEBUG": False
-        }
-        save_full_mapping(full)
-        return {"status": "success", "message": f"Company '{name}' created"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Failed to create company: {str(e)}")
-
-@app.delete("/api/companies/{company}")
-async def remove_company(
-    request: Request,
-    company: str,
-    user: str = Depends(require_login)     # NEW
-):
-    """Delete a company and its mapping. Cannot delete 'Default'."""
-    if company == "Default":
-        raise HTTPException(400, "Cannot delete the Default company")
-    try:
-        full = load_full_mapping()
-        if company not in full["companies"]:
-            raise HTTPException(404, f"Company '{company}' not found")
-        full["companies"].remove(company)
-        del full["mappings"][company]
-        save_full_mapping(full)
-        return {"status": "success", "message": f"Company '{company}' deleted"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Failed to delete company: {str(e)}")
-
-@app.put("/api/companies/{old_name}")
-async def rename_company(
-    request: Request,
-    old_name: str,
-    new_name: str = Form(...),
-    user: str = Depends(require_login)     # NEW
-):
-    """Rename an existing company. Cannot rename 'Default'."""
-    if old_name == "Default":
-        raise HTTPException(400, "Cannot rename the Default company")
-    try:
-        full = load_full_mapping()
-        if old_name not in full["companies"]:
-            raise HTTPException(404, f"Company '{old_name}' not found")
-        if new_name in full["companies"]:
-            raise HTTPException(400, f"Company '{new_name}' already exists")
-        idx = full["companies"].index(old_name)
-        full["companies"][idx] = new_name
-        full["mappings"][new_name] = full["mappings"].pop(old_name)
-        save_full_mapping(full)
-        return {"status": "success", "message": f"Company renamed to '{new_name}'"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Failed to rename company: {str(e)}")
+    full = load_full_mapping()
+    if name in full["companies"]:
+        raise HTTPException(400, "Company exists")
+    full["companies"].append(name)
+    full["mappings"][name] = {
+        "COMPANY_STATE": "Not set",
+        "SALES": {},
+        "SALES_IGST": {},
+        "PURCHASE": {},
+        "CGST_RATES": {},
+        "SGST_RATES": {},
+        "IGST_RATES": {},
+        "DEBUG": False
+    }
+    save_full_mapping(full)
+    return {"status": "success"}
 
 @app.get("/api/mapping/{company}")
 async def get_company_mapping(
     request: Request,
     company: str,
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    """Return mapping for a specific company."""
-    try:
-        full = load_full_mapping()
-        if company not in full["mappings"]:
-            raise HTTPException(404, f"Company '{company}' not found")
-        return JSONResponse(content=full["mappings"][company])
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Failed to load mapping: {str(e)}")
+    full = load_full_mapping()
+    if company not in full["mappings"]:
+        raise HTTPException(404)
+    return full["mappings"][company]
 
 @app.post("/api/mapping/{company}")
 async def update_company_mapping(
     request: Request,
     company: str,
     mapping: dict,
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    """Save mapping for a specific company."""
-    try:
-        full = load_full_mapping()
-        if company not in full["mappings"]:
-            raise HTTPException(404, f"Company '{company}' not found")
-        full["mappings"][company] = mapping
-        save_full_mapping(full)
-        return {"status": "success", "message": "Mapping saved"}
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(500, f"Failed to save mapping: {str(e)}")
+    full = load_full_mapping()
+    full["mappings"][company] = mapping
+    save_full_mapping(full)
+    return {"status": "saved"}
 
 @app.post("/api/sheets")
 async def get_sheet_names(
     request: Request,
     file: UploadFile,
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    """Return list of sheet names from uploaded Excel file."""
-    if not file.filename.endswith(('.xlsx', '.xls')):
-        raise HTTPException(400, "Only Excel files (.xlsx, .xls) are allowed")
-
-    try:
-        contents = await file.read()
-        if file.filename.endswith('.xlsx'):
-            wb = openpyxl.load_workbook(filename=BytesIO(contents), read_only=True)
-            sheets = wb.sheetnames
-        else:  # .xls
-            df_dict = pd.read_excel(BytesIO(contents), sheet_name=None)
-            sheets = list(df_dict.keys())
-
-        return {"sheets": sheets}
-    except Exception as e:
-        logging.error(f"Failed to read sheets: {e}")
-        raise HTTPException(500, f"Could not read sheet names: {str(e)}")
+    contents = await file.read()
+    if file.filename.endswith(".xlsx"):
+        wb = openpyxl.load_workbook(BytesIO(contents), read_only=True)
+        return {"sheets": wb.sheetnames}
+    df = pd.read_excel(BytesIO(contents), sheet_name=None)
+    return {"sheets": list(df.keys())}
 
 @app.get("/download-template")
 async def download_template(
     request: Request,
-    user: str = Depends(require_login)     # NEW
+    user: str = Depends(require_login)
 ):
-    # Create a new Excel workbook
     wb = Workbook()
     ws = wb.active
     ws.title = "Template"
 
     headers = [
-        'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
-        'Invoice date', 'Invoice Value', 'Taxable Value',
-        'IGST', 'CGST', 'SGST', 'Cess'
+        'Sr','GSTIN','Recipient Name','Invoice Number',
+        'Invoice date','Invoice Value','Taxable Value',
+        'IGST','CGST','SGST','Cess'
     ]
 
     ws.append(headers)
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
-
-    data = [
-        [1, '27AABCT1234E1Z5', 'ABC Enterprises', 'INV-001', '2025-02-20',
-         11800.00, 10000.00, 0, 900.00, 900.00, 0],
-        [2, '27BBBTX5678F2Y6', 'XYZ Traders', 'INV-002', '2025-02-21',
-         23600.00, 20000.00, 3600.00, 0, 0, 0],
-        [3, '27CCCP9012G3H7', 'LMN Pvt Ltd', 'INV-003', '2025-02-22',
-         5900.00, 5000.00, 0, 450.00, 450.00, 0]
-    ]
-
-    for row in data:
-        ws.append(row)
-
-    for column in ws.columns:
-        max_length = 0
-        column_letter = column[0].column_letter
-        for cell in column:
-            try:
-                if len(str(cell.value)) > max_length:
-                    max_length = len(str(cell.value))
-            except:
-                pass
-        adjusted_width = (max_length + 2)
-        ws.column_dimensions[column_letter].width = adjusted_width
+    for c in ws[1]:
+        c.font = Font(bold=True)
 
     excel_bytes = io.BytesIO()
     wb.save(excel_bytes)
@@ -442,33 +324,5 @@ async def download_template(
     return Response(
         content=excel_bytes.read(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={
-            "Content-Disposition": 'attachment; filename="invoice_template.xlsx"'
-        }
+        headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
     )
-@app.get("/debug/write-test")
-async def debug_write_test():
-    import os
-    import datetime
-    test_file = "write_test.txt"
-    try:
-        with open(test_file, "w") as f:
-            f.write(f"Test write at {datetime.datetime.now()}")
-        exists = os.path.exists(test_file)
-        size = os.path.getsize(test_file) if exists else 0
-        # Clean up
-        if exists:
-            os.remove(test_file)
-        return {
-            "success": True,
-            "message": "File write successful",
-            "cwd": os.getcwd(),
-            "file_exists": exists,
-            "file_size": size
-        }
-    except Exception as e:
-        return {
-            "success": False,
-            "error": str(e),
-            "cwd": os.getcwd()
-        }
