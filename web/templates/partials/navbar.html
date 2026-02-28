@@ -1,66 +1,190 @@
-<nav>
-    <ul>
-        <li><a href="/">Home</a></li>
-        {% if request.session.get('username') %}
-            <li><a href="#" onclick="navigateTo('dashboard'); return false;">Dashboard</a></li>
-            <li><a href="#" onclick="navigateTo('converter'); return false;">Excel → XML</a></li>
-            <li><a href="#" onclick="navigateTo('mapping'); return false;">Mapping Editor</a></li>
-            <li><a href="#" onclick="navigateTo('settings'); return false;">Settings</a></li>
-            <li><a href="#" onclick="navigateTo('image_to_excel'); return false;">Image to Excel</a></li>
-            <li><a href="#" onclick="navigateTo('company'); return false;">Company</a></li>
-            <li><a href="/logout">Logout ({{ request.session.get('username') }})</a></li>
-        {% else %}
-            <li><a href="/login">Login</a></li>
-            <li><a href="/signup">Sign Up</a></li>
-        {% endif %}
-    </ul>
-</nav>
+<!-- Improved Top Navigation - now matches dashboard width -->
+<div class="top-nav">
+    <div class="logo">
+        <h2>Akshay's Tally Tool</h2>
+        <p>v3.3 • Tally-Inspired</p>
+    </div>
+    <div class="nav-links">
+        <!-- Protected links (visible only when logged in) -->
+        <button class="nav-link protected" data-page="dashboard" onclick="navigateTo('dashboard'); setActive(this)">🏠 Dashboard</button>
+        <button class="nav-link protected" data-page="converter" onclick="navigateTo('converter'); setActive(this)">🔄 Excel → XML</button>
+        <button class="nav-link protected" data-page="mapping" onclick="navigateTo('mapping'); setActive(this)">⚙️ Mapping Editor</button>
+        <button class="nav-link protected" data-page="settings" onclick="navigateTo('settings'); setActive(this)">⚙️ Settings</button>
+        
+        <!-- Public links (visible only when logged out) -->
+        <button class="nav-link public" id="login-btn" onclick="window.location.href='/login'">🔑 Login</button>
+        <button class="nav-link public" id="signup-btn" onclick="window.location.href='/signup'">📝 Sign Up</button>
+        
+        <!-- Logout (visible only when logged in) -->
+        <button class="nav-link protected" id="logout-btn" onclick="logout()">🚪 Logout <span id="username-display"></span></button>
+    </div>
+</div>
 
 <style>
-/* Navigation Bar Styles – embedded */
-nav {
-    background: #2c3e50;
-    padding: 1rem 2rem;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    max-width: 1200px;
-    margin: 0 auto 1.5rem auto;
+/* Top Navigation Styles - FIXED to match dashboard width */
+.top-nav {
+    background: white;
     border-radius: 28px;
-}
-
-nav ul {
-    list-style: none;
+    box-shadow: 0 10px 30px -5px rgba(0, 20, 40, 0.1);
+    padding: 1rem 2rem;
     display: flex;
     flex-wrap: wrap;
-    gap: 2rem;
     align-items: center;
-    margin: 0;
-    padding: 0;
+    justify-content: space-between;
+    gap: 1.5rem;
+    border: 1px solid rgba(255,255,255,0.5);
+    backdrop-filter: blur(2px);
+    transition: all 0.2s ease;
+    margin-bottom: 1.5rem;
+    /* FIX: Add max-width to match dashboard cards */
+    max-width: 1200px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
-nav a {
-    color: #ecf0f1;
-    text-decoration: none;
+.top-nav:hover {
+    box-shadow: 0 20px 35px -8px rgba(0, 30, 60, 0.15);
+}
+
+.logo h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1e2b4f, #2a3f6e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.02em;
+    line-height: 1.2;
+}
+
+.logo p {
+    font-size: 0.85rem;
+    color: #5a6e8a;
+    margin-top: 0.15rem;
+    font-weight: 400;
+}
+
+.nav-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.nav-link {
+    background: transparent;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    border-radius: 40px;
+    font-size: 0.95rem;
     font-weight: 500;
-    transition: color 0.3s;
+    color: #1e2b4f;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
     white-space: nowrap;
 }
 
-nav a:hover {
-    color: #3498db;
+.nav-link:hover {
+    background: #e4edfc;
+    color: #0f1a2e;
+    transform: translateY(-2px);
 }
 
-nav li:last-child {
-    margin-left: auto;
+.nav-link.active {
+    background: #1e2b4f;
+    color: white;
+    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
 }
 
+.nav-link:active {
+    transform: scale(0.96);
+}
+
+/* FIX: Ensure the container holding everything has same max-width */
+.dashboard-container {
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* Responsive */
 @media (max-width: 700px) {
-    nav ul {
+    .top-nav {
         flex-direction: column;
-        gap: 1rem;
         align-items: flex-start;
+        padding: 1.2rem;
     }
-    nav li:last-child {
-        margin-left: 0;
+    .nav-links {
+        width: 100%;
+        justify-content: space-between;
+    }
+    .nav-link {
+        flex: 1;
+        justify-content: center;
+        padding: 0.5rem 0.2rem;
+        font-size: 0.85rem;
     }
 }
 </style>
+
+<script>
+// Set initial visibility based on login state
+function updateNavbarVisibility() {
+    const isLoggedIn = window.currentUser && window.currentUser !== '';
+    const protectedLinks = document.querySelectorAll('.nav-link.protected');
+    const publicLinks = document.querySelectorAll('.nav-link.public');
+    
+    protectedLinks.forEach(btn => {
+        btn.style.display = isLoggedIn ? 'flex' : 'none';
+    });
+    
+    publicLinks.forEach(btn => {
+        btn.style.display = isLoggedIn ? 'none' : 'flex';
+    });
+    
+    if (isLoggedIn) {
+        document.getElementById('username-display').textContent = `(${window.currentUser})`;
+    }
+}
+
+// Logout function (AJAX)
+async function logout() {
+    try {
+        const response = await fetch('/logout', {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await response.json();
+        if (data.success) {
+            window.currentUser = '';
+            updateNavbarVisibility();
+            window.location.href = data.redirect; // Redirect to login page
+        }
+    } catch (error) {
+        console.error('Logout failed:', error);
+        window.location.href = '/login';
+    }
+}
+
+// Original navigation functions
+function setActive(clickedButton) {
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(btn => btn.classList.remove('active'));
+    clickedButton.classList.add('active');
+}
+
+function navigateTo(page) {
+    console.log(`Navigating to: ${page}`);
+    // Your existing navigation logic
+    // Hide all pages, show selected page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(page).classList.add('active');
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', function() {
+    updateNavbarVisibility();
+});
+</script>
