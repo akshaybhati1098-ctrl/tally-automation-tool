@@ -1,12 +1,3 @@
-@app.get("/debug/session-test")
-async def session_test(request: Request):
-    count = request.session.get("count", 0)
-    count += 1
-    request.session["count"] = count
-    return {
-        "session_value": count,
-        "session_dict": dict(request.session)
-    }
 # =========================
 # Imports
 # =========================
