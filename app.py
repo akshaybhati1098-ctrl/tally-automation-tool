@@ -318,3 +318,22 @@ async def download_template(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
     )
+@app.get("/debug/persistence")
+def debug_persistence():
+    import os, sqlite3
+
+    data_exists = os.path.exists("/data")
+    data_files = os.listdir("/data") if data_exists else []
+
+    users = []
+    if os.path.exists(DB_PATH):
+        users = sqlite3.connect(DB_PATH).execute(
+            "SELECT username FROM users"
+        ).fetchall()
+
+    return {
+        "data_dir_exists": data_exists,
+        "data_dir_files": data_files,
+        "db_path": DB_PATH,
+        "users_in_db": users
+    }
