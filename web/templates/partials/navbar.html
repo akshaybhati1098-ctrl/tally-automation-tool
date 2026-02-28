@@ -1,136 +1,17 @@
-<!-- Improved Top Navigation - now matches dashboard width -->
-<div class="top-nav">
-    <div class="logo">
-        <h2>Akshay's Tally Tool</h2>
-        <p>v3.3 • Tally-Inspired</p>
-    </div>
-    <div class="nav-links">
-        <button class="nav-link active" data-page="dashboard" onclick="navigateTo('dashboard'); setActive(this)">🏠 Dashboard</button>
-        <button class="nav-link" data-page="converter" onclick="navigateTo('converter'); setActive(this)">🔄 Excel → XML</button>
-        <button class="nav-link" data-page="mapping" onclick="navigateTo('mapping'); setActive(this)">⚙️ Mapping Editor</button>
-        <button class="nav-link" data-page="settings" onclick="navigateTo('settings'); setActive(this)">⚙️ Settings</button>
-    </div>
-</div>
-
-<style>
-/* Top Navigation Styles - FIXED to match dashboard width */
-.top-nav {
-    background: white;
-    border-radius: 28px;
-    box-shadow: 0 10px 30px -5px rgba(0, 20, 40, 0.1);
-    padding: 1rem 2rem;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1.5rem;
-    border: 1px solid rgba(255,255,255,0.5);
-    backdrop-filter: blur(2px);
-    transition: all 0.2s ease;
-    margin-bottom: 1.5rem;
-    /* FIX: Add max-width to match dashboard cards */
-    max-width: 1200px;
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.top-nav:hover {
-    box-shadow: 0 20px 35px -8px rgba(0, 30, 60, 0.15);
-}
-
-.logo h2 {
-    font-size: 1.6rem;
-    font-weight: 700;
-    background: linear-gradient(135deg, #1e2b4f, #2a3f6e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
-    line-height: 1.2;
-}
-
-.logo p {
-    font-size: 0.85rem;
-    color: #5a6e8a;
-    margin-top: 0.15rem;
-    font-weight: 400;
-}
-
-.nav-links {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
-
-.nav-link {
-    background: transparent;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 40px;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #1e2b4f;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-    white-space: nowrap;
-}
-
-.nav-link:hover {
-    background: #e4edfc;
-    color: #0f1a2e;
-    transform: translateY(-2px);
-}
-
-.nav-link.active {
-    background: #1e2b4f;
-    color: white;
-    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
-}
-
-.nav-link:active {
-    transform: scale(0.96);
-}
-
-/* FIX: Ensure the container holding everything has same max-width */
-.dashboard-container {
-    max-width: 1200px;
-    width: 100%;
-    margin: 0 auto;
-    padding: 0 1rem;
-}
-
-/* Responsive */
-@media (max-width: 700px) {
-    .top-nav {
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 1.2rem;
-    }
-    .nav-links {
-        width: 100%;
-        justify-content: space-between;
-    }
-    .nav-link {
-        flex: 1;
-        justify-content: center;
-        padding: 0.5rem 0.2rem;
-        font-size: 0.85rem;
-    }
-}
-</style>
-
-<script>
-function setActive(clickedButton) {
-    const navLinks = document.querySelectorAll('.nav-link');
-    navLinks.forEach(btn => btn.classList.remove('active'));
-    clickedButton.classList.add('active');
-}
-
-function navigateTo(page) {
-    console.log(`Navigating to: ${page}`);
-    // Your existing navigation logic
-}
-</script>
+<nav>
+    <ul>
+        <li><a href="/">Home</a></li>
+        {% if request.session.get('username') %}
+            <li><a href="#" onclick="navigateTo('dashboard'); return false;">Dashboard</a></li>
+            <li><a href="#" onclick="navigateTo('converter'); return false;">Excel → XML</a></li>
+            <li><a href="#" onclick="navigateTo('mapping'); return false;">Mapping Editor</a></li>
+            <li><a href="#" onclick="navigateTo('settings'); return false;">Settings</a></li>
+            <li><a href="#" onclick="navigateTo('image_to_excel'); return false;">Image to Excel</a></li>
+            <li><a href="#" onclick="navigateTo('company'); return false;">Company</a></li>
+            <li><a href="/logout">Logout ({{ request.session.get('username') }})</a></li>
+        {% else %}
+            <li><a href="/login">Login</a></li>
+            <li><a href="/signup">Sign Up</a></li>
+        {% endif %}
+    </ul>
+</nav>

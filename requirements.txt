@@ -1,13 +1,14 @@
-fastapi
-uvicorn
-python-multipart
-pandas
-pillow
-pytesseract
-pdf2image
-openpyxl
-jinja2
-python-jose[cryptography]
-passlib[bcrypt]
-python-dotenv
-flask
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+python-multipart==0.0.6
+pandas==2.1.3
+pillow==10.1.0
+pytesseract==0.3.10
+pdf2image==1.16.3
+openpyxl==3.1.2
+jinja2==3.1.2
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-dotenv==1.0.0
+bcrypt==4.0.1
+itsdangerous==2.1.2          # required for SessionMiddleware signing

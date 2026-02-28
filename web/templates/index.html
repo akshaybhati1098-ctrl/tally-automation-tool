@@ -2,10 +2,10 @@
 <html lang="en">
 <head>
     {% include 'partials/head.html' %}
-    <!-- Page-specific CSS (loaded upfront because all pages are in the DOM) -->
+    <!-- Page-specific CSS -->
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/excel_to_xml.css">
-    <link rel="stylesheet" href="/static/css/login.css">   <!-- if needed -->
+    <link rel="stylesheet" href="/static/css/login.css">
 </head>
 <body>
 
@@ -14,49 +14,34 @@
 
     <!-- Main SPA Content -->
     <div class="main-content">
-
-        <!-- Dashboard -->
         <div id="dashboard" class="page active">
             {% include 'pages/dashboard.html' %}
         </div>
-
-        <!-- Excel to XML -->
         <div id="converter" class="page">
             {% include 'pages/excel_to_xml.html' %}
         </div>
-
-        <!-- Mapping Editor -->
         <div id="mapping" class="page">
             {% include 'pages/mapping.html' %}
         </div>
-
-        <!-- Settings -->
         <div id="settings" class="page">
             {% include 'pages/settings.html' %}
         </div>
-
-        <!-- Image / PDF to Excel -->
         <div id="image_to_excel" class="page">
             {% include 'pages/image_to_excel.html' %}
         </div>
-
-        <!-- Company -->
         <div id="company" class="page">
             {% include 'pages/company.html' %}
         </div>
-
     </div>
 
-    <!-- Excel Reader (optional) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
-    <!-- Split JavaScript – base.js must come first -->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/excel_to_xml.js"></script>
     <script src="/static/js/auth.js"></script>
-    <!-- Add other page-specific JS files as needed -->
+    <script>
+        // Pass username to JavaScript if needed
+        const currentUser = "{{ username }}";
+    </script>
 </body>
 </html>
-<script src="/static/js/base.js"></script>
-<script src="/static/js/excel_to_xml.js"></script>
