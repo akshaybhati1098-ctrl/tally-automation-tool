@@ -2,6 +2,22 @@
 <html lang="en">
 <head>
     {% include 'partials/head.html' %}
+
+    <!-- =========================
+         GLOBAL SPA PAGE CONTROL
+    ========================== -->
+    <style>
+        /* CRITICAL: hide all pages by default */
+        .page {
+            display: none;
+        }
+
+        /* Only active page is visible */
+        .page.active {
+            display: block;
+        }
+    </style>
+
     <!-- Page-specific CSS -->
     <link rel="stylesheet" href="/static/css/dashboard.css">
     <link rel="stylesheet" href="/static/css/excel_to_xml.css">
@@ -9,39 +25,80 @@
 </head>
 <body>
 
-    <!-- Top Navigation -->
+    <!-- =========================
+         NAVBAR
+    ========================== -->
     {% include 'partials/navbar.html' %}
 
-    <!-- Main SPA Content -->
+    <!-- =========================
+         MAIN SPA CONTENT
+    ========================== -->
     <div class="main-content">
+
         <div id="dashboard" class="page active">
             {% include 'pages/dashboard.html' %}
         </div>
+
         <div id="converter" class="page">
             {% include 'pages/excel_to_xml.html' %}
         </div>
+
         <div id="mapping" class="page">
             {% include 'pages/mapping.html' %}
         </div>
+
         <div id="settings" class="page">
             {% include 'pages/settings.html' %}
         </div>
+
         <div id="image_to_excel" class="page">
             {% include 'pages/image_to_excel.html' %}
         </div>
+
         <div id="company" class="page">
             {% include 'pages/company.html' %}
         </div>
+
     </div>
 
+    <!-- =========================
+         JS LIBRARIES
+    ========================== -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+    <!-- =========================
+         BASE SPA SCRIPT (MUST BE FIRST)
+    ========================== -->
+    <script>
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => {
+                p.classList.remove('active');
+            });
+
+            const page = document.getElementById(pageId);
+            if (page) {
+                page.classList.add('active');
+            }
+        }
+
+        // Default page after login
+        document.addEventListener("DOMContentLoaded", () => {
+            showPage("dashboard");
+        });
+    </script>
+
+    <!-- =========================
+         APP SCRIPTS
+    ========================== -->
     <script src="/static/js/base.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/excel_to_xml.js"></script>
     <script src="/static/js/auth.js"></script>
+
+    <!-- Pass username to JS if needed -->
     <script>
-        // Pass username to JavaScript if needed
         const currentUser = "{{ username }}";
     </script>
+
 </body>
 </html>
