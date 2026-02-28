@@ -4,6 +4,7 @@ import io
 import logging
 import sqlite3
 import bcrypt
+os.makedirs("/data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
 
@@ -48,7 +49,7 @@ templates = Jinja2Templates(directory="web/templates")
 # =========================================================
 # USER DB (SQLite)
 # =========================================================
-DB_PATH = "users.db"
+DB_PATH = "/data/users.db"
 
 def init_user_db():
     conn = sqlite3.connect(DB_PATH)
