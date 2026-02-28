@@ -1,21 +1,14 @@
-# =========================
-# Imports
-# =========================
+from flask import send_file  # left as is
 import os
 import io
 import logging
 import sqlite3
 import bcrypt
-from typing import Optional
 from io import BytesIO
+from typing import Optional
 
-from fastapi import (
-    FastAPI, Request, UploadFile, Form,
-    HTTPException, Depends
-)
-from fastapi.responses import (
-    Response, JSONResponse, RedirectResponse
-)
+from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends
+from fastapi.responses import Response, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -25,41 +18,19 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-# =========================
 # Existing services
-# =========================
 from core.excel_service import excel_to_xml
 from core.mapping import load_mapping_json, save_mapping_json
 from core.process_service import image_to_excel
 
-# =========================
-# App
-# =========================
+# =========================================================
+# APP
+# =========================================================
 app = FastAPI(title="Tally Automation Tool")
-@app.get("/debug/users")
-def debug_users():
-    conn = sqlite3.connect("users.db")
-    cur = conn.cursor()
-    cur.execute("SELECT id, username FROM users")
-    rows = cur.fetchall()
-    conn.close()
-    return {"users": rows}
-# =========================
-# DEBUG: Session test
-# =========================
-@app.get("/debug/session-test")
-async def session_test(request: Request):
-    count = request.session.get("count", 0)
-    count += 1
-    request.session["count"] = count
-    return {
-        "session_value": count,
-        "session_dict": dict(request.session)
-    }
 
-# =========================
-# Session Middleware (HF SAFE)
-# =========================
+# =========================================================
+# SESSION (HF SAFE)
+# =========================================================
 SECRET_KEY = os.environ.get("SECRET_KEY", "change-this")
 app.add_middleware(
     SessionMiddleware,
@@ -68,15 +39,15 @@ app.add_middleware(
     https_only=True
 )
 
-# =========================
-# Static & Templates
-# =========================
+# =========================================================
+# STATIC & TEMPLATES
+# =========================================================
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
-# =========================
-# User Database (SQLite)
-# =========================
+# =========================================================
+# USER DB (SQLite)
+# =========================================================
 DB_PATH = "users.db"
 
 def init_user_db():
@@ -117,21 +88,21 @@ def create_user(username: str, password: str):
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
-# =========================
-# Auth helpers
-# =========================
+# =========================================================
+# AUTH HELPERS
+# =========================================================
 def get_current_user(request: Request) -> Optional[str]:
     return request.session.get("username")
 
 def require_login(request: Request):
     user = get_current_user(request)
     if not user:
-        raise HTTPException(status_code=401, detail="Not authenticated")
+        return RedirectResponse("/login", status_code=302)
     return user
 
-# =========================
-# UI ROUTES
-# =========================
+# =========================================================
+# UI ROUTES (IMPORTANT FIX)
+# =========================================================
 @app.get("/")
 async def serve_ui(request: Request):
     user = get_current_user(request)
@@ -152,7 +123,8 @@ async def login_post(
     username: str = Form(...),
     password: str = Form(...)
 ):
-    user = get_user(username.strip())
+    username = username.strip()
+    user = get_user(username)
     if user and verify_password(password, user["password_hash"]):
         request.session["username"] = username
         return RedirectResponse("/", status_code=302)
@@ -186,9 +158,9 @@ async def api_me(request: Request):
     user = get_current_user(request)
     return {"authenticated": bool(user), "username": user}
 
-# =========================
-# Mapping helpers
-# =========================
+# =========================================================
+# MAPPING HELPERS (UNCHANGED)
+# =========================================================
 def load_full_mapping():
     data = load_mapping_json()
     if "companies" not in data:
@@ -203,9 +175,8 @@ def save_full_mapping(data):
     save_mapping_json(data)
 
 # =========================================================
-# PROTECTED APIs (ALL REQUIRE LOGIN)
+# PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
-
 @app.post("/api/convert")
 async def convert_excel_api(
     request: Request,
@@ -267,7 +238,7 @@ async def create_company(
 ):
     full = load_full_mapping()
     if name in full["companies"]:
-        raise HTTPException(400, "Company exists")
+        raise HTTPException(400, "Company already exists")
     full["companies"].append(name)
     full["mappings"][name] = {
         "COMPANY_STATE": "Not set",
