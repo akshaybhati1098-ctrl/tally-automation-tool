@@ -47,6 +47,19 @@ from core.process_service import image_to_excel
 app = FastAPI(title="Tally Automation Tool")
 
 # =========================
+# DEBUG: Session test
+# =========================
+@app.get("/debug/session-test")
+async def session_test(request: Request):
+    count = request.session.get("count", 0)
+    count += 1
+    request.session["count"] = count
+    return {
+        "session_value": count,
+        "session_dict": dict(request.session)
+    }
+
+# =========================
 # Session Middleware (HF SAFE)
 # =========================
 SECRET_KEY = os.environ.get("SECRET_KEY", "change-this")
