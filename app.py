@@ -57,8 +57,8 @@ SECRET_KEY = os.environ.get("SECRET_KEY", "change-this")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
-    same_site="lax",
-    https_only=False
+    same_site="none",
+    https_only=True
 )
 
 # =========================
