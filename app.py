@@ -36,7 +36,14 @@ from core.process_service import image_to_excel
 # App
 # =========================
 app = FastAPI(title="Tally Automation Tool")
-
+@app.get("/debug/users")
+def debug_users():
+    conn = sqlite3.connect("users.db")
+    cur = conn.cursor()
+    cur.execute("SELECT id, username FROM users")
+    rows = cur.fetchall()
+    conn.close()
+    return {"users": rows}
 # =========================
 # DEBUG: Session test
 # =========================
