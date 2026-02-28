@@ -446,3 +446,29 @@ async def download_template(
             "Content-Disposition": 'attachment; filename="invoice_template.xlsx"'
         }
     )
+@app.get("/debug/write-test")
+async def debug_write_test():
+    import os
+    import datetime
+    test_file = "write_test.txt"
+    try:
+        with open(test_file, "w") as f:
+            f.write(f"Test write at {datetime.datetime.now()}")
+        exists = os.path.exists(test_file)
+        size = os.path.getsize(test_file) if exists else 0
+        # Clean up
+        if exists:
+            os.remove(test_file)
+        return {
+            "success": True,
+            "message": "File write successful",
+            "cwd": os.getcwd(),
+            "file_exists": exists,
+            "file_size": size
+        }
+    except Exception as e:
+        return {
+            "success": False,
+            "error": str(e),
+            "cwd": os.getcwd()
+        }
