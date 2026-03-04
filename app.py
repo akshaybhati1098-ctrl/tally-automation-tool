@@ -1,10 +1,13 @@
-
 import os
 import io
 import logging
 import sqlite3
 import bcrypt
+
+# ── Persistent storage (must happen before anything else) ──────────────────
 os.makedirs("/data", exist_ok=True)
+DB_PATH = "/data/users.db"
+
 from io import BytesIO
 from typing import Optional
 
@@ -47,24 +50,27 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
 # =========================================================
-# USER DB (SQLite)
+# USER DB (SQLite → /data for HF persistence)
 # =========================================================
-DB_PATH = "/data/users.db"
-
 def init_user_db():
+    """Create users table only if it does not already exist.
+    Never drops or recreates — existing accounts survive restarts.
+    """
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
+            id            INTEGER PRIMARY KEY AUTOINCREMENT,
+            username      TEXT    UNIQUE NOT NULL,
+            password_hash TEXT    NOT NULL
         )
     """)
     conn.commit()
     conn.close()
 
+# Run once at startup — safe to call on every restart
 init_user_db()
+
 
 def get_user(username: str):
     conn = sqlite3.connect(DB_PATH)
@@ -74,6 +80,7 @@ def get_user(username: str):
     user = cur.fetchone()
     conn.close()
     return user
+
 
 def create_user(username: str, password: str):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -86,6 +93,7 @@ def create_user(username: str, password: str):
     conn.commit()
     conn.close()
 
+
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
@@ -95,6 +103,7 @@ def verify_password(password: str, hashed: str) -> bool:
 def get_current_user(request: Request) -> Optional[str]:
     return request.session.get("username")
 
+
 def require_login(request: Request):
     user = get_current_user(request)
     if not user:
@@ -102,7 +111,7 @@ def require_login(request: Request):
     return user
 
 # =========================================================
-# UI ROUTES (IMPORTANT FIX)
+# UI ROUTES
 # =========================================================
 @app.get("/")
 async def serve_ui(request: Request):
@@ -114,9 +123,11 @@ async def serve_ui(request: Request):
         {"request": request, "username": user}
     )
 
+
 @app.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse("pages/login.html", {"request": request})
+
 
 @app.post("/login")
 async def login_post(
@@ -131,9 +142,11 @@ async def login_post(
         return RedirectResponse("/", status_code=302)
     return RedirectResponse("/login?error=1", status_code=302)
 
+
 @app.get("/signup")
 async def signup_page(request: Request):
     return templates.TemplateResponse("pages/signup.html", {"request": request})
+
 
 @app.post("/signup")
 async def signup_post(
@@ -149,10 +162,12 @@ async def signup_post(
     create_user(username, password)
     return RedirectResponse("/login?created=1", status_code=302)
 
+
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
     return RedirectResponse("/login")
+
 
 @app.get("/api/me")
 async def api_me(request: Request):
@@ -171,6 +186,7 @@ def load_full_mapping():
         }
         save_full_mapping(data)
     return data
+
 
 def save_full_mapping(data):
     save_mapping_json(data)
@@ -206,6 +222,7 @@ async def convert_excel_api(
         }
     )
 
+
 @app.post("/api/image-to-excel")
 async def image_to_excel_api(
     request: Request,
@@ -224,12 +241,14 @@ async def image_to_excel_api(
         headers={"Content-Disposition": f"attachment; filename={output_filename}"}
     )
 
+
 @app.get("/api/companies")
 async def get_companies(
     request: Request,
     user: str = Depends(require_login)
 ):
     return {"companies": load_full_mapping().get("companies", [])}
+
 
 @app.post("/api/companies")
 async def create_company(
@@ -254,6 +273,7 @@ async def create_company(
     save_full_mapping(full)
     return {"status": "success"}
 
+
 @app.get("/api/mapping/{company}")
 async def get_company_mapping(
     request: Request,
@@ -264,6 +284,7 @@ async def get_company_mapping(
     if company not in full["mappings"]:
         raise HTTPException(404)
     return full["mappings"][company]
+
 
 @app.post("/api/mapping/{company}")
 async def update_company_mapping(
@@ -276,6 +297,7 @@ async def update_company_mapping(
     full["mappings"][company] = mapping
     save_full_mapping(full)
     return {"status": "saved"}
+
 
 @app.post("/api/sheets")
 async def get_sheet_names(
@@ -290,6 +312,7 @@ async def get_sheet_names(
     df = pd.read_excel(BytesIO(contents), sheet_name=None)
     return {"sheets": list(df.keys())}
 
+
 @app.get("/download-template")
 async def download_template(
     request: Request,
@@ -300,9 +323,9 @@ async def download_template(
     ws.title = "Template"
 
     headers = [
-        'Sr','GSTIN','Recipient Name','Invoice Number',
-        'Invoice date','Invoice Value','Taxable Value',
-        'IGST','CGST','SGST','Cess'
+        'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
+        'Invoice date', 'Invoice Value', 'Taxable Value',
+        'IGST', 'CGST', 'SGST', 'Cess'
     ]
 
     ws.append(headers)
@@ -318,22 +341,23 @@ async def download_template(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
     )
-@app.get("/debug/persistence")
-def debug_persistence():
-    import os, sqlite3
 
-    data_exists = os.path.exists("/data")
-    data_files = os.listdir("/data") if data_exists else []
 
-    users = []
-    if os.path.exists(DB_PATH):
-        users = sqlite3.connect(DB_PATH).execute(
-            "SELECT username FROM users"
-        ).fetchall()
+# =========================================================
+# DEBUG — confirm persistence after restart
+# =========================================================
+@app.get("/debug/db")
+def debug_db():
+    db_exists = os.path.exists(DB_PATH)
+    users: list[str] = []
+    if db_exists:
+        conn = sqlite3.connect(DB_PATH)
+        users = [r[0] for r in conn.execute("SELECT username FROM users").fetchall()]
+        conn.close()
 
     return {
-        "data_dir_exists": data_exists,
-        "data_dir_files": data_files,
         "db_path": DB_PATH,
-        "users_in_db": users
+        "db_exists": db_exists,
+        "data_files": os.listdir("/data"),
+        "users": users,
     }
