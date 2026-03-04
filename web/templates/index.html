@@ -108,12 +108,6 @@
     <script>
         window.currentUser = "{{ username if username else '' }}";
     </script>
-{% include 'partials/head.html' %}
-{% include 'partials/navbar.html' %}
 
-<!-- page content slot -->
-{{ content }}
-
-{% include 'partials/toast.html' %}  ← add this line
 </body>
 </html>
