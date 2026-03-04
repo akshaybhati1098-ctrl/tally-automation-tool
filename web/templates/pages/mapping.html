@@ -1,34 +1,64 @@
 <div class="card">
     <div class="card-header">
-        <h3>Ledger Mapping Editor</h3>
+        <h3>⚙️ Ledger Mapping Editor</h3>
     </div>
-    <div class="mapping-container" style="display: flex; gap: 2rem;">
-        <!-- Left: Company List -->
+
+    <div class="mapping-container">
+        <!-- Left: Company Panel -->
         <div class="company-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h4><i class="icon">🏢</i> Companies</h4>
-                <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
+            <div class="panel-header">
+                <h4><span class="panel-icon">🏢</span> Companies</h4>
+                <button class="btn btn-success btn-sm" id="addCompanyBtn">➕ Add</button>
             </div>
-            <div id="companyList" class="company-list"></div>
+            <div id="companyList" class="company-list">
+                <!-- Example items – replace with dynamic data -->
+                <div class="company-item active">ABC Enterprises</div>
+                <div class="company-item">XYZ Traders</div>
+                <div class="company-item">LMN Pvt Ltd</div>
+            </div>
         </div>
 
-        <!-- Right: Mapping Editor for selected company -->
+        <!-- Right: Mapping Panel -->
         <div class="mapping-panel">
+            <!-- Ledger Groups Section -->
             <div class="group-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4><i class="icon">📋</i> Ledger Groups for <span id="selectedCompany" class="company-name">Select a company</span></h4>
+                <div class="panel-header">
+                    <h4><span class="panel-icon">📋</span> Ledger Groups for <span id="selectedCompany" class="company-name">ABC Enterprises</span></h4>
                     <div>
-                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn" title="Rename company" style="display: none;">✏️ Rename</button>
-                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn" title="Delete company" style="display: none;">🗑️ Delete</button>
+                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn">✏️ Rename</button>
+                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn">🗑️ Delete</button>
                     </div>
                 </div>
-                <div id="groupList" class="group-list"></div>
+                <div id="groupList" class="group-list">
+                    <!-- Example groups -->
+                    <div class="group-item active">Sales</div>
+                    <div class="group-item">Purchase</div>
+                </div>
             </div>
 
+            <!-- Rates Section -->
             <div class="rate-panel">
-                <h4 id="currentGroupTitle">Select a group</h4>
-                <div id="rateList" class="rate-list"></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <h4 id="currentGroupTitle">Sales · GST Rates</h4>
+                <div id="rateList" class="rate-list">
+                    <!-- Example rates -->
+                    <div class="rate-item">
+                        <span class="rate-percent">18%</span>
+                        <span class="rate-ledger">Local Sale @18%</span>
+                        <div class="rate-actions">
+                            <button class="btn-icon" title="Edit">✏️</button>
+                            <button class="btn-icon" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="rate-item">
+                        <span class="rate-percent">12%</span>
+                        <span class="rate-ledger">Interstate Sale @12%</span>
+                        <div class="rate-actions">
+                            <button class="btn-icon">✏️</button>
+                            <button class="btn-icon">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="rate-actions-bar">
                     <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
                     <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
                 </div>
@@ -40,7 +70,7 @@
 <!-- Add Rate Modal -->
 <div id="rateModal" class="modal">
     <div class="modal-content">
-        <h3>Add GST Rate</h3>
+        <h3 class="modal-title">Add GST Rate</h3>
         <div class="form-group">
             <label for="modalRate">GST Rate (%)</label>
             <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
@@ -59,7 +89,7 @@
 <!-- Company Name Modal (for Add/Rename) -->
 <div id="companyModal" class="modal">
     <div class="modal-content">
-        <h3 id="companyModalTitle">Add Company</h3>
+        <h3 id="companyModalTitle" class="modal-title">Add Company</h3>
         <div class="form-group">
             <label for="companyNameInput">Company Name</label>
             <input type="text" id="companyNameInput" placeholder="Enter company name">
@@ -70,3 +100,293 @@
         </div>
     </div>
 </div>
+
+<style>
+/* ===== Mapping Editor Specific Styles ===== */
+.mapping-container {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.company-panel {
+    flex: 1;
+    min-width: 220px;
+    background: #f9fcff;
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid #e9eff8;
+}
+
+.mapping-panel {
+    flex: 3;
+    min-width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.group-panel, .rate-panel {
+    background: #f9fcff;
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid #e9eff8;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.panel-header h4 {
+    font-size: 1.1rem;
+    color: #1e2b4f;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.panel-icon {
+    font-size: 1.2rem;
+}
+
+.company-name {
+    font-weight: 600;
+    color: #2a3f6e;
+    background: #e4edfc;
+    padding: 0.2rem 0.6rem;
+    border-radius: 40px;
+}
+
+/* Lists */
+.company-list, .group-list, .rate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.company-item, .group-item {
+    padding: 0.8rem 1rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2eaf5;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1e2b4f;
+}
+
+.company-item:hover, .group-item:hover {
+    border-color: #b0c4de;
+    transform: translateX(4px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+}
+
+.company-item.active, .group-item.active {
+    background: #1e2b4f;
+    border-color: #1e2b4f;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 6px 12px rgba(30,43,79,0.15);
+}
+
+/* Rate items */
+.rate-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2eaf5;
+}
+
+.rate-percent {
+    background: #e4edfc;
+    color: #1e2b4f;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 40px;
+    font-size: 0.9rem;
+}
+
+.rate-ledger {
+    flex: 1;
+    color: #1e2b4f;
+}
+
+.rate-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.btn-icon:hover {
+    opacity: 1;
+    background: #e4edfc;
+    transform: scale(1.1);
+}
+
+.rate-actions-bar {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+    flex-wrap: wrap;
+}
+
+/* Buttons (reusing dashboard button styles) */
+.btn {
+    border: none;
+    border-radius: 40px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+.btn-success {
+    background: #1e5f2e;
+    color: white;
+    box-shadow: 0 4px 10px rgba(30,95,46,0.2);
+}
+
+.btn-success:hover {
+    background: #2a7a3a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(30,95,46,0.25);
+}
+
+.btn-primary {
+    background: #1e2b4f;
+    color: white;
+    box-shadow: 0 4px 10px rgba(30,43,79,0.2);
+}
+
+.btn-primary:hover {
+    background: #2a3f6e;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(30,43,79,0.25);
+}
+
+.btn-warning {
+    background: #b85c1a;
+    color: white;
+    box-shadow: 0 4px 10px rgba(184,92,26,0.2);
+}
+
+.btn-warning:hover {
+    background: #d46b1f;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #b00020;
+    color: white;
+    box-shadow: 0 4px 10px rgba(176,0,32,0.2);
+}
+
+.btn-danger:hover {
+    background: #d00024;
+    transform: translateY(-2px);
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 28px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    color: #1e2b4f;
+    margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+/* Form groups (consistent with dashboard) */
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #1e2b4f;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2a3f6e;
+    box-shadow: 0 0 0 3px rgba(42,63,110,0.1);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .mapping-container {
+        flex-direction: column;
+    }
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+</style>
