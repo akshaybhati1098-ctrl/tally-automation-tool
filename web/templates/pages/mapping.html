@@ -1,392 +1,751 @@
+<!-- ═══════════════════════════════════════════════
+     LEDGER MAPPING EDITOR
+     Matches dashboard design system (Syne + DM Sans)
+     All logic identical to original
+     ═══════════════════════════════════════════════ -->
+
 <div class="card">
-    <div class="card-header">
-        <h3>⚙️ Ledger Mapping Editor</h3>
+
+  <!-- Card Header -->
+  <div class="card-header">
+    <div class="ch-left">
+      <div class="ch-icon">⚙️</div>
+      <div class="ch-text">
+        <div class="ch-eyebrow">Tally Configuration</div>
+        <h3>Ledger Mapping Editor</h3>
+        <p class="ch-sub">Map your GST rates to Tally ledger names per company</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="mapping-container">
+
+    <!-- ── LEFT: Company Panel ── -->
+    <div class="company-panel">
+      <div class="panel-header">
+        <div class="panel-label">🏢 Companies</div>
+        <button class="btn-add" id="addCompanyBtn">＋ Add</button>
+      </div>
+      <div id="companyList" class="company-list">
+        <div class="company-item active">ABC Enterprises</div>
+        <div class="company-item">XYZ Traders</div>
+        <div class="company-item">LMN Pvt Ltd</div>
+      </div>
     </div>
 
-    <div class="mapping-container">
-        <!-- Left: Company Panel -->
-        <div class="company-panel">
-            <div class="panel-header">
-                <h4><span class="panel-icon">🏢</span> Companies</h4>
-                <button class="btn btn-success btn-sm" id="addCompanyBtn">➕ Add</button>
-            </div>
-            <div id="companyList" class="company-list">
-                <!-- Example items – replace with dynamic data -->
-                <div class="company-item active">ABC Enterprises</div>
-                <div class="company-item">XYZ Traders</div>
-                <div class="company-item">LMN Pvt Ltd</div>
-            </div>
+    <!-- ── RIGHT: Mapping Panel ── -->
+    <div class="mapping-panel">
+
+      <!-- Ledger Groups -->
+      <div class="inner-panel">
+        <div class="panel-header">
+          <div class="panel-label">
+            📋 Groups —
+            <span id="selectedCompany" class="company-chip">ABC Enterprises</span>
+          </div>
+          <div class="panel-actions">
+            <button class="btn-ghost" id="renameCompanyBtn">✏️ Rename</button>
+            <button class="btn-ghost btn-ghost-danger" id="deleteCompanyBtn">🗑️ Delete</button>
+          </div>
+        </div>
+        <div id="groupList" class="group-list">
+          <div class="group-item active">Sales</div>
+          <div class="group-item">Purchase</div>
+        </div>
+      </div>
+
+      <!-- GST Rates -->
+      <div class="inner-panel">
+        <div class="panel-header">
+          <div class="panel-label">🔢 <span id="currentGroupTitle">Sales</span> · GST Rates</div>
         </div>
 
-        <!-- Right: Mapping Panel -->
-        <div class="mapping-panel">
-            <!-- Ledger Groups Section -->
-            <div class="group-panel">
-                <div class="panel-header">
-                    <h4><span class="panel-icon">📋</span> Ledger Groups for <span id="selectedCompany" class="company-name">ABC Enterprises</span></h4>
-                    <div>
-                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn">✏️ Rename</button>
-                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn">🗑️ Delete</button>
-                    </div>
-                </div>
-                <div id="groupList" class="group-list">
-                    <!-- Example groups -->
-                    <div class="group-item active">Sales</div>
-                    <div class="group-item">Purchase</div>
-                </div>
+        <div id="rateList" class="rate-list">
+          <div class="rate-item">
+            <span class="rate-percent">18%</span>
+            <span class="rate-ledger">Local Sale @18%</span>
+            <div class="rate-btns">
+              <button class="rate-btn" title="Edit">✏️</button>
+              <button class="rate-btn rate-btn-danger" title="Delete">🗑️</button>
             </div>
-
-            <!-- Rates Section -->
-            <div class="rate-panel">
-                <h4 id="currentGroupTitle">Sales · GST Rates</h4>
-                <div id="rateList" class="rate-list">
-                    <!-- Example rates -->
-                    <div class="rate-item">
-                        <span class="rate-percent">18%</span>
-                        <span class="rate-ledger">Local Sale @18%</span>
-                        <div class="rate-actions">
-                            <button class="btn-icon" title="Edit">✏️</button>
-                            <button class="btn-icon" title="Delete">🗑️</button>
-                        </div>
-                    </div>
-                    <div class="rate-item">
-                        <span class="rate-percent">12%</span>
-                        <span class="rate-ledger">Interstate Sale @12%</span>
-                        <div class="rate-actions">
-                            <button class="btn-icon">✏️</button>
-                            <button class="btn-icon">🗑️</button>
-                        </div>
-                    </div>
-                </div>
-                <div class="rate-actions-bar">
-                    <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
-                    <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
-                </div>
+          </div>
+          <div class="rate-item">
+            <span class="rate-percent">12%</span>
+            <span class="rate-ledger">Interstate Sale @12%</span>
+            <div class="rate-btns">
+              <button class="rate-btn" title="Edit">✏️</button>
+              <button class="rate-btn rate-btn-danger" title="Delete">🗑️</button>
             </div>
+          </div>
         </div>
+
+        <div class="rate-actions-bar">
+          <button class="btn-outline" id="addRateBtn">＋ Add Rate</button>
+          <button class="btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
+        </div>
+      </div>
+
     </div>
+  </div>
 </div>
 
-<!-- Add Rate Modal -->
+
+<!-- ── Add Rate Modal ── -->
 <div id="rateModal" class="modal">
-    <div class="modal-content">
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-icon">🔢</div>
+      <div>
+        <div class="modal-eyebrow">GST Configuration</div>
         <h3 class="modal-title">Add GST Rate</h3>
-        <div class="form-group">
-            <label for="modalRate">GST Rate (%)</label>
-            <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
-        </div>
-        <div class="form-group">
-            <label for="modalLedger">Ledger Name</label>
-            <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="modalOkBtn">OK</button>
-            <button class="btn btn-danger" id="modalCancelBtn">Cancel</button>
-        </div>
+      </div>
     </div>
+    <div class="form-group">
+      <label for="modalRate">GST Rate (%)</label>
+      <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
+    </div>
+    <div class="form-group">
+      <label for="modalLedger">Ledger Name</label>
+      <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" id="modalCancelBtn">Cancel</button>
+      <button class="btn-modal-ok" id="modalOkBtn">Add Rate</button>
+    </div>
+  </div>
 </div>
 
-<!-- Company Name Modal (for Add/Rename) -->
+
+<!-- ── Company Modal ── -->
 <div id="companyModal" class="modal">
-    <div class="modal-content">
-        <h3 id="companyModalTitle" class="modal-title">Add Company</h3>
-        <div class="form-group">
-            <label for="companyNameInput">Company Name</label>
-            <input type="text" id="companyNameInput" placeholder="Enter company name">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="companyModalOkBtn">OK</button>
-            <button class="btn btn-danger" id="companyModalCancelBtn">Cancel</button>
-        </div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <div class="modal-icon">🏢</div>
+      <div>
+        <div class="modal-eyebrow">Company Setup</div>
+        <h3 class="modal-title" id="companyModalTitle">Add Company</h3>
+      </div>
     </div>
+    <div class="form-group">
+      <label for="companyNameInput">Company Name</label>
+      <input type="text" id="companyNameInput" placeholder="Enter company name">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-modal-cancel" id="companyModalCancelBtn">Cancel</button>
+      <button class="btn-modal-ok" id="companyModalOkBtn">Save</button>
+    </div>
+  </div>
 </div>
+
 
 <style>
-/* ===== Mapping Editor Specific Styles ===== */
+/* ── Design tokens ── */
+:root {
+  --ink:     #0d1117;
+  --ink2:    #1c2534;
+  --ink3:    #354460;
+  --muted:   #7a8fa8;
+  --line:    #dce5f0;
+  --surface: #f5f8fc;
+  --white:   #ffffff;
+  --accent:  #1651e8;
+  --green:   #17b26a;
+  --red:     #e02020;
+}
+
+/* ── Card ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 1.8rem 2rem;
+  box-shadow: 0 2px 10px rgba(0,20,60,0.05);
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Card header ── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.3rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.ch-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ch-icon {
+  width: 46px; height: 46px;
+  background: var(--ink);
+  border-radius: 13px;
+  display: grid; place-items: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(13,17,23,0.18);
+}
+
+.ch-text { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.ch-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+}
+
+.card-header h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.ch-sub {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+/* ── Layout ── */
 .mapping-container {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.2rem;
+  align-items: start;
 }
 
+/* ── Company Panel ── */
 .company-panel {
-    flex: 1;
-    min-width: 220px;
-    background: #f9fcff;
-    border-radius: 20px;
-    padding: 1.2rem;
-    border: 1px solid #e9eff8;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem;
 }
 
+/* ── Inner panels (right side) ── */
 .mapping-panel {
-    flex: 3;
-    min-width: 350px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
-.group-panel, .rate-panel {
-    background: #f9fcff;
-    border-radius: 20px;
-    padding: 1.2rem;
-    border: 1px solid #e9eff8;
+.inner-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 1rem 1.1rem;
 }
 
+/* ── Panel header ── */
 .panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.85rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.panel-header h4 {
-    font-size: 1.1rem;
-    color: #1e2b4f;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
+.panel-label {
+  font-family: 'Syne', sans-serif;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--ink2);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
 }
 
-.panel-icon {
-    font-size: 1.2rem;
+.panel-actions {
+  display: flex;
+  gap: 0.4rem;
 }
 
-.company-name {
-    font-weight: 600;
-    color: #2a3f6e;
-    background: #e4edfc;
-    padding: 0.2rem 0.6rem;
-    border-radius: 40px;
+/* Company chip */
+.company-chip {
+  display: inline-block;
+  background: rgba(22,81,232,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(22,81,232,0.18);
+  border-radius: 100px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
 }
 
-/* Lists */
-.company-list, .group-list, .rate-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
+/* ── Add button ── */
+.btn-add {
+  background: var(--ink);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  padding: 0.32rem 0.8rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
 
-.company-item, .group-item {
-    padding: 0.8rem 1rem;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2eaf5;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #1e2b4f;
+.btn-add:hover {
+  background: var(--ink2);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(13,17,23,0.2);
 }
 
-.company-item:hover, .group-item:hover {
-    border-color: #b0c4de;
-    transform: translateX(4px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+/* ── Ghost buttons (rename / delete) ── */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem 0.65rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
 }
 
-.company-item.active, .group-item.active {
-    background: #1e2b4f;
-    border-color: #1e2b4f;
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 6px 12px rgba(30,43,79,0.15);
+.btn-ghost:hover {
+  background: var(--white);
+  border-color: #b8cbe8;
+  color: var(--ink);
 }
 
-/* Rate items */
+.btn-ghost-danger { color: #b91c1c; border-color: rgba(220,38,38,0.2); }
+.btn-ghost-danger:hover {
+  background: rgba(220,38,38,0.06);
+  border-color: rgba(220,38,38,0.35);
+  color: #b91c1c;
+}
+
+/* ── Company list ── */
+.company-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.company-item {
+  padding: 0.6rem 0.85rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 0.83rem;
+  color: var(--ink3);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.company-item:hover {
+  border-color: #b8cbe8;
+  color: var(--ink2);
+  transform: translateX(3px);
+}
+
+.company-item.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+  font-weight: 600;
+  box-shadow: 0 3px 10px rgba(13,17,23,0.18);
+}
+
+/* ── Group list ── */
+.group-list {
+  display: flex;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.group-item {
+  padding: 0.42rem 1rem;
+  background: var(--white);
+  border: 1.5px solid var(--line);
+  border-radius: 100px;
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+
+.group-item:hover {
+  border-color: #b8cbe8;
+  color: var(--ink2);
+}
+
+.group-item.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--white);
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(13,17,23,0.15);
+}
+
+/* ── Rate list ── */
+.rate-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
 .rate-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.8rem 1rem;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2eaf5;
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 0.9rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+
+.rate-item:hover {
+  border-color: #b8cbe8;
+  box-shadow: 0 2px 8px rgba(0,20,60,0.05);
 }
 
 .rate-percent {
-    background: #e4edfc;
-    color: #1e2b4f;
-    font-weight: 600;
-    padding: 0.3rem 0.8rem;
-    border-radius: 40px;
-    font-size: 0.9rem;
+  background: rgba(22,81,232,0.08);
+  color: var(--accent);
+  border: 1px solid rgba(22,81,232,0.18);
+  font-weight: 700;
+  padding: 0.22rem 0.65rem;
+  border-radius: 100px;
+  font-size: 0.78rem;
+  white-space: nowrap;
+  font-family: 'Syne', sans-serif;
 }
 
 .rate-ledger {
-    flex: 1;
-    color: #1e2b4f;
+  flex: 1;
+  font-size: 0.83rem;
+  color: var(--ink2);
+  font-weight: 500;
 }
 
-.rate-actions {
-    display: flex;
-    gap: 0.3rem;
+.rate-btns {
+  display: flex;
+  gap: 0.25rem;
 }
 
-.btn-icon {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0.3rem;
-    border-radius: 8px;
-    transition: all 0.2s;
-    opacity: 0.6;
+.rate-btn {
+  width: 28px; height: 28px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  display: grid; place-items: center;
+  transition: all 0.15s;
+  opacity: 0.5;
 }
 
-.btn-icon:hover {
-    opacity: 1;
-    background: #e4edfc;
-    transform: scale(1.1);
+.rate-btn:hover {
+  opacity: 1;
+  background: var(--surface);
+  border-color: var(--line);
 }
 
+.rate-btn-danger:hover {
+  background: rgba(220,38,38,0.07);
+  border-color: rgba(220,38,38,0.2);
+}
+
+/* ── Action bar ── */
 .rate-actions-bar {
-    display: flex;
-    gap: 0.8rem;
-    margin-top: 1.2rem;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line);
 }
 
-/* Buttons (reusing dashboard button styles) */
-.btn {
-    border: none;
-    border-radius: 40px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
+.btn-outline {
+  background: transparent;
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 0.55rem 1.1rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: all 0.15s;
 }
 
-.btn-sm {
-    padding: 0.4rem 0.9rem;
-    font-size: 0.85rem;
-}
-
-.btn-success {
-    background: #1e5f2e;
-    color: white;
-    box-shadow: 0 4px 10px rgba(30,95,46,0.2);
-}
-
-.btn-success:hover {
-    background: #2a7a3a;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30,95,46,0.25);
+.btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(22,81,232,0.05);
 }
 
 .btn-primary {
-    background: #1e2b4f;
-    color: white;
-    box-shadow: 0 4px 10px rgba(30,43,79,0.2);
+  background: linear-gradient(135deg, var(--accent), #3b29e8);
+  color: var(--white);
+  border: none;
+  border-radius: 10px;
+  padding: 0.55rem 1.2rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: 0 3px 12px rgba(22,81,232,0.3);
 }
 
 .btn-primary:hover {
-    background: #2a3f6e;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30,43,79,0.25);
+  box-shadow: 0 6px 18px rgba(22,81,232,0.4);
+  transform: translateY(-1px);
 }
 
-.btn-warning {
-    background: #b85c1a;
-    color: white;
-    box-shadow: 0 4px 10px rgba(184,92,26,0.2);
-}
+.btn-primary:active { transform: scale(0.98); }
 
-.btn-warning:hover {
-    background: #d46b1f;
-    transform: translateY(-2px);
-}
-
-.btn-danger {
-    background: #b00020;
-    color: white;
-    box-shadow: 0 4px 10px rgba(176,0,32,0.2);
-}
-
-.btn-danger:hover {
-    background: #d00024;
-    transform: translateY(-2px);
-}
-
-/* Modals */
+/* ── Modals ── */
 .modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(13,17,23,0.55);
+  backdrop-filter: blur(4px);
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.15s ease;
 }
 
-.modal-content {
-    background: white;
-    border-radius: 28px;
-    padding: 2rem;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.modal-card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 1.8rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 20px 50px rgba(0,20,60,0.18);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.modal-icon {
+  width: 40px; height: 40px;
+  background: var(--ink);
+  border-radius: 11px;
+  display: grid; place-items: center;
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.modal-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+  margin-bottom: 0.2rem;
 }
 
 .modal-title {
-    font-size: 1.5rem;
-    color: #1e2b4f;
-    margin-bottom: 1.5rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--ink);
 }
 
-.modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 2rem;
-}
-
-/* Form groups (consistent with dashboard) */
+/* Modal form groups */
 .form-group {
-    margin-bottom: 1.2rem;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.4rem;
-    color: #1e2b4f;
-    font-weight: 500;
-    font-size: 0.9rem;
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink3);
+  margin-bottom: 0.4rem;
 }
 
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    transition: all 0.2s;
+.form-group input {
+  width: 100%;
+  padding: 0.7rem 0.95rem;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 11px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: #2a3f6e;
-    box-shadow: 0 0 0 3px rgba(42,63,110,0.1);
+.form-group input::placeholder { color: var(--muted); }
+
+.form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
+  background: var(--white);
 }
 
-/* Responsive */
+.modal-actions {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: flex-end;
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--line);
+}
+
+.btn-modal-cancel {
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.55rem 1.1rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.btn-modal-cancel:hover {
+  background: var(--surface);
+  color: var(--ink3);
+  border-color: #b8cbe8;
+}
+
+.btn-modal-ok {
+  background: linear-gradient(135deg, var(--accent), #3b29e8);
+  color: var(--white);
+  border: none;
+  border-radius: 9px;
+  padding: 0.55rem 1.3rem;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: 0 3px 10px rgba(22,81,232,0.3);
+}
+
+.btn-modal-ok:hover {
+  box-shadow: 0 6px 16px rgba(22,81,232,0.4);
+  transform: translateY(-1px);
+}
+
+/* ── Responsive ── */
 @media (max-width: 700px) {
-    .mapping-container {
-        flex-direction: column;
-    }
-    .panel-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
+  .mapping-container {
+    grid-template-columns: 1fr;
+  }
+
+  .card { padding: 1.3rem 1.1rem; }
 }
 </style>
+
+<script>
+/* ── Toast hooks for mapping editor ──
+   These wire up the buttons to showToast().
+   Your existing JS can call these same functions
+   or replace the body with real API calls.        */
+document.addEventListener('DOMContentLoaded', function () {
+
+  /* Save Mapping */
+  const saveBtn = document.getElementById('saveMappingBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', function () {
+      // ── Replace this block with your actual save API call ──
+      toastSuccess('Ledger mapping saved successfully.', 'Mapping Saved');
+    });
+  }
+
+  /* Add Rate — confirm from modal */
+  const modalOk = document.getElementById('modalOkBtn');
+  if (modalOk) {
+    modalOk._originalClick = modalOk.onclick;
+    modalOk.addEventListener('click', function () {
+      const rate   = document.getElementById('modalRate')?.value;
+      const ledger = document.getElementById('modalLedger')?.value;
+      if (rate && ledger) {
+        toastSuccess(`Rate ${rate}% → "${ledger}" added.`, 'Rate Added');
+      }
+    });
+  }
+
+  /* Rename Company — confirm from modal */
+  const companyOk = document.getElementById('companyModalOkBtn');
+  if (companyOk) {
+    companyOk.addEventListener('click', function () {
+      const name = document.getElementById('companyNameInput')?.value?.trim();
+      const isRename = document.getElementById('companyModalTitle')?.textContent?.includes('Rename');
+      if (name) {
+        if (isRename) {
+          toastSuccess(`Company renamed to "${name}".`, 'Company Updated');
+        } else {
+          toastSuccess(`"${name}" added to your companies.`, 'Company Added');
+        }
+      }
+    });
+  }
+
+  /* Delete Company */
+  const deleteBtn = document.getElementById('deleteCompanyBtn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', function () {
+      const company = document.getElementById('selectedCompany')?.textContent;
+      // ── Replace with your confirm + delete logic ──
+      toastWarning(`"${company}" has been deleted.`, 'Company Removed');
+    });
+  }
+
+  /* Rate edit buttons (delegated on rate list) */
+  const rateList = document.getElementById('rateList');
+  if (rateList) {
+    rateList.addEventListener('click', function (e) {
+      const btn = e.target.closest('.rate-btn');
+      if (!btn) return;
+      const item   = btn.closest('.rate-item');
+      const ledger = item?.querySelector('.rate-ledger')?.textContent;
+      const isDel  = btn.classList.contains('rate-btn-danger');
+      if (isDel) {
+        toastWarning(`"${ledger}" removed.`, 'Rate Deleted');
+      } else {
+        toastInfo(`Editing "${ledger}"…`, 'Edit Rate');
+      }
+    });
+  }
+
+});
+</script>

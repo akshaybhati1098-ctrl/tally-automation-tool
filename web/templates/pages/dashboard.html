@@ -1,310 +1,586 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Akshay's Tally Tool · Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-        }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akshay's Tally Tool · Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
 
-        body {
-            background: #f3f6fc;
-            min-height: 100vh;
-            padding: 2rem 1rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
+  <style>
+    :root {
+      --ink:       #0d1117;
+      --ink2:      #1c2534;
+      --ink3:      #354460;
+      --muted:     #7a8fa8;
+      --line:      #dce5f0;
+      --surface:   #f5f8fc;
+      --white:     #ffffff;
+      --accent:    #1651e8;
+      --accent2:   #0f3dbf;
+      --gold:      #f5a623;
+      --green:     #17b26a;
+    }
 
-        .dashboard-container {
-            max-width: 1200px;
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
-        }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
-        /* ===== CARD STYLES ===== */
-        .card {
-            background: white;
-            border-radius: 24px;
-            box-shadow: 0 10px 30px -5px rgba(0, 20, 40, 0.1);
-            padding: 1.5rem;
-            transition: transform 0.2s, box-shadow 0.2s;
-            border: 1px solid rgba(255,255,255,0.5);
-            backdrop-filter: blur(2px);
-            width: 100%;
-        }
+    body {
+      background: var(--surface);
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      /* subtle dot-grid background */
+      background-image: radial-gradient(circle, #c8d6e8 1px, transparent 1px);
+      background-size: 28px 28px;
+    }
 
-        .card:hover {
-            box-shadow: 0 20px 35px -8px rgba(0, 30, 60, 0.15);
-        }
+    /* ─── LAYOUT ─── */
+    .shell {
+      max-width: 1160px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+    }
 
-        .card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 1.2rem;
-        }
+    /* ─── HEADER ─── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 2.8rem;
+      animation: fadeUp 0.5s ease both;
+    }
 
-        .card-header h3 {
-            font-size: 1.4rem;
-            font-weight: 600;
-            background: linear-gradient(135deg, #1e2b4f, #2a3f6e);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            letter-spacing: -0.02em;
-        }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
 
-        /* Quick actions grid (remain button-like) */
-        .quick-actions {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 1rem;
-        }
+    .brand-logo {
+      width: 42px; height: 42px;
+      background: var(--ink);
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 1.3rem;
+    }
 
-        .action-card {
-            background: #f8faff;
-            border-radius: 20px;
-            padding: 1.2rem 0.8rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.2s;
-            border: 1px solid #e9eef7;
-            font-weight: 500;
-            color: #1e2b4f;
-            text-decoration: none;
-            display: block;
-        }
+    .brand-text h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--ink);
+    }
 
-        .action-card:hover {
-            background: white;
-            border-color: #b0c4de;
-            transform: translateY(-4px);
-            box-shadow: 0 12px 20px -10px rgba(30, 60, 120, 0.2);
-            color: #1e2b4f;
-        }
+    .brand-text span {
+      font-size: 0.72rem;
+      font-weight: 400;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
 
-        .action-card:active {
-            transform: scale(0.97);
-            background: #e4edfc;
-            color: #1e2b4f;
-        }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
 
-        .action-card .icon {
-            font-size: 2.2rem;
-            margin-bottom: 0.5rem;
-        }
+    .status-chip {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.38rem 0.85rem;
+      border-radius: 100px;
+      background: var(--white);
+      border: 1px solid var(--line);
+      font-size: 0.78rem;
+      color: var(--ink3);
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
 
-        /* Key features grid - completely clean, no button look */
-        .features-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 2rem 2rem;
-            margin-top: 0.5rem;
-        }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); animation: pulse 2s infinite; }
 
-        .feature-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 1.2rem;
-            /* No background, no border, no shadow, no hover */
-            padding: 0;
-            cursor: default;
-        }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0 rgba(23,178,106,0.4); }
+      50%      { box-shadow: 0 0 0 5px rgba(23,178,106,0); }
+    }
 
-        .feature-icon {
-            font-size: 2.6rem;
-            line-height: 1;
-            opacity: 0.9;
-        }
+    .avatar {
+      width: 36px; height: 36px;
+      background: linear-gradient(135deg, var(--accent), #6b3de8);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #fff;
+    }
 
-        .feature-item b {
-            font-size: 1.1rem;
-            color: #1e2b4f;
-            display: block;
-            margin-bottom: 0.3rem;
-        }
+    /* ─── HERO BANNER ─── */
+    .hero {
+      background: var(--ink);
+      border-radius: 22px;
+      padding: 2rem 2.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      animation: fadeUp 0.5s ease both;
+    }
 
-        .feature-item small {
-            color: #5a6e8a;
-            font-size: 0.85rem;
-            line-height: 1.5;
-            display: block;
-        }
+    .hero::before {
+      content: '';
+      position: absolute;
+      right: -60px; top: -60px;
+      width: 260px; height: 260px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(22,81,232,0.35) 0%, transparent 70%);
+      pointer-events: none;
+    }
 
-        /* Coming soon badge */
-        .coming-soon {
-            display: inline-block;
-            background: #2a3f6e;
-            color: white;
-            font-size: 0.7rem;
-            font-weight: 600;
-            padding: 0.2rem 0.6rem;
-            border-radius: 40px;
-            margin-left: 0.5rem;
-            letter-spacing: 0.3px;
-            vertical-align: middle;
-        }
+    .hero-text h2 {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -0.03em;
+      margin-bottom: 0.4rem;
+    }
 
-        /* Responsive */
-        @media (max-width: 600px) {
-            .quick-actions {
-                grid-template-columns: repeat(2, 1fr);
-            }
-            .features-grid {
-                grid-template-columns: 1fr;
-                gap: 1.5rem;
-            }
-        }
-    </style>
+    .hero-text p {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.55);
+      max-width: 380px;
+      line-height: 1.6;
+    }
+
+    .hero-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 100px;
+      padding: 0.55rem 1.1rem;
+      font-size: 0.8rem;
+      color: rgba(255,255,255,0.8);
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .hero-badge .dot-w {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--green);
+      animation: pulse 2s infinite;
+    }
+
+    /* ─── MAIN GRID ─── */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.5rem;
+    }
+
+    /* ─── CARD BASE ─── */
+    .card {
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 22px;
+      padding: 1.6rem 1.75rem;
+      box-shadow: 0 2px 10px rgba(0,20,60,0.05);
+      animation: fadeUp 0.5s ease both;
+    }
+
+    .card.span-2 { grid-column: span 2; }
+    .card:nth-child(1) { animation-delay: 0.25s; }
+    .card:nth-child(2) { animation-delay: 0.3s; }
+    .card:nth-child(3) { animation-delay: 0.35s; }
+
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--ink);
+      margin-bottom: 1.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .card-title .ti {
+      font-size: 1.05rem;
+    }
+
+    /* ─── QUICK ACTIONS ─── */
+    .actions-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+    }
+
+    .action-btn {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      padding: 1.1rem 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.55rem;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .action-btn:hover {
+      background: var(--white);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22,81,232,0.08), 0 6px 16px rgba(22,81,232,0.1);
+      transform: translateY(-2px);
+    }
+
+    .action-btn:active { transform: scale(0.98); }
+
+    .ab-icon {
+      width: 38px; height: 38px;
+      border-radius: 10px;
+      display: grid; place-items: center;
+      font-size: 1.2rem;
+    }
+
+    .ab-icon.blue   { background: rgba(22,81,232,0.1); }
+    .ab-icon.green  { background: rgba(23,178,106,0.1); }
+    .ab-icon.gold   { background: rgba(245,166,35,0.1); }
+    .ab-icon.purple { background: rgba(107,61,232,0.1); }
+    .ab-icon.red    { background: rgba(232,44,22,0.1); }
+    .ab-icon.teal   { background: rgba(14,165,163,0.1); }
+    .ab-icon.pink   { background: rgba(219,39,119,0.1); }
+    .ab-icon.slate  { background: rgba(71,85,105,0.1); }
+
+    .ab-label {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--ink2);
+      line-height: 1.2;
+    }
+
+    .ab-sub {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
+
+    /* ─── RECENT ACTIVITY ─── */
+    /* ─── HOW IT WORKS ─── */
+    .steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .step {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      padding: 0.9rem 0.5rem;
+      position: relative;
+    }
+
+    .step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 1.45rem;
+      top: 3rem;
+      bottom: 0;
+      width: 1px;
+      background: var(--line);
+    }
+
+    .step-num {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: var(--ink);
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.78rem;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 1;
+    }
+
+    .step-body b { font-size: 0.85rem; font-weight: 600; color: var(--ink2); display: block; margin-bottom: 0.2rem; }
+    .step-body small { font-size: 0.75rem; color: var(--muted); line-height: 1.5; }
+
+    /* ─── FEATURES ─── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+    }
+
+    .feat {
+      padding: 1.15rem 1rem;
+      border-radius: 15px;
+      border: 1px solid var(--line);
+      background: var(--surface);
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+
+    .feat:hover {
+      border-color: #b8cbe8;
+      box-shadow: 0 4px 14px rgba(0,20,60,0.07);
+    }
+
+    .feat-icon { font-size: 1.6rem; }
+
+    .feat-name {
+      font-size: 0.83rem;
+      font-weight: 600;
+      color: var(--ink2);
+      line-height: 1.3;
+    }
+
+    .feat-desc {
+      font-size: 0.73rem;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .badge-soon {
+      display: inline-block;
+      background: var(--ink);
+      color: #fff;
+      font-size: 0.6rem;
+      font-weight: 700;
+      padding: 0.15rem 0.5rem;
+      border-radius: 100px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      vertical-align: middle;
+      margin-left: 0.3rem;
+    }
+
+    /* ─── PROGRESS BAR (usage) ─── */
+    .usage-section { margin-top: 0.5rem; }
+
+    .usage-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.78rem;
+      color: var(--ink3);
+      margin-bottom: 0.45rem;
+      font-weight: 500;
+    }
+
+    .bar-track {
+      height: 6px;
+      background: var(--surface);
+      border-radius: 100px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 100px;
+      background: linear-gradient(90deg, var(--accent), #6b3de8);
+      transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    .bar-fill.green { background: linear-gradient(90deg, #17b26a, #12a05a); }
+    .bar-fill.gold  { background: linear-gradient(90deg, var(--gold), #e8921a); }
+
+    /* ─── ANIMATIONS ─── */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(18px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .main-grid { grid-template-columns: 1fr; }
+      .card.span-2 { grid-column: span 1; }
+      .features-grid { grid-template-columns: repeat(2,1fr); }
+      .actions-grid { grid-template-columns: repeat(3, 1fr); }
+    }
+
+    @media (max-width: 500px) {
+      .features-grid { grid-template-columns: 1fr 1fr; }
+      .actions-grid { grid-template-columns: repeat(2, 1fr); }
+      header { flex-wrap: wrap; gap: 0.75rem; }
+    }
+  </style>
 </head>
 <body>
-    <div class="dashboard-container">
-        <!-- Quick Actions Card -->
-        <div class="card">
-            <div class="card-header">
-                <h3>⚡ Quick Actions</h3>
-            </div>
-            <div class="quick-actions">
-                <div class="action-card" onclick="navigateTo('converter')">
-                    <div class="icon">🔄</div>
-                    <div>Convert Excel</div>
-                </div>
-                <div class="action-card" onclick="navigateTo('mapping')">
-                    <div class="icon">⚙️</div>
-                    <div>Edit Mapping</div>
-                </div>
-                <a href="/download-template" class="action-card">
-                    <div class="icon">📥</div>
-                    <div>Get Template</div>
-                </a>
-                <div class="action-card" onclick="viewReports()">
-                    <div class="icon">📊</div>
-                    <div>View Reports</div>
-                </div>
-            </div>
-        </div>
+<div class="shell">
 
-        <!-- Key Features Card (significantly expanded breadth) -->
-        <div class="card">
-            <div class="card-header">
-                <h3>✨ Key Features — broad capabilities</h3>
-            </div>
-            <div class="features-grid">
-                <!-- existing features (kept) -->
-                <div class="feature-item">
-                    <span class="feature-icon">🚀</span>
-                    <div>
-                        <b>Fast Conversion</b>
-                        <small>1000+ invoices/sec</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📊</span>
-                    <div>
-                        <b>GST Compliant</b>
-                        <small>Accurate GST</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔧</span>
-                    <div>
-                        <b>Flexible Mapping</b>
-                        <small>Custom ledgers</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">💾</span>
-                    <div>
-                        <b>Auto Backup</b>
-                        <small>Never lose data</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📄</span>
-                    <div>
-                        <b>PDF to Excel <span class="coming-soon">Coming Soon</span></b>
-                        <small>Extract invoices from PDFs</small>
-                    </div>
-                </div>
+  <!-- HEADER -->
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🧾</div>
+      <div class="brand-text">
+        <h1>Tally Tool</h1>
+        <span>by Akshay · Excel → Tally</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="status-chip"><div class="dot"></div> All systems live</div>
+      <div class="avatar">AK</div>
+    </div>
+  </header>
 
-                <!-- NEW FEATURES – increase breadth significantly -->
-                <div class="feature-item">
-                    <span class="feature-icon">📦</span>
-                    <div>
-                        <b>Batch Processing</b>
-                        <small>Convert multiple files at once</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">⚠️</span>
-                    <div>
-                        <b>Error Logs & Alerts</b>
-                        <small>Detailed validation reports</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🏢</span>
-                    <div>
-                        <b>Multi‑Company</b>
-                        <small>Switch between orgs seamlessly</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🧾</span>
-                    <div>
-                        <b>Inventory Support</b>
-                        <small>Stock items & batch tracking</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🔢</span>
-                    <div>
-                        <b>TallyPrime & ERP9</b>
-                        <small>Compatible with all versions</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">⚡</span>
-                    <div>
-                        <b>Real‑time Preview</b>
-                        <small>See data before import</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">🛡️</span>
-                    <div>
-                        <b>Data Encryption</b>
-                        <small>End‑to‑end security</small>
-                    </div>
-                </div>
-                <div class="feature-item">
-                    <span class="feature-icon">📎</span>
-                    <div>
-                        <b>Custom Templates</b>
-                        <small>Save & reuse mapping presets</small>
-                    </div>
-                </div>
-            </div>
-            <!-- subtle note: breadth increased to 13 items -->
+  <!-- HERO BANNER -->
+  <div class="hero">
+    <div class="hero-text">
+      <h2>Excel → Tally in seconds</h2>
+      <p>Upload your spreadsheet, configure your ledger mapping once, and push clean XML directly into TallyPrime or ERP9 — no manual entry needed.</p>
+    </div>
+    <div class="hero-badge"><div class="dot-w"></div> TallyPrime &amp; ERP9 ready</div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- Quick Actions -->
+    <div class="card span-2">
+      <div class="card-title"><span class="ti">⚡</span> Quick Actions</div>
+      <div class="actions-grid">
+        <div class="action-btn" onclick="navigateTo('converter')">
+          <div class="ab-icon blue">🔄</div>
+          <div class="ab-label">Convert Excel</div>
+          <div class="ab-sub">Upload & transform</div>
         </div>
+        <div class="action-btn" onclick="navigateTo('mapping')">
+          <div class="ab-icon gold">⚙️</div>
+          <div class="ab-label">Edit Mapping</div>
+          <div class="ab-sub">Configure ledgers</div>
+        </div>
+        <a href="/download-template" class="action-btn">
+          <div class="ab-icon green">📥</div>
+          <div class="ab-label">Get Template</div>
+          <div class="ab-sub">Download .xlsx</div>
+        </a>
+        <div class="action-btn" onclick="viewReports()">
+          <div class="ab-icon purple">📊</div>
+          <div class="ab-label">View Reports</div>
+          <div class="ab-sub">Audit & analytics</div>
+        </div>
+      </div>
     </div>
 
-    <script>
-        function navigateTo(page) {
-            console.log(`Navigating to: ${page}`);
-            alert(`🌐 Navigating to ${page} (demo)`);
-        }
+    <!-- How It Works -->
+    <div class="card">
+      <div class="card-title"><span class="ti">🗺️</span> How It Works</div>
+      <div class="steps-list">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <b>Download the template</b>
+            <small>Get the standard .xlsx format that matches your Tally ledger structure.</small>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <b>Fill in your data</b>
+            <small>Paste your invoices, purchases, or journal entries into the sheet.</small>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <b>Configure mapping</b>
+            <small>Map your column headers to Tally ledger names — saved for next time.</small>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <b>Convert &amp; import</b>
+            <small>Download the XML and import directly into TallyPrime or ERP9.</small>
+          </div>
+        </div>
+      </div>
+    </div>
 
-        function viewReports() {
-            alert('📈 Opening reports dashboard (demo)');
-        }
-    </script>
+    <!-- Tips -->
+    <div class="card">
+      <div class="card-title"><span class="ti">💡</span> Tips & Best Practices</div>
+      <div class="steps-list">
+        <div class="step" style="padding:0.7rem 0.5rem;">
+          <div class="step-num" style="background:rgba(22,81,232,0.12);color:var(--accent);">✓</div>
+          <div class="step-body">
+            <b>Use the official template</b>
+            <small>Avoids column mismatch errors and speeds up mapping.</small>
+          </div>
+        </div>
+        <div class="step" style="padding:0.7rem 0.5rem;">
+          <div class="step-num" style="background:rgba(22,81,232,0.12);color:var(--accent);">✓</div>
+          <div class="step-body">
+            <b>Keep GST numbers consistent</b>
+            <small>Inconsistent GSTIN formatting is the #1 cause of import errors.</small>
+          </div>
+        </div>
+        <div class="step" style="padding:0.7rem 0.5rem;">
+          <div class="step-num" style="background:rgba(22,81,232,0.12);color:var(--accent);">✓</div>
+          <div class="step-body">
+            <b>Preview before importing</b>
+            <small>Use the real-time preview to catch issues before they reach Tally.</small>
+          </div>
+        </div>
+        <div class="step" style="padding:0.7rem 0.5rem;">
+          <div class="step-num" style="background:rgba(22,81,232,0.12);color:var(--accent);">✓</div>
+          <div class="step-body">
+            <b>Save your mapping preset</b>
+            <small>Name and save your ledger config once to reuse every time.</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Features – full width -->
+    <div class="card span-2">
+      <div class="card-title"><span class="ti">✨</span> Capabilities</div>
+      <div class="features-grid">
+        <div class="feat"><span class="feat-icon">🚀</span><span class="feat-name">Fast Conversion</span><span class="feat-desc">1,000+ invoices per second with zero bottlenecks.</span></div>
+        <div class="feat"><span class="feat-icon">📊</span><span class="feat-name">GST Compliant</span><span class="feat-desc">Accurate CGST / SGST / IGST split on every entry.</span></div>
+        <div class="feat"><span class="feat-icon">🔧</span><span class="feat-name">Flexible Mapping</span><span class="feat-desc">Custom ledger presets, saved and reused instantly.</span></div>
+        <div class="feat"><span class="feat-icon">💾</span><span class="feat-name">Auto Backup</span><span class="feat-desc">Automatic cloud backups — never lose a file again.</span></div>
+        <div class="feat"><span class="feat-icon">📦</span><span class="feat-name">Batch Processing</span><span class="feat-desc">Convert entire folders in one click.</span></div>
+        <div class="feat"><span class="feat-icon">🏢</span><span class="feat-name">Multi-Company</span><span class="feat-desc">Switch between organisations without re-logging.</span></div>
+        <div class="feat"><span class="feat-icon">🔢</span><span class="feat-name">TallyPrime & ERP9</span><span class="feat-desc">Compatible with all versions of Tally.</span></div>
+        <div class="feat"><span class="feat-icon">⚡</span><span class="feat-name">Real-time Preview</span><span class="feat-desc">Inspect every row before committing to import.</span></div>
+        <div class="feat"><span class="feat-icon">🛡️</span><span class="feat-name">Data Encryption</span><span class="feat-desc">End-to-end security for all your financial data.</span></div>
+        <div class="feat"><span class="feat-icon">🧾</span><span class="feat-name">Inventory Support</span><span class="feat-desc">Stock items, batch tracking, and serial numbers.</span></div>
+        <div class="feat"><span class="feat-icon">⚠️</span><span class="feat-name">Error Reports</span><span class="feat-desc">Detailed validation logs with row-level drill-down.</span></div>
+        <div class="feat">
+          <span class="feat-icon">📄</span>
+          <span class="feat-name">PDF to Excel<span class="badge-soon">Soon</span></span>
+          <span class="feat-desc">Extract invoices directly from scanned PDFs.</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-grid -->
+</div><!-- /shell -->
+
+<script>
+  function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
+  function viewReports()    { alert('📈 Opening reports dashboard (demo)'); }
+</script>
 </body>
 </html>
