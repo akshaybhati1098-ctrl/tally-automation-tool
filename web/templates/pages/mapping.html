@@ -1,391 +1,717 @@
-<div class="card">
-    <div class="card-header">
-        <h3>⚙️ Ledger Mapping Editor</h3>
-    </div>
+<!-- Include the HTML from the user's message, but we'll embed it inside a full document with scripts -->
+<!-- For brevity, I'm providing the complete updated file with JavaScript added. -->
+<!-- The user already has the HTML and CSS, so I'll focus on the new script. -->
 
-    <div class="mapping-container">
-        <!-- Left: Company Panel -->
-        <div class="company-panel">
-            <div class="panel-header">
-                <h4><span class="panel-icon">🏢</span> Companies</h4>
-                <button class="btn btn-success btn-sm" id="addCompanyBtn">➕ Add</button>
-            </div>
-            <div id="companyList" class="company-list">
-                <!-- Example items – replace with dynamic data -->
-                <div class="company-item active">ABC Enterprises</div>
-                <div class="company-item">XYZ Traders</div>
-            </div>
+<!-- But since the user asked "add new company function not working", I'll supply the entire code block with the added script. -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ledger Mapping Editor</title>
+    <style>
+        /* All existing styles from the user's message - copy exactly */
+        /* ===== Mapping Editor Specific Styles ===== */
+        .mapping-container {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .company-panel {
+            flex: 1;
+            min-width: 220px;
+            background: #f9fcff;
+            border-radius: 20px;
+            padding: 1.2rem;
+            border: 1px solid #e9eff8;
+        }
+
+        .mapping-panel {
+            flex: 3;
+            min-width: 350px;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .group-panel, .rate-panel {
+            background: #f9fcff;
+            border-radius: 20px;
+            padding: 1.2rem;
+            border: 1px solid #e9eff8;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .panel-header h4 {
+            font-size: 1.1rem;
+            color: #1e2b4f;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .panel-icon {
+            font-size: 1.2rem;
+        }
+
+        .company-name {
+            font-weight: 600;
+            color: #2a3f6e;
+            background: #e4edfc;
+            padding: 0.2rem 0.6rem;
+            border-radius: 40px;
+        }
+
+        /* Lists */
+        .company-list, .group-list, .rate-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .company-item, .group-item {
+            padding: 0.8rem 1rem;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2eaf5;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1e2b4f;
+        }
+
+        .company-item:hover, .group-item:hover {
+            border-color: #b0c4de;
+            transform: translateX(4px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+        }
+
+        .company-item.active, .group-item.active {
+            background: #1e2b4f;
+            border-color: #1e2b4f;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 6px 12px rgba(30,43,79,0.15);
+        }
+
+        /* Rate items */
+        .rate-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.8rem 1rem;
+            background: white;
+            border-radius: 16px;
+            border: 1px solid #e2eaf5;
+        }
+
+        .rate-percent {
+            background: #e4edfc;
+            color: #1e2b4f;
+            font-weight: 600;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            font-size: 0.9rem;
+        }
+
+        .rate-ledger {
+            flex: 1;
+            color: #1e2b4f;
+        }
+
+        .rate-actions {
+            display: flex;
+            gap: 0.3rem;
+        }
+
+        .btn-icon {
+            background: transparent;
+            border: none;
+            font-size: 1.2rem;
+            cursor: pointer;
+            padding: 0.3rem;
+            border-radius: 8px;
+            transition: all 0.2s;
+            opacity: 0.6;
+        }
+
+        .btn-icon:hover {
+            opacity: 1;
+            background: #e4edfc;
+            transform: scale(1.1);
+        }
+
+        .rate-actions-bar {
+            display: flex;
+            gap: 0.8rem;
+            margin-top: 1.2rem;
+            flex-wrap: wrap;
+        }
+
+        /* Buttons (reusing dashboard button styles) */
+        .btn {
+            border: none;
+            border-radius: 40px;
+            padding: 0.6rem 1.2rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+
+        .btn-sm {
+            padding: 0.4rem 0.9rem;
+            font-size: 0.85rem;
+        }
+
+        .btn-success {
+            background: #1e5f2e;
+            color: white;
+            box-shadow: 0 4px 10px rgba(30,95,46,0.2);
+        }
+
+        .btn-success:hover {
+            background: #2a7a3a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(30,95,46,0.25);
+        }
+
+        .btn-primary {
+            background: #1e2b4f;
+            color: white;
+            box-shadow: 0 4px 10px rgba(30,43,79,0.2);
+        }
+
+        .btn-primary:hover {
+            background: #2a3f6e;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(30,43,79,0.25);
+        }
+
+        .btn-warning {
+            background: #b85c1a;
+            color: white;
+            box-shadow: 0 4px 10px rgba(184,92,26,0.2);
+        }
+
+        .btn-warning:hover {
+            background: #d46b1f;
+            transform: translateY(-2px);
+        }
+
+        .btn-danger {
+            background: #b00020;
+            color: white;
+            box-shadow: 0 4px 10px rgba(176,0,32,0.2);
+        }
+
+        .btn-danger:hover {
+            background: #d00024;
+            transform: translateY(-2px);
+        }
+
+        /* Modals */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 28px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+        }
+
+        .modal-title {
+            font-size: 1.5rem;
+            color: #1e2b4f;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+
+        /* Form groups (consistent with dashboard) */
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.4rem;
+            color: #1e2b4f;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: #f9fcff;
+            border: 1px solid #e2eaf5;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #2a3f6e;
+            box-shadow: 0 0 0 3px rgba(42,63,110,0.1);
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .mapping-container {
+                flex-direction: column;
+            }
+            .panel-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="card-header">
+            <h3>⚙️ Ledger Mapping Editor</h3>
         </div>
 
-        <!-- Right: Mapping Panel -->
-        <div class="mapping-panel">
-            <!-- Ledger Groups Section -->
-            <div class="group-panel">
+        <div class="mapping-container">
+            <!-- Left: Company Panel -->
+            <div class="company-panel">
                 <div class="panel-header">
-                    <h4><span class="panel-icon">📋</span> Ledger Groups for <span id="selectedCompany" class="company-name">ABC Enterprises</span></h4>
-                    <div>
-                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn">✏️ Rename</button>
-                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn">🗑️ Delete</button>
-                    </div>
+                    <h4><span class="panel-icon">🏢</span> Companies</h4>
+                    <button class="btn btn-success btn-sm" id="addCompanyBtn">➕ Add</button>
                 </div>
-                <div id="groupList" class="group-list">
-                    <!-- Example groups -->
-                    <div class="group-item active">Sales</div>
-                    <div class="group-item">Purchase</div>
+                <div id="companyList" class="company-list">
+                    <!-- Example items – will be populated by JS -->
                 </div>
             </div>
 
-            <!-- Rates Section -->
-            <div class="rate-panel">
-                <h4 id="currentGroupTitle">Sales · GST Rates</h4>
-                <div id="rateList" class="rate-list">
-                    <!-- Example rates -->
-                    <div class="rate-item">
-                        <span class="rate-percent">18%</span>
-                        <span class="rate-ledger">Local Sale @18%</span>
-                        <div class="rate-actions">
-                            <button class="btn-icon" title="Edit">✏️</button>
-                            <button class="btn-icon" title="Delete">🗑️</button>
+            <!-- Right: Mapping Panel -->
+            <div class="mapping-panel">
+                <!-- Ledger Groups Section -->
+                <div class="group-panel">
+                    <div class="panel-header">
+                        <h4><span class="panel-icon">📋</span> Ledger Groups for <span id="selectedCompany" class="company-name">None</span></h4>
+                        <div>
+                            <button class="btn btn-warning btn-sm" id="renameCompanyBtn">✏️ Rename</button>
+                            <button class="btn btn-danger btn-sm" id="deleteCompanyBtn">🗑️ Delete</button>
                         </div>
                     </div>
-                    <div class="rate-item">
-                        <span class="rate-percent">12%</span>
-                        <span class="rate-ledger">Interstate Sale @12%</span>
-                        <div class="rate-actions">
-                            <button class="btn-icon">✏️</button>
-                            <button class="btn-icon">🗑️</button>
-                        </div>
+                    <div id="groupList" class="group-list">
+                        <!-- Example groups - will be populated -->
                     </div>
                 </div>
-                <div class="rate-actions-bar">
-                    <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
-                    <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
+
+                <!-- Rates Section -->
+                <div class="rate-panel">
+                    <h4 id="currentGroupTitle">Select a group</h4>
+                    <div id="rateList" class="rate-list">
+                        <!-- Rates will be populated -->
+                    </div>
+                    <div class="rate-actions-bar">
+                        <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
+                        <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
-<!-- Add Rate Modal -->
-<div id="rateModal" class="modal">
-    <div class="modal-content">
-        <h3 class="modal-title">Add GST Rate</h3>
-        <div class="form-group">
-            <label for="modalRate">GST Rate (%)</label>
-            <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
-        </div>
-        <div class="form-group">
-            <label for="modalLedger">Ledger Name</label>
-            <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="modalOkBtn">OK</button>
-            <button class="btn btn-danger" id="modalCancelBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Company Name Modal (for Add/Rename) -->
-<div id="companyModal" class="modal">
-    <div class="modal-content">
-        <h3 id="companyModalTitle" class="modal-title">Add Company</h3>
-        <div class="form-group">
-            <label for="companyNameInput">Company Name</label>
-            <input type="text" id="companyNameInput" placeholder="Enter company name">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="companyModalOkBtn">OK</button>
-            <button class="btn btn-danger" id="companyModalCancelBtn">Cancel</button>
+    <!-- Add Rate Modal -->
+    <div id="rateModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title" id="rateModalTitle">Add GST Rate</h3>
+            <div class="form-group">
+                <label for="modalRate">GST Rate (%)</label>
+                <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
+            </div>
+            <div class="form-group">
+                <label for="modalLedger">Ledger Name</label>
+                <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-success" id="modalOkBtn">OK</button>
+                <button class="btn btn-danger" id="modalCancelBtn">Cancel</button>
+            </div>
         </div>
     </div>
-</div>
 
-<style>
-/* ===== Mapping Editor Specific Styles ===== */
-.mapping-container {
-    display: flex;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-}
+    <!-- Company Name Modal (for Add/Rename) -->
+    <div id="companyModal" class="modal">
+        <div class="modal-content">
+            <h3 id="companyModalTitle" class="modal-title">Add Company</h3>
+            <div class="form-group">
+                <label for="companyNameInput">Company Name</label>
+                <input type="text" id="companyNameInput" placeholder="Enter company name">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-success" id="companyModalOkBtn">OK</button>
+                <button class="btn btn-danger" id="companyModalCancelBtn">Cancel</button>
+            </div>
+        </div>
+    </div>
 
-.company-panel {
-    flex: 1;
-    min-width: 220px;
-    background: #f9fcff;
-    border-radius: 20px;
-    padding: 1.2rem;
-    border: 1px solid #e9eff8;
-}
+    <script>
+        // ==================== DATA STORE ====================
+        // Structure: companies -> groups -> rates
+        let companies = [
+            { id: 1, name: 'ABC Enterprises' },
+            { id: 2, name: 'XYZ Traders' },
+            { id: 3, name: 'LMN Pvt Ltd' }
+        ];
 
-.mapping-panel {
-    flex: 3;
-    min-width: 350px;
-    display: flex;
-    flex-direction: column;
-    gap: 1.5rem;
-}
+        // Groups are predefined for all companies (for simplicity)
+        const groupTemplates = [
+            { id: 'sales', name: 'Sales' },
+            { id: 'purchase', name: 'Purchase' }
+        ];
 
-.group-panel, .rate-panel {
-    background: #f9fcff;
-    border-radius: 20px;
-    padding: 1.2rem;
-    border: 1px solid #e9eff8;
-}
+        // Rates data: for each company and group, store rates
+        // Format: rates[companyId][groupId] = array of { percent, ledger }
+        let rates = {
+            1: {
+                sales: [
+                    { percent: 18, ledger: 'Local Sale @18%' },
+                    { percent: 12, ledger: 'Interstate Sale @12%' }
+                ],
+                purchase: [
+                    { percent: 18, ledger: 'Local Purchase @18%' },
+                    { percent: 5, ledger: 'Purchase @5%' }
+                ]
+            },
+            2: {
+                sales: [
+                    { percent: 18, ledger: 'XYZ Sales 18%' },
+                    { percent: 28, ledger: 'XYZ Sales 28%' }
+                ],
+                purchase: [
+                    { percent: 18, ledger: 'XYZ Purchase 18%' }
+                ]
+            },
+            3: {
+                sales: [
+                    { percent: 12, ledger: 'LMN Local 12%' }
+                ],
+                purchase: [
+                    { percent: 5, ledger: 'LMN Purchase 5%' },
+                    { percent: 18, ledger: 'LMN Purchase 18%' }
+                ]
+            }
+        };
 
-.panel-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-}
+        // State
+        let selectedCompanyId = 1; // default to first company
+        let selectedGroupId = 'sales'; // default to sales
+        let editingRateIndex = -1; // -1 means add new, otherwise index being edited
 
-.panel-header h4 {
-    font-size: 1.1rem;
-    color: #1e2b4f;
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-}
+        // ==================== DOM Elements ====================
+        const companyListEl = document.getElementById('companyList');
+        const groupListEl = document.getElementById('groupList');
+        const rateListEl = document.getElementById('rateList');
+        const selectedCompanySpan = document.getElementById('selectedCompany');
+        const currentGroupTitle = document.getElementById('currentGroupTitle');
+        const addCompanyBtn = document.getElementById('addCompanyBtn');
+        const renameCompanyBtn = document.getElementById('renameCompanyBtn');
+        const deleteCompanyBtn = document.getElementById('deleteCompanyBtn');
+        const addRateBtn = document.getElementById('addRateBtn');
+        const saveMappingBtn = document.getElementById('saveMappingBtn');
 
-.panel-icon {
-    font-size: 1.2rem;
-}
+        // Modals
+        const companyModal = document.getElementById('companyModal');
+        const companyModalTitle = document.getElementById('companyModalTitle');
+        const companyNameInput = document.getElementById('companyNameInput');
+        const companyModalOkBtn = document.getElementById('companyModalOkBtn');
+        const companyModalCancelBtn = document.getElementById('companyModalCancelBtn');
 
-.company-name {
-    font-weight: 600;
-    color: #2a3f6e;
-    background: #e4edfc;
-    padding: 0.2rem 0.6rem;
-    border-radius: 40px;
-}
+        const rateModal = document.getElementById('rateModal');
+        const rateModalTitle = document.getElementById('rateModalTitle');
+        const modalRate = document.getElementById('modalRate');
+        const modalLedger = document.getElementById('modalLedger');
+        const modalOkBtn = document.getElementById('modalOkBtn');
+        const modalCancelBtn = document.getElementById('modalCancelBtn');
 
-/* Lists */
-.company-list, .group-list, .rate-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-}
+        // ==================== Helper Functions ====================
+        function renderCompanies() {
+            companyListEl.innerHTML = '';
+            companies.forEach(company => {
+                const div = document.createElement('div');
+                div.className = `company-item ${company.id === selectedCompanyId ? 'active' : ''}`;
+                div.dataset.id = company.id;
+                div.textContent = company.name;
+                div.addEventListener('click', () => selectCompany(company.id));
+                companyListEl.appendChild(div);
+            });
+            // Update selected company name in header
+            const selectedCompany = companies.find(c => c.id === selectedCompanyId);
+            selectedCompanySpan.textContent = selectedCompany ? selectedCompany.name : 'None';
+        }
 
-.company-item, .group-item {
-    padding: 0.8rem 1rem;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2eaf5;
-    cursor: pointer;
-    transition: all 0.2s;
-    color: #1e2b4f;
-}
+        function renderGroups() {
+            groupListEl.innerHTML = '';
+            groupTemplates.forEach(group => {
+                const div = document.createElement('div');
+                div.className = `group-item ${group.id === selectedGroupId ? 'active' : ''}`;
+                div.dataset.id = group.id;
+                div.textContent = group.name;
+                div.addEventListener('click', () => selectGroup(group.id));
+                groupListEl.appendChild(div);
+            });
+        }
 
-.company-item:hover, .group-item:hover {
-    border-color: #b0c4de;
-    transform: translateX(4px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.02);
-}
+        function renderRates() {
+            rateListEl.innerHTML = '';
+            const companyRates = rates[selectedCompanyId]?.[selectedGroupId];
+            if (!companyRates || companyRates.length === 0) {
+                rateListEl.innerHTML = '<div class="rate-item" style="justify-content:center; color:var(--muted);">No rates added yet</div>';
+                return;
+            }
+            companyRates.forEach((rate, index) => {
+                const div = document.createElement('div');
+                div.className = 'rate-item';
+                div.innerHTML = `
+                    <span class="rate-percent">${rate.percent}%</span>
+                    <span class="rate-ledger">${rate.ledger}</span>
+                    <div class="rate-actions">
+                        <button class="btn-icon edit-rate" data-index="${index}" title="Edit">✏️</button>
+                        <button class="btn-icon delete-rate" data-index="${index}" title="Delete">🗑️</button>
+                    </div>
+                `;
+                rateListEl.appendChild(div);
+            });
 
-.company-item.active, .group-item.active {
-    background: #1e2b4f;
-    border-color: #1e2b4f;
-    color: white;
-    font-weight: 500;
-    box-shadow: 0 6px 12px rgba(30,43,79,0.15);
-}
+            // Attach event listeners to edit/delete buttons
+            document.querySelectorAll('.edit-rate').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const index = btn.dataset.index;
+                    editRate(parseInt(index));
+                });
+            });
+            document.querySelectorAll('.delete-rate').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const index = btn.dataset.index;
+                    deleteRate(parseInt(index));
+                });
+            });
+        }
 
-/* Rate items */
-.rate-item {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    padding: 0.8rem 1rem;
-    background: white;
-    border-radius: 16px;
-    border: 1px solid #e2eaf5;
-}
+        function updateGroupTitle() {
+            const group = groupTemplates.find(g => g.id === selectedGroupId);
+            if (group) {
+                currentGroupTitle.textContent = `${group.name} · GST Rates`;
+            } else {
+                currentGroupTitle.textContent = 'Select a group';
+            }
+        }
 
-.rate-percent {
-    background: #e4edfc;
-    color: #1e2b4f;
-    font-weight: 600;
-    padding: 0.3rem 0.8rem;
-    border-radius: 40px;
-    font-size: 0.9rem;
-}
+        // ==================== Actions ====================
+        function selectCompany(companyId) {
+            selectedCompanyId = companyId;
+            // Preserve selected group if exists for this company, else default to sales
+            if (!rates[companyId] || !rates[companyId][selectedGroupId]) {
+                selectedGroupId = 'sales';
+            }
+            renderCompanies();
+            renderGroups();
+            renderRates();
+            updateGroupTitle();
+        }
 
-.rate-ledger {
-    flex: 1;
-    color: #1e2b4f;
-}
+        function selectGroup(groupId) {
+            selectedGroupId = groupId;
+            renderGroups();
+            renderRates();
+            updateGroupTitle();
+        }
 
-.rate-actions {
-    display: flex;
-    gap: 0.3rem;
-}
+        function addCompany() {
+            companyModalTitle.textContent = 'Add Company';
+            companyNameInput.value = '';
+            companyModal.style.display = 'flex';
+            // Store that we are in add mode (no editing company id)
+            companyModal.dataset.mode = 'add';
+            companyModal.dataset.editId = '';
+        }
 
-.btn-icon {
-    background: transparent;
-    border: none;
-    font-size: 1.2rem;
-    cursor: pointer;
-    padding: 0.3rem;
-    border-radius: 8px;
-    transition: all 0.2s;
-    opacity: 0.6;
-}
+        function renameCompany() {
+            const company = companies.find(c => c.id === selectedCompanyId);
+            if (!company) return;
+            companyModalTitle.textContent = 'Rename Company';
+            companyNameInput.value = company.name;
+            companyModal.style.display = 'flex';
+            companyModal.dataset.mode = 'rename';
+            companyModal.dataset.editId = selectedCompanyId;
+        }
 
-.btn-icon:hover {
-    opacity: 1;
-    background: #e4edfc;
-    transform: scale(1.1);
-}
+        function deleteCompany() {
+            if (companies.length <= 1) {
+                alert('Cannot delete the last company.');
+                return;
+            }
+            if (!confirm(`Are you sure you want to delete ${companies.find(c => c.id === selectedCompanyId)?.name}?`)) return;
+            // Remove company from companies array
+            companies = companies.filter(c => c.id !== selectedCompanyId);
+            // Remove its rates data
+            delete rates[selectedCompanyId];
+            // Select first company
+            selectedCompanyId = companies[0].id;
+            // Ensure selected group exists for new company
+            if (!rates[selectedCompanyId]?.[selectedGroupId]) {
+                selectedGroupId = 'sales';
+            }
+            renderCompanies();
+            renderGroups();
+            renderRates();
+            updateGroupTitle();
+        }
 
-.rate-actions-bar {
-    display: flex;
-    gap: 0.8rem;
-    margin-top: 1.2rem;
-    flex-wrap: wrap;
-}
+        function addRate() {
+            editingRateIndex = -1;
+            rateModalTitle.textContent = 'Add GST Rate';
+            modalRate.value = '';
+            modalLedger.value = '';
+            rateModal.style.display = 'flex';
+        }
 
-/* Buttons (reusing dashboard button styles) */
-.btn {
-    border: none;
-    border-radius: 40px;
-    padding: 0.6rem 1.2rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
+        function editRate(index) {
+            const rate = rates[selectedCompanyId]?.[selectedGroupId]?.[index];
+            if (!rate) return;
+            editingRateIndex = index;
+            rateModalTitle.textContent = 'Edit GST Rate';
+            modalRate.value = rate.percent;
+            modalLedger.value = rate.ledger;
+            rateModal.style.display = 'flex';
+        }
 
-.btn-sm {
-    padding: 0.4rem 0.9rem;
-    font-size: 0.85rem;
-}
+        function deleteRate(index) {
+            if (!confirm('Delete this rate?')) return;
+            rates[selectedCompanyId][selectedGroupId].splice(index, 1);
+            renderRates();
+        }
 
-.btn-success {
-    background: #1e5f2e;
-    color: white;
-    box-shadow: 0 4px 10px rgba(30,95,46,0.2);
-}
+        function saveRate() {
+            const percent = parseFloat(modalRate.value);
+            const ledger = modalLedger.value.trim();
+            if (isNaN(percent) || percent < 0 || percent > 100) {
+                alert('Please enter a valid percentage (0-100).');
+                return;
+            }
+            if (!ledger) {
+                alert('Please enter a ledger name.');
+                return;
+            }
 
-.btn-success:hover {
-    background: #2a7a3a;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30,95,46,0.25);
-}
+            if (!rates[selectedCompanyId]) rates[selectedCompanyId] = {};
+            if (!rates[selectedCompanyId][selectedGroupId]) rates[selectedCompanyId][selectedGroupId] = [];
 
-.btn-primary {
-    background: #1e2b4f;
-    color: white;
-    box-shadow: 0 4px 10px rgba(30,43,79,0.2);
-}
+            if (editingRateIndex === -1) {
+                // Add new
+                rates[selectedCompanyId][selectedGroupId].push({ percent, ledger });
+            } else {
+                // Edit existing
+                rates[selectedCompanyId][selectedGroupId][editingRateIndex] = { percent, ledger };
+            }
 
-.btn-primary:hover {
-    background: #2a3f6e;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30,43,79,0.25);
-}
+            rateModal.style.display = 'none';
+            renderRates();
+        }
 
-.btn-warning {
-    background: #b85c1a;
-    color: white;
-    box-shadow: 0 4px 10px rgba(184,92,26,0.2);
-}
+        function saveMapping() {
+            // Simulate save
+            alert('Mapping saved successfully (demo).');
+        }
 
-.btn-warning:hover {
-    background: #d46b1f;
-    transform: translateY(-2px);
-}
+        // ==================== Modal Handlers ====================
+        companyModalOkBtn.addEventListener('click', () => {
+            const name = companyNameInput.value.trim();
+            if (!name) {
+                alert('Company name cannot be empty.');
+                return;
+            }
+            const mode = companyModal.dataset.mode;
+            if (mode === 'add') {
+                // Create new company with new ID
+                const newId = Math.max(...companies.map(c => c.id), 0) + 1;
+                companies.push({ id: newId, name });
+                // Initialize empty rates for this company (optional)
+                rates[newId] = { sales: [], purchase: [] };
+                // Select the new company
+                selectedCompanyId = newId;
+                selectedGroupId = 'sales';
+            } else if (mode === 'rename') {
+                const editId = parseInt(companyModal.dataset.editId);
+                const company = companies.find(c => c.id === editId);
+                if (company) company.name = name;
+            }
+            companyModal.style.display = 'none';
+            renderCompanies();
+            renderGroups();
+            renderRates();
+            updateGroupTitle();
+        });
 
-.btn-danger {
-    background: #b00020;
-    color: white;
-    box-shadow: 0 4px 10px rgba(176,0,32,0.2);
-}
+        companyModalCancelBtn.addEventListener('click', () => {
+            companyModal.style.display = 'none';
+        });
 
-.btn-danger:hover {
-    background: #d00024;
-    transform: translateY(-2px);
-}
+        modalOkBtn.addEventListener('click', saveRate);
 
-/* Modals */
-.modal {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-}
+        modalCancelBtn.addEventListener('click', () => {
+            rateModal.style.display = 'none';
+        });
 
-.modal-content {
-    background: white;
-    border-radius: 28px;
-    padding: 2rem;
-    max-width: 400px;
-    width: 90%;
-    box-shadow: 0 30px 50px rgba(0,0,0,0.3);
-}
+        // Close modals when clicking outside content (optional)
+        window.addEventListener('click', (e) => {
+            if (e.target === companyModal) companyModal.style.display = 'none';
+            if (e.target === rateModal) rateModal.style.display = 'none';
+        });
 
-.modal-title {
-    font-size: 1.5rem;
-    color: #1e2b4f;
-    margin-bottom: 1.5rem;
-}
+        // ==================== Event Listeners ====================
+        addCompanyBtn.addEventListener('click', addCompany);
+        renameCompanyBtn.addEventListener('click', renameCompany);
+        deleteCompanyBtn.addEventListener('click', deleteCompany);
+        addRateBtn.addEventListener('click', addRate);
+        saveMappingBtn.addEventListener('click', saveMapping);
 
-.modal-actions {
-    display: flex;
-    gap: 1rem;
-    justify-content: flex-end;
-    margin-top: 2rem;
-}
-
-/* Form groups (consistent with dashboard) */
-.form-group {
-    margin-bottom: 1.2rem;
-}
-
-.form-group label {
-    display: block;
-    margin-bottom: 0.4rem;
-    color: #1e2b4f;
-    font-weight: 500;
-    font-size: 0.9rem;
-}
-
-.form-group input,
-.form-group select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    transition: all 0.2s;
-}
-
-.form-group input:focus,
-.form-group select:focus {
-    outline: none;
-    border-color: #2a3f6e;
-    box-shadow: 0 0 0 3px rgba(42,63,110,0.1);
-}
-
-/* Responsive */
-@media (max-width: 700px) {
-    .mapping-container {
-        flex-direction: column;
-    }
-    .panel-header {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-}
-</style>
+        // ==================== Initial Render ====================
+        renderCompanies();
+        renderGroups();
+        renderRates();
+        updateGroupTitle();
+    </script>
+</body>
+</html>
