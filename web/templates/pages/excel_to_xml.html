@@ -1,297 +1,614 @@
+<!-- Converter Card -->
 <div class="card">
-    <div class="card-header">
-        <h3>🔄 Excel to XML Converter</h3>
+  <div class="card-header">
+    <div class="ch-left">
+      <div class="ch-icon"><span>🔄</span></div>
+      <div class="ch-text">
+        <div class="ch-eyebrow">Excel → Tally XML</div>
+        <h3>Convert Your Invoice Sheet</h3>
+        <p class="ch-sub">Upload, map, and generate a Tally-ready XML file in seconds</p>
+      </div>
     </div>
-    <form id="convertForm">
-        <div class="form-group">
-            <label for="fileInput">Excel File</label>
-            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
-        </div>
-
-        <div class="form-group">
-            <label for="sheetSelect">Sheet Name</label>
-            <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
-                <option value="">-- Select a sheet --</option>
-            </select>
-            <div id="sheetLoading" class="loading-indicator" style="display: none;">
-                <small>⏳ Loading sheets...</small>
-            </div>
-        </div>
-
-        <div class="form-group">
-            <label for="companySelect">Company</label>
-            <select name="company" id="companySelect" required class="form-select">
-                <option value="">-- Select company --</option>
-                <option value="company1">ABC Enterprises</option>
-                <option value="company2">XYZ Traders</option>
-                <option value="company3">LMN Pvt Ltd</option>
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Voucher Type</label>
-            <div class="voucher-type-group">
-                <input type="radio" name="vtype" id="vtype-sale" value="sale" checked>
-                <label for="vtype-sale" class="voucher-type-btn">🛒 Sales Invoice</label>
-
-                <input type="radio" name="vtype" id="vtype-purchase" value="purchase">
-                <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
-            </div>
-        </div>
-
-        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
-    </form>
-
-    <div class="progress" id="progress">
-        <div class="progress-bar" id="progressBar"></div>
+    <div class="ch-badge">
+      <span class="ch-badge-dot"></span> Ready
     </div>
-    <div id="message" class="message"></div>
+  </div>
+
+  <form id="convertForm">
+
+    <!-- File -->
+    <div class="form-group">
+      <label for="fileInput">Excel File</label>
+      <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
+    </div>
+
+    <!-- Sheet -->
+    <div class="form-group">
+      <label for="sheetSelect">Sheet Name</label>
+      <div class="select-wrap">
+        <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
+          <option value="">— Select a sheet —</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+      <div id="sheetLoading" class="loading-indicator" style="display:none;">
+        <span>⏳</span> Loading sheets…
+      </div>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <!-- Company Ledger -->
+    <div class="form-group">
+      <label for="companySelect">Company Ledger</label>
+      <div class="select-wrap">
+        <select name="company" id="companySelect" required class="form-select">
+          <option value="">— Select company ledger —</option>
+          <option value="company1">ABC Enterprises</option>
+          <option value="company2">XYZ Traders</option>
+          <option value="company3">LMN Pvt Ltd</option>
+        </select>
+        <span class="select-arrow">▾</span>
+      </div>
+    </div>
+
+    <!-- Voucher Type -->
+    <div class="form-group">
+      <label>Voucher Type</label>
+      <div class="voucher-type-group">
+        <input type="radio" name="vtype" id="vtype-sale" value="sale" checked>
+        <label for="vtype-sale" class="voucher-type-btn">🛒 Sales Invoice</label>
+
+        <input type="radio" name="vtype" id="vtype-purchase" value="purchase">
+        <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
+      </div>
+    </div>
+
+    <!-- Submit -->
+    <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
+      📄 Generate Tally Compatible File
+    </button>
+
+  </form>
+
+  <!-- Progress -->
+  <div class="progress" id="progress">
+    <div class="progress-bar" id="progressBar"></div>
+  </div>
+
+  <!-- Message -->
+  <div id="message" class="message"></div>
 </div>
 
-<!-- Guidance Card with fixed download link -->
-<div class="card">
-    <div class="card-header">
-        <h3>📋 Need a Template?</h3>
+
+<!-- Template Card -->
+<div class="card template-card">
+  <div class="card-header">
+    <div class="ch-left">
+      <div class="ch-icon ch-icon-green"><span>📋</span></div>
+      <div class="ch-text">
+        <div class="ch-eyebrow">Getting Started</div>
+        <h3>Download the Template</h3>
+        <p class="ch-sub">Use our pre-built sheet to avoid column errors</p>
+      </div>
     </div>
-    <div class="guidance-content">
-        <p>Your Excel file should have the following columns (in any order, but matching headers are required for mapping):</p>
-        <div class="template-preview">
-            <code>Sr, GSTIN, Recipient Name, Invoice Number, Invoice date, Invoice Value, Taxable Value, IGST, CGST, SGST, Cess</code>
+    <a href="/download-template" class="btn-download">
+      <span>📥</span> Download Template
+    </a>
+  </div>
+
+  <div class="tpl-body">
+    <p class="tpl-section-label">What's inside the template</p>
+    <div class="tpl-features">
+      <div class="tpl-feat">
+        <span class="tpl-feat-icon">🗂️</span>
+        <div>
+          <b>Pre-labelled columns</b>
+          <small>Headers exactly as Tally expects — no renaming needed</small>
         </div>
-        <p>Download a ready-to-use template with sample data:</p>
-        <a href="/download-template" class="btn btn-success">
-            <span class="btn-icon">📥</span> Download Template
-        </a>
+      </div>
+      <div class="tpl-feat">
+        <span class="tpl-feat-icon">📝</span>
+        <div>
+          <b>Sample rows included</b>
+          <small>See the correct format before entering your own data</small>
+        </div>
+      </div>
+      <div class="tpl-feat">
+        <span class="tpl-feat-icon">✅</span>
+        <div>
+          <b>GST-ready structure</b>
+          <small>Separate columns for IGST, CGST, SGST &amp; Cess</small>
+        </div>
+      </div>
     </div>
+
+    <p class="tpl-section-label" style="margin-top:1.4rem;">Required columns</p>
+    <div class="tpl-cols">
+      <span class="tpl-col">Sr</span>
+      <span class="tpl-col">GSTIN</span>
+      <span class="tpl-col">Recipient Name</span>
+      <span class="tpl-col">Invoice Number</span>
+      <span class="tpl-col">Invoice Date</span>
+      <span class="tpl-col">Invoice Value</span>
+      <span class="tpl-col">Taxable Value</span>
+      <span class="tpl-col tpl-col-tax">IGST</span>
+      <span class="tpl-col tpl-col-tax">CGST</span>
+      <span class="tpl-col tpl-col-tax">SGST</span>
+      <span class="tpl-col tpl-col-tax">Cess</span>
+    </div>
+    <p class="tpl-note">Column order doesn't matter — headers must match exactly (case-insensitive)</p>
+  </div>
 </div>
+
 
 <style>
-/* ===== Form Styles (matching dashboard aesthetics) ===== */
-.form-group {
-    margin-bottom: 1.5rem;
+/* ── Design tokens ── */
+:root {
+  --ink:     #0d1117;
+  --ink2:    #1c2534;
+  --ink3:    #354460;
+  --muted:   #7a8fa8;
+  --line:    #dce5f0;
+  --surface: #f5f8fc;
+  --white:   #ffffff;
+  --accent:  #1651e8;
+  --green:   #17b26a;
 }
+
+/* ── Card ── */
+.card {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  padding: 1.8rem 2rem;
+  box-shadow: 0 2px 10px rgba(0,20,60,0.05);
+  margin-bottom: 1.5rem;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ── Card header ── */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.8rem;
+  padding-bottom: 1.3rem;
+  border-bottom: 1px solid var(--line);
+  gap: 1rem;
+}
+
+.ch-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.ch-icon {
+  width: 46px; height: 46px;
+  background: var(--ink);
+  border-radius: 13px;
+  display: grid; place-items: center;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(13,17,23,0.18);
+}
+
+.ch-icon-green {
+  background: linear-gradient(135deg, #edfaf4, #d4f5e5);
+  box-shadow: 0 2px 8px rgba(23,178,106,0.15);
+}
+
+.ch-text { display: flex; flex-direction: column; gap: 0.15rem; }
+
+.ch-eyebrow {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.09em;
+  color: var(--accent);
+}
+
+.card-header h3 {
+  font-family: 'Syne', sans-serif;
+  font-size: 1.1rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+  line-height: 1.2;
+}
+
+.ch-sub { font-size: 0.75rem; color: var(--muted); }
+
+.ch-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.32rem 0.8rem;
+  border-radius: 100px;
+  background: rgba(23,178,106,0.1);
+  border: 1px solid rgba(23,178,106,0.2);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #0e7a4a;
+  white-space: nowrap;
+}
+
+.ch-badge-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(23,178,106,0.4); }
+  50%      { box-shadow: 0 0 0 4px rgba(23,178,106,0); }
+}
+
+/* ── Form groups ── */
+.form-group { margin-bottom: 1.4rem; }
 
 .form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #1e2b4f;
-    font-size: 0.95rem;
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink3);
 }
 
-.file-input,
+/* ── File input ── */
+.file-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1.5px dashed var(--line);
+  border-radius: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  color: var(--ink3);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.file-input:hover {
+  border-color: var(--accent);
+  background: rgba(22,81,232,0.03);
+}
+
+.file-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
+}
+
+/* ── Select ── */
+.select-wrap { position: relative; }
+
 .form-select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    color: #1e2b4f;
-    transition: all 0.2s;
-    cursor: pointer;
+  width: 100%;
+  padding: 0.75rem 2.2rem 0.75rem 1rem;
+  background: var(--surface);
+  border: 1.5px solid var(--line);
+  border-radius: 13px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.88rem;
+  color: var(--ink2);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.file-input:hover,
-.form-select:hover {
-    border-color: #b0c4de;
-    background: white;
-}
+.form-select:hover { border-color: #b8cbe8; }
 
-.file-input:focus,
 .form-select:focus {
-    outline: none;
-    border-color: #2a3f6e;
-    box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
 }
 
 .form-select:disabled {
-    background: #eef2f6;
-    color: #8a9bb5;
-    cursor: not-allowed;
+  background: #eef2f7;
+  color: var(--muted);
+  cursor: not-allowed;
 }
 
+.select-arrow {
+  position: absolute;
+  right: 0.9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 0.75rem;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* ── Loading ── */
 .loading-indicator {
-    margin-top: 0.5rem;
-    color: #2f5b9c;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
+  margin-top: 0.5rem;
+  font-size: 0.78rem;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
-/* Voucher type toggle buttons */
+/* ── Divider ── */
+.form-divider {
+  height: 1px;
+  background: var(--line);
+  margin: 0.2rem 0 1.4rem;
+  position: relative;
+}
+
+.form-divider::after {
+  content: 'Tally Settings';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--white);
+  padding-right: 0.75rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+}
+
+/* ── Voucher type segmented control ── */
 .voucher-type-group {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
+  display: flex;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 3px;
+  gap: 2px;
 }
 
-.voucher-type-group input[type="radio"] {
-    display: none;
-}
+.voucher-type-group input[type="radio"] { display: none; }
 
 .voucher-type-btn {
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 40px;
-    padding: 0.7rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #1e2b4f;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1rem;
+  border-radius: 9px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s;
+  white-space: nowrap;
+  user-select: none;
 }
 
 .voucher-type-btn:hover {
-    background: #e4edfc;
-    border-color: #b0c4de;
-    transform: translateY(-2px);
+  color: var(--ink2);
+  background: rgba(0,0,0,0.03);
 }
 
 input[type="radio"]:checked + .voucher-type-btn {
-    background: #1e2b4f;
-    border-color: #1e2b4f;
-    color: white;
-    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
+  background: var(--white);
+  color: var(--ink);
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,20,60,0.1), 0 0 0 1px var(--line);
 }
 
-/* Primary button - ENLARGED */
-.btn-primary {
-    background: #1e2b4f;
-    color: white;
-    border: none;
-    border-radius: 40px;
-    padding: 1rem 2rem;        /* increased from 0.9rem 1.5rem */
-    font-size: 1.1rem;          /* increased from 1rem */
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
+/* ── Submit button ── */
+.btn.btn-primary {
+  width: 100%;
+  margin-top: 0.4rem;
+  padding: 1rem 1.8rem;
+  background: linear-gradient(135deg, var(--accent) 0%, #3b29e8 100%);
+  color: var(--white);
+  border: none;
+  border-radius: 14px;
+  font-family: 'Syne', sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 4px 16px rgba(22,81,232,0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
 }
 
-.btn-primary:hover:not(:disabled) {
-    background: #2a3f6e;
-    transform: translateY(-2px);
-    box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
+.btn.btn-primary::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
+  pointer-events: none;
 }
 
-.btn-primary:active:not(:disabled) {
-    transform: scale(0.98);
+.btn.btn-primary:hover:not(:disabled) {
+  box-shadow: 0 8px 24px rgba(22,81,232,0.45);
+  transform: translateY(-2px);
 }
 
-.btn-primary:disabled {
-    background: #b0c4de;
-    cursor: not-allowed;
-    opacity: 0.7;
+.btn.btn-primary:active:not(:disabled) {
+  transform: scale(0.98);
+  box-shadow: 0 3px 10px rgba(22,81,232,0.3);
 }
 
-/* Progress bar */
+.btn.btn-primary:disabled {
+  background: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* ── Progress bar ── */
 .progress {
-    margin-top: 1.5rem;
-    height: 8px;
-    background: #e4edfc;
-    border-radius: 20px;
-    overflow: hidden;
-    display: none;
+  margin-top: 1.4rem;
+  height: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 100px;
+  overflow: hidden;
+  display: none;
 }
 
 .progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
-    border-radius: 20px;
-    transition: width 0.3s ease;
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--accent), #6b3de8);
+  border-radius: 100px;
+  transition: width 0.3s ease;
 }
 
-/* Message */
+/* ── Message ── */
 .message {
-    margin-top: 1rem;
-    padding: 0.8rem 1rem;
-    border-radius: 16px;
-    font-size: 0.9rem;
-    display: none;
+  margin-top: 1rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 13px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  display: none;
 }
 
 .message.success {
-    display: block;
-    background: #e1f7e3;
-    color: #1e5f2e;
-    border: 1px solid #a5d6a7;
+  display: block;
+  background: rgba(23,178,106,0.1);
+  color: #0e6b41;
+  border: 1px solid rgba(23,178,106,0.25);
 }
 
 .message.error {
-    display: block;
-    background: #ffe9e9;
-    color: #b00020;
-    border: 1px solid #ffb3b3;
+  display: block;
+  background: rgba(220,38,38,0.07);
+  color: #b91c1c;
+  border: 1px solid rgba(220,38,38,0.2);
 }
 
-/* Guidance card styles */
-.guidance-content {
-    padding: 1rem 0;
-}
-.template-preview {
-    background: #f4f7fb;
-    padding: 1rem;
-    border-radius: 12px;
-    font-family: monospace;
-    margin: 1rem 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    border: 1px solid #e2eaf5;
-}
-.dark-theme .template-preview {
-    background: #2d3445;
-    border-color: #3f4a5c;
-    color: #e9edf2;
-}
-.btn-success {
-    background: #1e5f2e;
-    color: white;
-    border: none;
-    border-radius: 40px;
-    padding: 0.7rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    text-decoration: none;
-}
-.btn-success:hover {
-    background: #2a7a3a;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30, 95, 46, 0.25);
-}
-.btn-icon {
-    font-size: 1.1rem;
+/* ── Template card ── */
+.tpl-body { padding: 0.2rem 0; }
+
+.tpl-section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.85rem;
 }
 
-/* Responsive */
+.tpl-features { display: flex; flex-direction: column; gap: 0.55rem; }
+
+.tpl-feat {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  padding: 0.8rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 13px;
+}
+
+.tpl-feat-icon { font-size: 1.3rem; line-height: 1; margin-top: 0.05rem; }
+
+.tpl-feat b {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--ink2);
+  margin-bottom: 0.15rem;
+}
+
+.tpl-feat small { font-size: 0.75rem; color: var(--muted); line-height: 1.4; }
+
+.tpl-cols { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+
+.tpl-col {
+  display: inline-block;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.3rem 0.7rem;
+  font-family: 'Courier New', monospace;
+  font-size: 0.75rem;
+  color: var(--ink3);
+  font-weight: 500;
+}
+
+.tpl-col-tax {
+  background: rgba(22,81,232,0.06);
+  border-color: rgba(22,81,232,0.18);
+  color: var(--accent);
+}
+
+.tpl-note {
+  margin-top: 0.75rem;
+  font-size: 0.73rem;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.tpl-note::before { content: 'ℹ️'; font-size: 0.8rem; }
+
+.btn-download {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: var(--green);
+  color: var(--white);
+  border: none;
+  border-radius: 100px;
+  padding: 0.65rem 1.4rem;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.18s;
+  box-shadow: 0 4px 14px rgba(23,178,106,0.3);
+  white-space: nowrap;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-download::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+  pointer-events: none;
+}
+
+.btn-download:hover {
+  background: #12a05a;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(23,178,106,0.38);
+}
+
+.btn-download:active {
+  transform: scale(0.97);
+  box-shadow: 0 3px 8px rgba(23,178,106,0.25);
+}
+
+/* ── Responsive ── */
 @media (max-width: 600px) {
-    .voucher-type-group {
-        flex-direction: column;
-    }
-    .voucher-type-btn {
-        width: 100%;
-        justify-content: center;
-    }
+  .voucher-type-group { flex-direction: column; }
+  .card { padding: 1.3rem 1.1rem; }
 }
 </style>
 
+
 <script>
-// ===== FORM HANDLING WITH IMPROVED BUTTON FEEDBACK =====
+// ===== ORIGINAL LOGIC — UNTOUCHED =====
 document.getElementById('fileInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     const sheetSelect = document.getElementById('sheetSelect');
