@@ -1,34 +1,64 @@
 <div class="card">
     <div class="card-header">
-        <h3>Ledger Mapping Editor</h3>
+        <h3>⚙️ Ledger Mapping Editor</h3>
     </div>
-    <div class="mapping-container" style="display: flex; gap: 2rem;">
-        <!-- Left: Company List -->
+
+    <div class="mapping-container">
+        <!-- Left: Company Panel -->
         <div class="company-panel">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h4><i class="icon">🏢</i> Companies</h4>
-                <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
+            <div class="panel-header">
+                <h4><span class="panel-icon">🏢</span> Companies</h4>
+                <button class="btn btn-success btn-sm" id="addCompanyBtn">➕ Add</button>
             </div>
-            <div id="companyList" class="company-list"></div>
+            <div id="companyList" class="company-list">
+                <!-- Example items – replace with dynamic data -->
+                <div class="company-item active">ABC Enterprises</div>
+                <div class="company-item">XYZ Traders</div>
+                <div class="company-item">LMN Pvt Ltd</div>
+            </div>
         </div>
 
-        <!-- Right: Mapping Editor for selected company -->
+        <!-- Right: Mapping Panel -->
         <div class="mapping-panel">
+            <!-- Ledger Groups Section -->
             <div class="group-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4><i class="icon">📋</i> Ledger Groups for <span id="selectedCompany" class="company-name">Select a company</span></h4>
+                <div class="panel-header">
+                    <h4><span class="panel-icon">📋</span> Ledger Groups for <span id="selectedCompany" class="company-name">ABC Enterprises</span></h4>
                     <div>
-                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn" title="Rename company" style="display: none;">✏️ Rename</button>
-                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn" title="Delete company" style="display: none;">🗑️ Delete</button>
+                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn">✏️ Rename</button>
+                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn">🗑️ Delete</button>
                     </div>
                 </div>
-                <div id="groupList" class="group-list"></div>
+                <div id="groupList" class="group-list">
+                    <!-- Example groups -->
+                    <div class="group-item active">Sales</div>
+                    <div class="group-item">Purchase</div>
+                </div>
             </div>
 
+            <!-- Rates Section -->
             <div class="rate-panel">
-                <h4 id="currentGroupTitle">Select a group</h4>
-                <div id="rateList" class="rate-list"></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                <h4 id="currentGroupTitle">Sales · GST Rates</h4>
+                <div id="rateList" class="rate-list">
+                    <!-- Example rates -->
+                    <div class="rate-item">
+                        <span class="rate-percent">18%</span>
+                        <span class="rate-ledger">Local Sale @18%</span>
+                        <div class="rate-actions">
+                            <button class="btn-icon" title="Edit">✏️</button>
+                            <button class="btn-icon" title="Delete">🗑️</button>
+                        </div>
+                    </div>
+                    <div class="rate-item">
+                        <span class="rate-percent">12%</span>
+                        <span class="rate-ledger">Interstate Sale @12%</span>
+                        <div class="rate-actions">
+                            <button class="btn-icon">✏️</button>
+                            <button class="btn-icon">🗑️</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="rate-actions-bar">
                     <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
                     <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
                 </div>
@@ -40,7 +70,7 @@
 <!-- Add Rate Modal -->
 <div id="rateModal" class="modal">
     <div class="modal-content">
-        <h3>Add GST Rate</h3>
+        <h3 class="modal-title">Add GST Rate</h3>
         <div class="form-group">
             <label for="modalRate">GST Rate (%)</label>
             <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
@@ -59,7 +89,7 @@
 <!-- Company Name Modal (for Add/Rename) -->
 <div id="companyModal" class="modal">
     <div class="modal-content">
-        <h3 id="companyModalTitle">Add Company</h3>
+        <h3 id="companyModalTitle" class="modal-title">Add Company</h3>
         <div class="form-group">
             <label for="companyNameInput">Company Name</label>
             <input type="text" id="companyNameInput" placeholder="Enter company name">
@@ -71,288 +101,292 @@
     </div>
 </div>
 
-<!-- Minimal CSS for the mapping editor (add to your global styles if not already present) -->
 <style>
-    .company-list, .group-list, .rate-list {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid #ccc;
-        border-radius: 4px;
-        padding: 0.5rem;
+/* ===== Mapping Editor Specific Styles ===== */
+.mapping-container {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.company-panel {
+    flex: 1;
+    min-width: 220px;
+    background: #f9fcff;
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid #e9eff8;
+}
+
+.mapping-panel {
+    flex: 3;
+    min-width: 350px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.group-panel, .rate-panel {
+    background: #f9fcff;
+    border-radius: 20px;
+    padding: 1.2rem;
+    border: 1px solid #e9eff8;
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.panel-header h4 {
+    font-size: 1.1rem;
+    color: #1e2b4f;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.panel-icon {
+    font-size: 1.2rem;
+}
+
+.company-name {
+    font-weight: 600;
+    color: #2a3f6e;
+    background: #e4edfc;
+    padding: 0.2rem 0.6rem;
+    border-radius: 40px;
+}
+
+/* Lists */
+.company-list, .group-list, .rate-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.company-item, .group-item {
+    padding: 0.8rem 1rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2eaf5;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #1e2b4f;
+}
+
+.company-item:hover, .group-item:hover {
+    border-color: #b0c4de;
+    transform: translateX(4px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+}
+
+.company-item.active, .group-item.active {
+    background: #1e2b4f;
+    border-color: #1e2b4f;
+    color: white;
+    font-weight: 500;
+    box-shadow: 0 6px 12px rgba(30,43,79,0.15);
+}
+
+/* Rate items */
+.rate-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.8rem 1rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid #e2eaf5;
+}
+
+.rate-percent {
+    background: #e4edfc;
+    color: #1e2b4f;
+    font-weight: 600;
+    padding: 0.3rem 0.8rem;
+    border-radius: 40px;
+    font-size: 0.9rem;
+}
+
+.rate-ledger {
+    flex: 1;
+    color: #1e2b4f;
+}
+
+.rate-actions {
+    display: flex;
+    gap: 0.3rem;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0.3rem;
+    border-radius: 8px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.btn-icon:hover {
+    opacity: 1;
+    background: #e4edfc;
+    transform: scale(1.1);
+}
+
+.rate-actions-bar {
+    display: flex;
+    gap: 0.8rem;
+    margin-top: 1.2rem;
+    flex-wrap: wrap;
+}
+
+/* Buttons (reusing dashboard button styles) */
+.btn {
+    border: none;
+    border-radius: 40px;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+.btn-sm {
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+}
+
+.btn-success {
+    background: #1e5f2e;
+    color: white;
+    box-shadow: 0 4px 10px rgba(30,95,46,0.2);
+}
+
+.btn-success:hover {
+    background: #2a7a3a;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(30,95,46,0.25);
+}
+
+.btn-primary {
+    background: #1e2b4f;
+    color: white;
+    box-shadow: 0 4px 10px rgba(30,43,79,0.2);
+}
+
+.btn-primary:hover {
+    background: #2a3f6e;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(30,43,79,0.25);
+}
+
+.btn-warning {
+    background: #b85c1a;
+    color: white;
+    box-shadow: 0 4px 10px rgba(184,92,26,0.2);
+}
+
+.btn-warning:hover {
+    background: #d46b1f;
+    transform: translateY(-2px);
+}
+
+.btn-danger {
+    background: #b00020;
+    color: white;
+    box-shadow: 0 4px 10px rgba(176,0,32,0.2);
+}
+
+.btn-danger:hover {
+    background: #d00024;
+    transform: translateY(-2px);
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: white;
+    border-radius: 28px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 30px 50px rgba(0,0,0,0.3);
+}
+
+.modal-title {
+    font-size: 1.5rem;
+    color: #1e2b4f;
+    margin-bottom: 1.5rem;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+}
+
+/* Form groups (consistent with dashboard) */
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.4rem;
+    color: #1e2b4f;
+    font-weight: 500;
+    font-size: 0.9rem;
+}
+
+.form-group input,
+.form-group select {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    background: #f9fcff;
+    border: 1px solid #e2eaf5;
+    border-radius: 16px;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: #2a3f6e;
+    box-shadow: 0 0 0 3px rgba(42,63,110,0.1);
+}
+
+/* Responsive */
+@media (max-width: 700px) {
+    .mapping-container {
+        flex-direction: column;
     }
-    .company-item, .group-item {
-        padding: 0.5rem;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
+    .panel-header {
+        flex-direction: column;
+        align-items: flex-start;
     }
-    .company-item:hover, .group-item:hover {
-        background-color: #f5f5f5;
-    }
-    .company-item.active, .group-item.active {
-        background-color: #e0e0e0;
-        font-weight: bold;
-    }
-    .rate-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem;
-        border-bottom: 1px solid #eee;
-    }
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 1000;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.4);
-    }
-    .modal-content {
-        background-color: #fefefe;
-        margin: 15% auto;
-        padding: 20px;
-        border: 1px solid #888;
-        width: 350px;
-        border-radius: 5px;
-    }
-    .form-group {
-        margin-bottom: 1rem;
-    }
-    .form-group label {
-        display: block;
-        margin-bottom: 0.3rem;
-    }
-    .form-group input {
-        width: 100%;
-        padding: 0.5rem;
-        box-sizing: border-box;
-    }
-    .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 0.5rem;
-    }
+}
 </style>
-
-<script>
-    // DOM elements
-    const companyListEl = document.getElementById('companyList');
-    const groupListEl = document.getElementById('groupList');
-    const rateListEl = document.getElementById('rateList');
-    const selectedCompanySpan = document.getElementById('selectedCompany');
-    const currentGroupTitle = document.getElementById('currentGroupTitle');
-    const renameCompanyBtn = document.getElementById('renameCompanyBtn');
-    const deleteCompanyBtn = document.getElementById('deleteCompanyBtn');
-    const addRateBtn = document.getElementById('addRateBtn');
-    const saveMappingBtn = document.getElementById('saveMappingBtn');
-
-    // Modals
-    const companyModal = document.getElementById('companyModal');
-    const rateModal = document.getElementById('rateModal');
-    const companyModalTitle = document.getElementById('companyModalTitle');
-    const companyNameInput = document.getElementById('companyNameInput');
-    const companyModalOk = document.getElementById('companyModalOkBtn');
-    const companyModalCancel = document.getElementById('companyModalCancelBtn');
-    const modalRate = document.getElementById('modalRate');
-    const modalLedger = document.getElementById('modalLedger');
-    const modalOk = document.getElementById('modalOkBtn');
-    const modalCancel = document.getElementById('modalCancelBtn');
-
-    // State
-    let companies = [];                // list of company names
-    let selectedCompany = null;        // current company name
-    let selectedGroup = null;          // current group key (e.g. "CGST_RATES")
-    let currentMapping = null;         // full mapping object for selected company
-
-    // ---- Load companies ----
-    async function loadCompanies() {
-        const res = await fetch('/api/companies');
-        const data = await res.json();
-        companies = data.companies;     // array of names
-        renderCompanyList();
-    }
-
-    function renderCompanyList() {
-        companyListEl.innerHTML = companies.map(name => `
-            <div class="company-item ${name === selectedCompany ? 'active' : ''}" data-name="${name}">
-                ${name}
-            </div>
-        `).join('');
-        document.querySelectorAll('.company-item').forEach(item => {
-            item.addEventListener('click', () => selectCompany(item.dataset.name));
-        });
-    }
-
-    // ---- Select a company ----
-    async function selectCompany(name) {
-        selectedCompany = name;
-        selectedCompanySpan.textContent = name;
-        renameCompanyBtn.style.display = 'inline-block';
-        deleteCompanyBtn.style.display = 'inline-block';
-
-        // Load mapping for this company
-        const res = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
-        currentMapping = await res.json();
-        renderGroupList();
-    }
-
-    // ---- Groups are the top‑level keys in the mapping ----
-    const GROUP_KEYS = ['SALES', 'SALES_IGST', 'PURCHASE', 'CGST_RATES', 'SGST_RATES', 'IGST_RATES'];
-
-    function renderGroupList() {
-        groupListEl.innerHTML = GROUP_KEYS.map(key => `
-            <div class="group-item ${key === selectedGroup ? 'active' : ''}" data-key="${key}">
-                ${key}
-            </div>
-        `).join('');
-        document.querySelectorAll('.group-item').forEach(item => {
-            item.addEventListener('click', () => selectGroup(item.dataset.key));
-        });
-    }
-
-    function selectGroup(key) {
-        selectedGroup = key;
-        currentGroupTitle.textContent = key;
-        renderRateList();
-    }
-
-    function renderRateList() {
-        if (!selectedGroup || !currentMapping) return;
-        const rates = currentMapping[selectedGroup] || {};
-        rateListEl.innerHTML = Object.entries(rates).map(([rate, ledger]) => `
-            <div class="rate-item">
-                <span>${rate}% - ${ledger}</span>
-                <button class="btn btn-sm btn-danger" onclick="deleteRate('${rate}')">🗑️</button>
-            </div>
-        `).join('');
-    }
-
-    // ---- Delete a rate (optional) ----
-    window.deleteRate = function(rate) {
-        if (!selectedGroup || !currentMapping) return;
-        delete currentMapping[selectedGroup][rate];
-        renderRateList();
-    };
-
-    // ---- Add Company ----
-    document.getElementById('addCompanyBtn').addEventListener('click', () => {
-        companyModalTitle.textContent = 'Add Company';
-        companyNameInput.value = '';
-        companyModal.style.display = 'block';
-        // Reset OK handler
-        companyModalOk.onclick = addCompanyHandler;
-    });
-
-    async function addCompanyHandler() {
-        const name = companyNameInput.value.trim();
-        if (!name) return alert('Company name required');
-
-        // Your backend expects form data, not JSON
-        const formData = new FormData();
-        formData.append('name', name);
-
-        const res = await fetch('/api/companies', {
-            method: 'POST',
-            body: formData
-        });
-        if (res.ok) {
-            companyModal.style.display = 'none';
-            loadCompanies();
-        } else {
-            const err = await res.text();
-            alert('Failed to add company: ' + err);
-        }
-    }
-
-    // ---- Rename Company ----
-    renameCompanyBtn.addEventListener('click', () => {
-        if (!selectedCompany) return;
-        companyModalTitle.textContent = 'Rename Company';
-        companyNameInput.value = selectedCompany;
-        companyModal.style.display = 'block';
-        companyModalOk.onclick = renameCompanyHandler;
-    });
-
-    async function renameCompanyHandler() {
-        const newName = companyNameInput.value.trim();
-        if (!newName) return alert('Company name required');
-
-        // Your backend doesn't have a rename endpoint yet – we need to simulate
-        // by deleting old and creating new, then copying mapping.
-        // For simplicity, we'll just show an alert.
-        alert('Rename not implemented in backend. You can delete and re-add.');
-        companyModal.style.display = 'none';
-    }
-
-    // ---- Delete Company ----
-    deleteCompanyBtn.addEventListener('click', async () => {
-        if (!selectedCompany || !confirm(`Delete company "${selectedCompany}"?`)) return;
-        const res = await fetch(`/api/companies/${encodeURIComponent(selectedCompany)}`, {
-            method: 'DELETE'
-        });
-        if (res.ok) {
-            selectedCompany = null;
-            selectedCompanySpan.textContent = 'Select a company';
-            renameCompanyBtn.style.display = 'none';
-            deleteCompanyBtn.style.display = 'none';
-            groupListEl.innerHTML = '';
-            rateListEl.innerHTML = '';
-            loadCompanies();
-        } else {
-            alert('Failed to delete company');
-        }
-    });
-
-    // ---- Add Rate ----
-    addRateBtn.addEventListener('click', () => {
-        if (!selectedGroup) return alert('Select a group first');
-        modalRate.value = '';
-        modalLedger.value = '';
-        rateModal.style.display = 'block';
-    });
-
-    modalOk.addEventListener('click', async () => {
-        const rate = parseFloat(modalRate.value);
-        const ledger = modalLedger.value.trim();
-        if (isNaN(rate) || !ledger) return alert('Fill all fields');
-
-        // Add to current mapping in memory
-        if (!currentMapping[selectedGroup]) currentMapping[selectedGroup] = {};
-        currentMapping[selectedGroup][rate] = ledger;
-
-        renderRateList();
-        rateModal.style.display = 'none';
-    });
-
-    modalCancel.addEventListener('click', () => {
-        rateModal.style.display = 'none';
-    });
-
-    // ---- Save Mapping ----
-    saveMappingBtn.addEventListener('click', async () => {
-        if (!selectedCompany) return alert('Select a company');
-
-        const res = await fetch(`/api/mapping/${encodeURIComponent(selectedCompany)}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(currentMapping)
-        });
-        if (res.ok) {
-            alert('Mapping saved');
-        } else {
-            alert('Save failed');
-        }
-    });
-
-    // ---- Close modals when clicking outside ----
-    window.addEventListener('click', (e) => {
-        if (e.target === companyModal) companyModal.style.display = 'none';
-        if (e.target === rateModal) rateModal.style.display = 'none';
-    });
-
-    // Initial load
-    loadCompanies();
-</script>
