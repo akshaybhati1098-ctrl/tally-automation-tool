@@ -107,7 +107,7 @@
         /* ── Upload zone ── */
         .converter-wrap .upload-zone {
             position: relative;
-            border: 1.5px dashed var(--line);
+            border: 2px dashed #b8cbe8;
             border-radius: 14px;
             background: var(--surface);
             transition: border-color 0.15s, background 0.15s;
@@ -314,10 +314,10 @@
         }
 
         .converter-wrap input[type="radio"]:checked + .voucher-type-btn {
-            background: var(--accent);
+            background: var(--ink);
             color: var(--white);
             font-weight: 600;
-            box-shadow: 0 2px 10px rgba(22,81,232,0.35);
+            box-shadow: 0 2px 10px rgba(13,17,23,0.25);
         }
 
         /* ── Submit button ── */
@@ -560,6 +560,110 @@
         .converter-wrap .btn-success:active { transform: scale(0.97); }
         .converter-wrap .btn-icon { font-size: 1rem; }
 
+        /* ── Download success card ── */
+        .converter-wrap .download-success {
+            margin-top: 1.2rem;
+            padding: 1.1rem 1.3rem;
+            background: linear-gradient(135deg, rgba(23,178,106,0.08), rgba(23,178,106,0.04));
+            border: 1.5px solid rgba(23,178,106,0.3);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            animation: cvFadeUp 0.35s ease both;
+        }
+
+        .converter-wrap .ds-left {
+            display: flex;
+            align-items: center;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+
+        .converter-wrap .ds-icon {
+            width: 42px; height: 42px;
+            background: rgba(23,178,106,0.15);
+            border: 1px solid rgba(23,178,106,0.25);
+            border-radius: 11px;
+            display: grid; place-items: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .converter-wrap .ds-title {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            color: #0e7a4a;
+            margin-bottom: 0.15rem;
+        }
+
+        .converter-wrap .ds-filename {
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: var(--ink);
+            font-family: 'Courier New', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 220px;
+        }
+
+        .converter-wrap .ds-meta {
+            font-size: 0.7rem;
+            color: var(--muted);
+            margin-top: 0.1rem;
+        }
+
+        .converter-wrap .ds-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.4rem;
+            flex-shrink: 0;
+        }
+
+        .converter-wrap .ds-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.55rem 1.1rem;
+            background: var(--green);
+            color: var(--white);
+            border: none;
+            border-radius: 9px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.18s;
+            box-shadow: 0 3px 10px rgba(23,178,106,0.3);
+            white-space: nowrap;
+        }
+
+        .converter-wrap .ds-btn:hover {
+            background: #12a05a;
+            transform: translateY(-1px);
+            box-shadow: 0 5px 14px rgba(23,178,106,0.4);
+        }
+
+        .converter-wrap .ds-btn-ghost {
+            background: none;
+            border: none;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.74rem;
+            color: var(--muted);
+            cursor: pointer;
+            padding: 0.2rem 0.3rem;
+            transition: color 0.15s;
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+
+        .converter-wrap .ds-btn-ghost:hover { color: var(--ink2); }
+
         /* ── Responsive ── */
         @media (max-width: 600px) {
             .converter-wrap .voucher-type-group { flex-direction: column; }
@@ -641,6 +745,24 @@
             <div class="progress-bar" id="progressBar"></div>
         </div>
         <div id="message" class="message"></div>
+
+        <!-- Download success card — shown after XML is generated -->
+        <div id="downloadSuccess" class="download-success" style="display:none;">
+            <div class="ds-left">
+                <div class="ds-icon">✅</div>
+                <div class="ds-info">
+                    <div class="ds-title">XML Ready!</div>
+                    <div class="ds-filename" id="dsFilename">Tally_sale.xml</div>
+                    <div class="ds-meta" id="dsMeta">Tally-compatible · Ready to import</div>
+                </div>
+            </div>
+            <div class="ds-right">
+                <button class="ds-btn" id="dsDownloadBtn">
+                    <span>⬇</span> Download XML
+                </button>
+                <button class="ds-btn-ghost" id="dsNewBtn">Convert another</button>
+            </div>
+        </div>
     </div>
 
     <!-- Template Card -->
@@ -865,7 +987,9 @@
                     progressBar.style.width = '90%';
 
                     // Trigger download
-                    downloadXML(xml, `Tally_${vtype}_${Date.now()}.xml`);
+                    const xmlFilename = `Tally_${vtype}_${Date.now()}.xml`;
+                    if (window.__captureDownload) window.__captureDownload(xml, xmlFilename);
+                    downloadXML(xml, xmlFilename);
                     progressBar.style.width = '100%';
 
                     showMessage('✅ XML generated successfully!', 'success');
@@ -1031,6 +1155,50 @@
                 messageDiv.className = `message ${type}`;
                 messageDiv.style.display = 'block';
             }
+
+            // ── Download success card UI ──
+            const downloadSuccess = document.getElementById('downloadSuccess');
+            const dsFilename      = document.getElementById('dsFilename');
+            const dsMeta          = document.getElementById('dsMeta');
+            const dsDownloadBtn   = document.getElementById('dsDownloadBtn');
+            const dsNewBtn        = document.getElementById('dsNewBtn');
+
+            let lastXmlContent  = null;
+            let lastXmlFilename = null;
+
+            // Intercept downloadXML to capture the content
+            const _origDownloadXML = downloadXML;
+            window.__captureDownload = function(content, filename) {
+                lastXmlContent  = content;
+                lastXmlFilename = filename;
+            };
+
+            // Watch for success message to show the card
+            const msgObserver = new MutationObserver(() => {
+                if (messageDiv.classList.contains('success') && lastXmlFilename) {
+                    messageDiv.style.display = 'none'; // hide plain message, card replaces it
+                    dsFilename.textContent = lastXmlFilename;
+                    const rows = (lastXmlContent.match(/<VOUCHER/g) || []).length;
+                    dsMeta.textContent = `${rows} voucher${rows !== 1 ? 's' : ''} · Tally-compatible XML`;
+                    downloadSuccess.style.display = 'flex';
+                }
+            });
+            msgObserver.observe(messageDiv, { attributes: true, attributeFilter: ['class'] });
+
+            // Re-download button
+            dsDownloadBtn.addEventListener('click', function() {
+                if (lastXmlContent && lastXmlFilename) {
+                    downloadXML(lastXmlContent, lastXmlFilename);
+                }
+            });
+
+            // Convert another — reset UI
+            dsNewBtn.addEventListener('click', function() {
+                downloadSuccess.style.display = 'none';
+                lastXmlContent  = null;
+                lastXmlFilename = null;
+                messageDiv.style.display = 'none';
+            });
 
             // ── Upload zone visual feedback (UI only, does not affect logic) ──
             const uploadZone = document.getElementById('uploadZone');
