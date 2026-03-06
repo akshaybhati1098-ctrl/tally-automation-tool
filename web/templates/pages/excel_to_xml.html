@@ -6,604 +6,284 @@
     <title>Excel to XML Converter</title>
     <!-- SheetJS for reading Excel files -->
     <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet" />
-
     <style>
-        /* ── Design tokens ── */
-        :root {
-            --ink:     #0d1117;
-            --ink2:    #1c2534;
-            --ink3:    #354460;
-            --muted:   #7a8fa8;
-            --line:    #dce5f0;
-            --surface: #f5f8fc;
-            --white:   #ffffff;
-            --accent:  #1651e8;
-            --green:   #17b26a;
-        }
-
-        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-
-        body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--surface);
-            background-image: radial-gradient(circle, #c8d6e8 1px, transparent 1px);
-            background-size: 28px 28px;
-            color: var(--ink);
-            padding: 2rem 1.5rem 4rem;
-        }
-
-        /* ── Card ── */
+        /* ===== Form Styles (matching dashboard aesthetics) ===== */
         .card {
-            background: var(--white);
-            border: 1px solid var(--line);
-            border-radius: 22px;
-            padding: 1.8rem 2rem;
-            box-shadow: 0 2px 10px rgba(0,20,60,0.05);
-            margin-bottom: 1.5rem;
-            max-width: 680px;
-            margin-left: auto;
-            margin-right: auto;
-            animation: fadeUp 0.4s ease both;
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid #eef2f6;
         }
-
-        .card:nth-child(2) { animation-delay: 0.1s; }
-
-        @keyframes fadeUp {
-            from { opacity: 0; transform: translateY(16px); }
-            to   { opacity: 1; transform: translateY(0); }
+        .dark-theme .card {
+            background: #252b3b;
+            border-color: #3f4a5c;
         }
-
-        /* ── Card header ── */
-        .card-header {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1.8rem;
-            padding-bottom: 1.3rem;
-            border-bottom: 1px solid var(--line);
-        }
-
-        .ch-icon {
-            width: 46px; height: 46px;
-            background: var(--ink);
-            border-radius: 13px;
-            display: grid; place-items: center;
-            font-size: 1.3rem;
-            flex-shrink: 0;
-            box-shadow: 0 2px 8px rgba(13,17,23,0.18);
-        }
-
-        .ch-icon-green {
-            background: linear-gradient(135deg, #edfaf4, #d4f5e5);
-            box-shadow: 0 2px 8px rgba(23,178,106,0.15);
-        }
-
-        .ch-text { display: flex; flex-direction: column; gap: 0.15rem; }
-
-        .ch-eyebrow {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.09em;
-            color: var(--accent);
-        }
-
         .card-header h3 {
-            font-family: 'Syne', sans-serif;
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            color: var(--ink);
-            line-height: 1.2;
-            margin: 0;
+            margin: 0 0 1.5rem 0;
+            color: #1e2b4f;
+            font-weight: 600;
+            font-size: 1.5rem;
         }
-
-        .ch-sub { font-size: 0.75rem; color: var(--muted); }
-
-        /* ── Form groups ── */
+        .dark-theme .card-header h3 {
+            color: #e9edf2;
+        }
         .form-group {
-            margin-bottom: 1.4rem;
+            margin-bottom: 1.5rem;
         }
-
         .form-group label {
             display: block;
             margin-bottom: 0.5rem;
-            font-size: 0.78rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.05em;
-            color: var(--ink3);
+            font-weight: 500;
+            color: #1e2b4f;
+            font-size: 0.95rem;
         }
-
-        /* ── Upload zone ── */
-        .upload-zone {
-            position: relative;
-            border: 1.5px dashed var(--line);
-            border-radius: 14px;
-            background: var(--surface);
-            transition: border-color 0.15s, background 0.15s;
-            cursor: pointer;
-            overflow: hidden;
+        .dark-theme .form-group label {
+            color: #b0c4de;
         }
-
-        .upload-zone:hover {
-            border-color: var(--accent);
-            background: rgba(22,81,232,0.03);
-        }
-
-        .upload-zone.has-file {
-            border-color: var(--green);
-            border-style: solid;
-            background: rgba(23,178,106,0.04);
-        }
-
-        .file-input {
-            position: absolute;
-            inset: 0;
-            opacity: 0;
-            cursor: pointer;
-            width: 100%;
-            height: 100%;
-            z-index: 2;
-        }
-
-        .upload-inner {
-            padding: 2.4rem 1.5rem;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 0.85rem;
-            text-align: center;
-            pointer-events: none;
-        }
-
-        .upload-icon-box {
-            width: 60px; height: 60px;
-            background: var(--white);
-            border: 1.5px solid var(--line);
-            border-radius: 15px;
-            display: grid; place-items: center;
-            font-size: 1.8rem;
-            box-shadow: 0 2px 8px rgba(0,20,60,0.06);
-            transition: border-color 0.15s;
-        }
-
-        .upload-zone:hover .upload-icon-box {
-            border-color: rgba(22,81,232,0.3);
-            background: rgba(22,81,232,0.04);
-        }
-
-        .upload-zone.has-file .upload-icon-box {
-            border-color: rgba(23,178,106,0.35);
-            background: rgba(23,178,106,0.07);
-        }
-
-        .upload-main {
-            font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--ink2);
-        }
-
-        .upload-sub {
-            font-size: 0.75rem;
-            color: var(--muted);
-        }
-
-        .upload-cta {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.42rem 1rem;
-            border: 1px solid var(--line);
-            border-radius: 8px;
-            font-size: 0.78rem;
-            font-weight: 600;
-            color: var(--ink3);
-            background: var(--white);
-            transition: all 0.15s;
-        }
-
-        .upload-zone:hover .upload-cta {
-            border-color: var(--accent);
-            color: var(--accent);
-            background: rgba(22,81,232,0.05);
-        }
-
-        .upload-zone.has-file .upload-cta {
-            border-color: var(--green);
-            color: #0e7a4a;
-            background: rgba(23,178,106,0.07);
-        }
-
-        /* ── Select ── */
-        .select-wrap { position: relative; }
-
+        .file-input,
         .form-select {
             width: 100%;
-            padding: 0.75rem 2.2rem 0.75rem 1rem;
-            background: var(--surface);
-            border: 1.5px solid var(--line);
-            border-radius: 13px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.88rem;
-            color: var(--ink2);
-            appearance: none;
+            padding: 0.8rem 1rem;
+            background: #f9fcff;
+            border: 1px solid #e2eaf5;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            color: #1e2b4f;
+            transition: all 0.2s;
             cursor: pointer;
-            transition: border-color 0.15s, box-shadow 0.15s;
             box-sizing: border-box;
         }
-
-        .form-select:hover { border-color: #b8cbe8; }
-
+        .dark-theme .file-input,
+        .dark-theme .form-select {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
+        }
+        .file-input:hover,
+        .form-select:hover {
+            border-color: #b0c4de;
+            background: white;
+        }
+        .dark-theme .file-input:hover,
+        .dark-theme .form-select:hover {
+            background: #353e52;
+            border-color: #5f6f88;
+        }
+        .file-input:focus,
         .form-select:focus {
             outline: none;
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
+            border-color: #2a3f6e;
+            box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
         }
-
         .form-select:disabled {
-            background: #eef2f7;
-            color: var(--muted);
+            background: #eef2f6;
+            color: #8a9bb5;
             cursor: not-allowed;
         }
-
-        /* Wrap selects for arrow */
-        #sheetSelect, #companySelect {
-            width: 100%;
+        .dark-theme .form-select:disabled {
+            background: #3a4255;
+            color: #7f8b9f;
         }
-
-        .form-group:has(#sheetSelect),
-        .form-group:has(#companySelect) {
-            position: relative;
-        }
-
-        .form-group:has(#sheetSelect)::after,
-        .form-group:has(#companySelect)::after {
-            content: '▾';
-            position: absolute;
-            right: 0.9rem;
-            bottom: 0.85rem;
-            font-size: 0.75rem;
-            color: var(--muted);
-            pointer-events: none;
-        }
-
-        /* ── Divider ── */
-        .form-divider {
-            height: 1px;
-            background: var(--line);
-            margin: 0.2rem 0 1.4rem;
-            position: relative;
-        }
-
-        .form-divider::after {
-            content: 'Tally Settings';
-            position: absolute;
-            left: 0;
-            top: 50%;
-            transform: translateY(-50%);
-            background: var(--white);
-            padding-right: 0.75rem;
-            font-size: 0.68rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            color: var(--muted);
-        }
-
-        /* ── Loading indicator ── */
         .loading-indicator {
             margin-top: 0.5rem;
-            font-size: 0.78rem;
-            color: var(--accent);
+            color: #2f5b9c;
+            font-size: 0.85rem;
             display: flex;
             align-items: center;
             gap: 0.3rem;
         }
-
-        /* ── Voucher type segmented control ── */
+        .dark-theme .loading-indicator {
+            color: #7fa6d9;
+        }
+        /* Voucher type toggle buttons */
         .voucher-type-group {
             display: flex;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 12px;
-            padding: 3px;
-            gap: 2px;
+            gap: 1rem;
+            flex-wrap: wrap;
         }
-
-        .voucher-type-group input[type="radio"] { display: none; }
-
+        .voucher-type-group input[type="radio"] {
+            display: none;
+        }
         .voucher-type-btn {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.4rem;
-            padding: 0.55rem 1rem;
-            border-radius: 9px;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.85rem;
+            background: #f9fcff;
+            border: 1px solid #e2eaf5;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.95rem;
             font-weight: 500;
-            color: var(--muted);
-            cursor: pointer;
-            transition: all 0.18s;
-            white-space: nowrap;
-            user-select: none;
-        }
-
-        .voucher-type-btn:hover {
-            color: var(--ink2);
-            background: rgba(0,0,0,0.03);
-        }
-
-        input[type="radio"]:checked + .voucher-type-btn {
-            background: var(--white);
-            color: var(--ink);
-            font-weight: 600;
-            box-shadow: 0 1px 4px rgba(0,20,60,0.1), 0 0 0 1px var(--line);
-        }
-
-        /* ── Submit button ── */
-        .btn-primary {
-            width: 100%;
-            margin-top: 0.4rem;
-            padding: 1rem 1.8rem;
-            background: linear-gradient(135deg, var(--accent) 0%, #3b29e8 100%);
-            color: var(--white);
-            border: none;
-            border-radius: 14px;
-            font-family: 'Syne', sans-serif;
-            font-size: 0.98rem;
-            font-weight: 700;
-            letter-spacing: -0.01em;
+            color: #1e2b4f;
             cursor: pointer;
             transition: all 0.2s;
-            box-shadow: 0 4px 16px rgba(22,81,232,0.35);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .dark-theme .voucher-type-btn {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
+        }
+        .voucher-type-btn:hover {
+            background: #e4edfc;
+            border-color: #b0c4de;
+            transform: translateY(-2px);
+        }
+        .dark-theme .voucher-type-btn:hover {
+            background: #3e485e;
+            border-color: #5f6f88;
+        }
+        input[type="radio"]:checked + .voucher-type-btn {
+            background: #1e2b4f;
+            border-color: #1e2b4f;
+            color: white;
+            box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
+        }
+        .dark-theme input[type="radio"]:checked + .voucher-type-btn {
+            background: #2f5b9c;
+            border-color: #2f5b9c;
+        }
+        /* Primary button - ENLARGED */
+        .btn-primary {
+            background: #1e2b4f;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
+            border: none;
         }
-
-        .btn-primary::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-            pointer-events: none;
-        }
-
         .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 8px 24px rgba(22,81,232,0.45);
+            background: #2a3f6e;
             transform: translateY(-2px);
+            box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
         }
-
         .btn-primary:active:not(:disabled) {
             transform: scale(0.98);
-            box-shadow: 0 3px 10px rgba(22,81,232,0.3);
         }
-
         .btn-primary:disabled {
-            background: var(--line);
-            color: var(--muted);
+            background: #b0c4de;
             cursor: not-allowed;
-            box-shadow: none;
+            opacity: 0.7;
         }
-
-        /* ── Progress bar ── */
+        .dark-theme .btn-primary:disabled {
+            background: #4a5670;
+        }
+        /* Progress bar */
         .progress {
-            margin-top: 1.4rem;
-            height: 6px;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 100px;
+            margin-top: 1.5rem;
+            height: 8px;
+            background: #e4edfc;
+            border-radius: 20px;
             overflow: hidden;
             display: none;
         }
-
         .progress-bar {
             height: 100%;
             width: 0%;
-            background: linear-gradient(90deg, var(--accent), #6b3de8);
-            border-radius: 100px;
+            background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
+            border-radius: 20px;
             transition: width 0.3s ease;
         }
-
-        /* ── Message ── */
+        /* Message */
         .message {
             margin-top: 1rem;
-            padding: 0.85rem 1.1rem;
-            border-radius: 13px;
-            font-size: 0.85rem;
-            font-weight: 500;
+            padding: 0.8rem 1rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
             display: none;
         }
-
         .message.success {
             display: block;
-            background: rgba(23,178,106,0.1);
-            color: #0e6b41;
-            border: 1px solid rgba(23,178,106,0.25);
+            background: #e1f7e3;
+            color: #1e5f2e;
+            border: 1px solid #a5d6a7;
         }
-
         .message.error {
             display: block;
-            background: rgba(220,38,38,0.07);
-            color: #b91c1c;
-            border: 1px solid rgba(220,38,38,0.2);
+            background: #ffe9e9;
+            color: #b00020;
+            border: 1px solid #ffb3b3;
         }
-
-        /* ── Template card ── */
-        .guidance-content { padding: 0.2rem 0; }
-
-        .tpl-section-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 0.85rem;
+        /* Guidance card styles */
+        .guidance-content {
+            padding: 1rem 0;
         }
-
-        .tpl-features {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            margin-bottom: 1.4rem;
-        }
-
-        .tpl-feat {
-            display: flex;
-            align-items: flex-start;
-            gap: 0.8rem;
-            padding: 0.75rem 0.95rem;
-            background: var(--surface);
-            border: 1px solid var(--line);
+        .template-preview {
+            background: #f4f7fb;
+            padding: 1rem;
             border-radius: 12px;
+            font-family: monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+            white-space: nowrap;
+            border: 1px solid #e2eaf5;
         }
-
-        .tpl-feat-icon { font-size: 1.2rem; line-height: 1; margin-top: 0.05rem; flex-shrink: 0; }
-
-        .tpl-feat b {
-            display: block;
-            font-size: 0.83rem;
-            font-weight: 600;
-            color: var(--ink2);
-            margin-bottom: 0.1rem;
+        .dark-theme .template-preview {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
         }
-
-        .tpl-feat small {
-            font-size: 0.72rem;
-            color: var(--muted);
-            line-height: 1.4;
-        }
-
-        .tpl-cols-label {
-            font-size: 0.7rem;
-            text-transform: uppercase;
-            letter-spacing: 0.07em;
-            font-weight: 600;
-            color: var(--muted);
-            margin-bottom: 0.6rem;
-        }
-
-        .tpl-cols {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.4rem;
-            margin-bottom: 1.4rem;
-        }
-
-        .tpl-col {
-            display: inline-block;
-            background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 7px;
-            padding: 0.25rem 0.65rem;
-            font-family: 'Courier New', monospace;
-            font-size: 0.72rem;
-            color: var(--ink3);
-            font-weight: 500;
-        }
-
-        .tpl-col-tax {
-            background: rgba(22,81,232,0.06);
-            border-color: rgba(22,81,232,0.18);
-            color: var(--accent);
-        }
-
-        .tpl-note {
-            font-size: 0.72rem;
-            color: var(--muted);
-            margin-bottom: 1.2rem;
-            display: flex;
-            align-items: center;
-            gap: 0.35rem;
-        }
-
-        .tpl-note::before { content: 'ℹ️'; font-size: 0.8rem; }
-
         .btn-success {
+            background: #1e5f2e;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
             display: inline-flex;
             align-items: center;
-            gap: 0.45rem;
-            background: var(--green);
-            color: var(--white);
-            border: none;
-            border-radius: 100px;
-            padding: 0.65rem 1.4rem;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.83rem;
-            font-weight: 600;
+            gap: 0.3rem;
             text-decoration: none;
-            cursor: pointer;
-            transition: all 0.18s;
-            box-shadow: 0 4px 14px rgba(23,178,106,0.3);
-            white-space: nowrap;
-            position: relative;
-            overflow: hidden;
+            border: none;
         }
-
-        .btn-success::before {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
-            pointer-events: none;
-        }
-
         .btn-success:hover {
-            background: #12a05a;
+            background: #2a7a3a;
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(23,178,106,0.38);
+            box-shadow: 0 8px 16px rgba(30, 95, 46, 0.25);
         }
-
-        .btn-success:active { transform: scale(0.97); }
-
-        .btn-icon { font-size: 1rem; }
-
-        /* ── Responsive ── */
+        .btn-icon {
+            font-size: 1.1rem;
+        }
+        /* Responsive */
         @media (max-width: 600px) {
-            .voucher-type-group { flex-direction: column; }
-            .card { padding: 1.3rem 1.1rem; }
-            body { padding: 1rem 0.75rem 3rem; }
+            .voucher-type-group {
+                flex-direction: column;
+            }
+            .voucher-type-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .card {
+                padding: 1.5rem;
+            }
         }
     </style>
 </head>
 <body class="light-theme">
-
-    <!-- Converter Card -->
     <div class="card">
         <div class="card-header">
-            <div class="ch-icon"><span>🔄</span></div>
-            <div class="ch-text">
-                <div class="ch-eyebrow">Excel → Tally XML</div>
-                <h3>Convert Invoice Sheet</h3>
-                <p class="ch-sub">Upload your file and generate Tally XML</p>
-            </div>
+            <h3>🔄 Excel to XML Converter</h3>
         </div>
-
         <form id="convertForm">
-            <!-- File -->
             <div class="form-group">
                 <label for="fileInput">Excel File</label>
-                <div class="upload-zone" id="uploadZone">
-                    <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
-                    <div class="upload-inner" id="uploadInner">
-                        <div class="upload-icon-box">📂</div>
-                        <div class="upload-main">Click to browse or drag & drop</div>
-                        <div class="upload-sub">.xlsx or .xls files only</div>
-                        <div class="upload-cta">Choose File</div>
-                    </div>
-                </div>
+                <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
             </div>
 
-            <!-- Sheet -->
             <div class="form-group">
                 <label for="sheetSelect">Sheet Name</label>
                 <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
@@ -614,18 +294,14 @@
                 </div>
             </div>
 
-            <div class="form-divider"></div>
-
-            <!-- Company -->
             <div class="form-group">
-                <label for="companySelect">Company Ledger</label>
+                <label for="companySelect">Company</label>
                 <select name="company" id="companySelect" required class="form-select">
                     <option value="">-- Select company --</option>
                     <!-- Options will be populated from /api/companies -->
                 </select>
             </div>
 
-            <!-- Voucher Type -->
             <div class="form-group">
                 <label>Voucher Type</label>
                 <div class="voucher-type-group">
@@ -637,9 +313,7 @@
                 </div>
             </div>
 
-            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                📄 Generate Tally Compatible File
-            </button>
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
         </form>
 
         <div class="progress" id="progress">
@@ -648,68 +322,23 @@
         <div id="message" class="message"></div>
     </div>
 
-    <!-- Template Card -->
+    <!-- Guidance Card with fixed download link -->
     <div class="card">
         <div class="card-header">
-            <div class="ch-icon ch-icon-green"><span>📋</span></div>
-            <div class="ch-text">
-                <div class="ch-eyebrow">Getting Started</div>
-                <h3>Download Template</h3>
-                <p class="ch-sub">Pre-built sheet with all required columns</p>
-            </div>
+            <h3>📋 Need a Template?</h3>
         </div>
         <div class="guidance-content">
-
-            <p class="tpl-section-label">What's inside</p>
-            <div class="tpl-features">
-                <div class="tpl-feat">
-                    <span class="tpl-feat-icon">🗂️</span>
-                    <div>
-                        <b>Pre-labelled columns</b>
-                        <small>Headers exactly as Tally expects — no renaming needed</small>
-                    </div>
-                </div>
-                <div class="tpl-feat">
-                    <span class="tpl-feat-icon">📝</span>
-                    <div>
-                        <b>Sample rows included</b>
-                        <small>See the correct format before entering your own data</small>
-                    </div>
-                </div>
-                <div class="tpl-feat">
-                    <span class="tpl-feat-icon">✅</span>
-                    <div>
-                        <b>GST-ready structure</b>
-                        <small>Separate columns for IGST, CGST, SGST &amp; Cess</small>
-                    </div>
-                </div>
+            <p>Your Excel file should have the following columns (in any order, but matching headers are required for mapping):</p>
+            <div class="template-preview">
+                <code>Sr, GSTIN, Recipient Name, Invoice Number, Invoice date, Invoice Value, Taxable Value, IGST, CGST, SGST, Cess</code>
             </div>
-
-            <p class="tpl-cols-label">Required columns</p>
-            <div class="tpl-cols">
-                <span class="tpl-col">Sr</span>
-                <span class="tpl-col">GSTIN</span>
-                <span class="tpl-col">Recipient Name</span>
-                <span class="tpl-col">Invoice Number</span>
-                <span class="tpl-col">Invoice date</span>
-                <span class="tpl-col">Invoice Value</span>
-                <span class="tpl-col">Taxable Value</span>
-                <span class="tpl-col tpl-col-tax">IGST</span>
-                <span class="tpl-col tpl-col-tax">CGST</span>
-                <span class="tpl-col tpl-col-tax">SGST</span>
-                <span class="tpl-col tpl-col-tax">Cess</span>
-            </div>
-            <p class="tpl-note">Column order doesn't matter — headers must match exactly</p>
-
+            <p>Download a ready-to-use template with sample data:</p>
             <a href="/download-template" class="btn btn-success">
                 <span class="btn-icon">📥</span> Download Template
             </a>
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════
-         ALL JS BELOW IS 100% ORIGINAL — UNTOUCHED
-         ═══════════════════════════════════════ -->
     <script>
         (function() {
             // Alert to indicate script start (optional)
@@ -1036,33 +665,6 @@
                 messageDiv.className = `message ${type}`;
                 messageDiv.style.display = 'block';
             }
-
-            // ── Upload zone visual feedback (UI only, does not affect logic) ──
-            const uploadZone = document.getElementById('uploadZone');
-            const uploadInner = document.getElementById('uploadInner');
-
-            uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
-            uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
-            uploadZone.addEventListener('drop',      e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); });
-
-            fileInput.addEventListener('change', function() {
-                const file = fileInput.files[0];
-                if (file) {
-                    uploadZone.classList.add('has-file');
-                    uploadInner.innerHTML = `
-                        <div class="upload-icon-box">✅</div>
-                        <div class="upload-main">${file.name}</div>
-                        <div class="upload-sub">${(file.size/1024).toFixed(1)} KB · click to change</div>
-                        <div class="upload-cta">Change File</div>`;
-                } else {
-                    uploadZone.classList.remove('has-file');
-                    uploadInner.innerHTML = `
-                        <div class="upload-icon-box">📂</div>
-                        <div class="upload-main">Click to browse or drag & drop</div>
-                        <div class="upload-sub">.xlsx or .xls files only</div>
-                        <div class="upload-cta">Choose File</div>`;
-                }
-            }, false); // false = does not capture, fires after original listener
         })();
     </script>
 </body>
