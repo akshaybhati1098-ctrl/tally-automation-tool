@@ -22,9 +22,7 @@
             <label for="companySelect">Company</label>
             <select name="company" id="companySelect" required class="form-select">
                 <option value="">-- Select company --</option>
-                <option value="company1">ABC Enterprises</option>
-                <option value="company2">XYZ Traders</option>
-                <option value="company3">LMN Pvt Ltd</option>
+                <!-- Options will be populated by JavaScript -->
             </select>
         </div>
 
@@ -165,8 +163,8 @@ input[type="radio"]:checked + .voucher-type-btn {
     color: white;
     border: none;
     border-radius: 40px;
-    padding: 1rem 2rem;        /* increased from 0.9rem 1.5rem */
-    font-size: 1.1rem;          /* increased from 1rem */
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s;
@@ -291,92 +289,216 @@ input[type="radio"]:checked + .voucher-type-btn {
 </style>
 
 <script>
-// ===== FORM HANDLING WITH IMPROVED BUTTON FEEDBACK =====
-document.getElementById('fileInput').addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const sheetSelect = document.getElementById('sheetSelect');
-    const sheetLoading = document.getElementById('sheetLoading');
-    const submitBtn = document.getElementById('submitBtn');
+// ===== REAL BACKEND INTEGRATION =====
+// Variables
+let companies = [];
 
-    if (file) {
-        sheetSelect.disabled = true;
-        sheetLoading.style.display = 'flex';
-        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+// Helper function for messages
+function showMessage(msg, type = 'info') {
+    const messageDiv = document.getElementById('message');
+    if (!messageDiv) return;
+    messageDiv.className = `message ${type}`;
+    messageDiv.textContent = msg;
+    messageDiv.style.display = 'block';
+}
 
-        // Simulate async sheet loading (replace with actual API call later)
-        setTimeout(() => {
-            const dummySheets = ['Sheet1', 'Sheet2', 'Sheet3', 'Invoice Data', 'Sales'];
-            sheetSelect.disabled = false;
-            sheetLoading.style.display = 'none';
-
-            dummySheets.forEach(sheet => {
-                const option = document.createElement('option');
-                option.value = sheet;
-                option.textContent = sheet;
-                sheetSelect.appendChild(option);
-            });
-
-            toggleSubmitButton();
-        }, 1200);
-    } else {
-        sheetSelect.disabled = true;
-        sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
-        sheetLoading.style.display = 'none';
+// Load companies from backend
+async function loadCompaniesForConverter() {
+    const companySelect = document.getElementById('companySelect');
+    if (!companySelect) return;
+    try {
+        const response = await fetch('/api/companies');
+        const data = await response.json();
+        companies = data.companies || [];
+        companySelect.innerHTML = '<option value="">-- Select company --</option>';
+        companies.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c;
+            opt.textContent = c;
+            companySelect.appendChild(opt);
+        });
+    } catch (err) {
+        console.error('Failed to load companies', err);
+        showMessage('Failed to load companies', 'error');
     }
-    toggleSubmitButton();
-});
+}
 
-document.getElementById('companySelect').addEventListener('change', toggleSubmitButton);
-document.getElementById('sheetSelect').addEventListener('change', toggleSubmitButton);
+// Make it globally accessible so mapping page can refresh it
+window.loadCompaniesForConverter = loadCompaniesForConverter;
 
+// Enable/disable submit button based on selections
 function toggleSubmitButton() {
     const fileInput = document.getElementById('fileInput');
     const sheetSelect = document.getElementById('sheetSelect');
     const companySelect = document.getElementById('companySelect');
     const submitBtn = document.getElementById('submitBtn');
 
-    const fileSelected = fileInput.files.length > 0;
-    const sheetSelected = sheetSelect.value && !sheetSelect.disabled;
-    const companySelected = companySelect.value;
+    const fileSelected = fileInput && fileInput.files.length > 0;
+    const sheetSelected = sheetSelect && sheetSelect.value && !sheetSelect.disabled;
+    const companySelected = companySelect && companySelect.value;
 
-    submitBtn.disabled = !(fileSelected && sheetSelected && companySelected);
+    if (submitBtn) {
+        submitBtn.disabled = !(fileSelected && sheetSelected && companySelected);
+    }
 }
 
-// Form submission with improved button feedback
-document.getElementById('convertForm').addEventListener('submit', function(e) {
-    e.preventDefault();
+// File input change → load sheets
+const fileInput = document.getElementById('fileInput');
+if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        const sheetSelect = document.getElementById('sheetSelect');
+        const sheetLoading = document.getElementById('sheetLoading');
+        const submitBtn = document.getElementById('submitBtn');
 
-    const submitBtn = document.getElementById('submitBtn');
-    const progress = document.getElementById('progress');
-    const progressBar = document.getElementById('progressBar');
-    const messageDiv = document.getElementById('message');
-
-    // Save original button text and update to processing state
-    const originalButtonText = submitBtn.innerHTML;
-    submitBtn.innerHTML = '⏳ Processing...';
-    submitBtn.disabled = true;
-
-    // Show progress bar
-    progress.style.display = 'block';
-    messageDiv.style.display = 'none';
-    progressBar.style.width = '0%';
-
-    // Simulate conversion progress
-    let width = 0;
-    const interval = setInterval(() => {
-        width += 5;
-        progressBar.style.width = width + '%';
-        if (width >= 100) {
-            clearInterval(interval);
-            setTimeout(() => {
-                progress.style.display = 'none';
-                messageDiv.className = 'message success';
-                messageDiv.textContent = '✅ XML generated successfully! (Demo)';
-                // Restore button
-                submitBtn.innerHTML = originalButtonText;
-                submitBtn.disabled = false; // Re-enable for demo
-            }, 300);
+        if (!file) {
+            if (sheetSelect) {
+                sheetSelect.disabled = true;
+                sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+            }
+            toggleSubmitButton();
+            return;
         }
-    }, 100);
-});
+
+        if (sheetSelect) sheetSelect.disabled = true;
+        if (sheetLoading) sheetLoading.style.display = 'flex';
+        if (sheetSelect) sheetSelect.innerHTML = '<option value="">Loading...</option>';
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const response = await fetch('/api/sheets', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) throw new Error('Failed to load sheets');
+
+            const data = await response.json();
+            const sheets = data.sheets;
+
+            if (sheetSelect) {
+                sheetSelect.innerHTML = '';
+                if (sheets.length === 0) {
+                    sheetSelect.innerHTML = '<option value="">No sheets found</option>';
+                } else {
+                    sheets.forEach(sheet => {
+                        const option = document.createElement('option');
+                        option.value = sheet;
+                        option.textContent = sheet;
+                        sheetSelect.appendChild(option);
+                    });
+                    // Auto-select if only one sheet
+                    if (sheets.length === 1) {
+                        sheetSelect.value = sheets[0];
+                    }
+                }
+                sheetSelect.disabled = false;
+            }
+            toggleSubmitButton();
+        } catch (err) {
+            console.error(err);
+            if (sheetSelect) {
+                sheetSelect.innerHTML = '<option value="">Error loading sheets</option>';
+                sheetSelect.disabled = true;
+            }
+            showMessage('Error reading sheet names. Please check the file.', 'error');
+        } finally {
+            if (sheetLoading) sheetLoading.style.display = 'none';
+        }
+    });
+}
+
+// Company select change
+const companySelect = document.getElementById('companySelect');
+if (companySelect) {
+    companySelect.addEventListener('change', toggleSubmitButton);
+}
+
+// Sheet select change
+const sheetSelect = document.getElementById('sheetSelect');
+if (sheetSelect) {
+    sheetSelect.addEventListener('change', toggleSubmitButton);
+}
+
+// Form submission
+const convertForm = document.getElementById('convertForm');
+if (convertForm) {
+    convertForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const submitBtn = document.getElementById('submitBtn');
+        const progress = document.getElementById('progress');
+        const progressBar = document.getElementById('progressBar');
+        const messageDiv = document.getElementById('message');
+
+        // Save original button text
+        const originalButtonText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '⏳ Processing...';
+        submitBtn.disabled = true;
+
+        // Show progress bar (simple simulation, real progress not available)
+        if (progress) progress.style.display = 'block';
+        if (progressBar) progressBar.style.width = '0%';
+        if (messageDiv) messageDiv.style.display = 'none';
+
+        const formData = new FormData(convertForm);
+
+        try {
+            const response = await fetch('/api/convert', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (progressBar) progressBar.style.width = '100%';
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                const contentDisposition = response.headers.get('Content-Disposition');
+                let filename = 'output.xml';
+                if (contentDisposition) {
+                    const match = contentDisposition.match(/filename="?([^"]+)"?/);
+                    if (match) filename = match[1];
+                }
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                const records = response.headers.get('X-Records-Processed');
+                if (messageDiv) {
+                    messageDiv.className = 'message success';
+                    messageDiv.innerHTML = `✅ Conversion successful! ${records ? records + ' records processed.' : ''}`;
+                    messageDiv.style.display = 'block';
+                }
+            } else {
+                const error = await response.text();
+                throw new Error(error);
+            }
+        } catch (err) {
+            if (messageDiv) {
+                messageDiv.className = 'message error';
+                messageDiv.innerHTML = `❌ Error: ${err.message}`;
+                messageDiv.style.display = 'block';
+            }
+            showMessage('Conversion failed: ' + err.message, 'error');
+        } finally {
+            setTimeout(() => {
+                if (progress) progress.style.display = 'none';
+                if (progressBar) progressBar.style.width = '0%';
+                submitBtn.innerHTML = originalButtonText;
+                submitBtn.disabled = false; // re‑enable for next try
+                toggleSubmitButton(); // ensure correct state
+            }, 500);
+        }
+    });
+}
+
+// Initial load
+loadCompaniesForConverter();
 </script>

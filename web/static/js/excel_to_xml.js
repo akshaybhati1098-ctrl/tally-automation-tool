@@ -6,12 +6,23 @@ const sheetLoading = document.getElementById('sheetLoading');
 const submitBtn = document.getElementById('submitBtn');
 const companySelect = document.getElementById('companySelect');
 
+// Store companies list (avoid implicit global)
+let companies = [];
+
+// Simple message function (fallback if not defined elsewhere)
+function showMessage(msg, type = 'info') {
+    console.log(`[${type}] ${msg}`);
+    // You can replace this with a proper toast/notification
+    if (type === 'error') alert(msg);
+}
+
+// ---------- COMPANY DROPDOWN ----------
 async function loadCompaniesForConverter() {
     if (!companySelect) return;
     try {
         const response = await fetch('/api/companies');
         const data = await response.json();
-        companies = data.companies;
+        companies = data.companies || [];
         companySelect.innerHTML = '<option value="">-- Select company --</option>';
         companies.forEach(c => {
             const opt = document.createElement('option');
@@ -21,9 +32,14 @@ async function loadCompaniesForConverter() {
         });
     } catch (err) {
         console.error('Failed to load companies', err);
+        showMessage('Failed to load companies', 'error');
     }
 }
 
+// Make it globally accessible so mapping page can refresh it
+window.loadCompaniesForConverter = loadCompaniesForConverter;
+
+// Enable/disable submit button based on selections
 if (companySelect) {
     companySelect.addEventListener('change', () => {
         if (submitBtn) {
@@ -32,6 +48,7 @@ if (companySelect) {
     });
 }
 
+// ---------- SHEET DETECTION ----------
 if (fileInput) {
     fileInput.addEventListener('change', async (e) => {
         const file = e.target.files[0];
@@ -71,7 +88,13 @@ if (fileInput) {
                     sheetSelect.appendChild(option);
                 });
                 sheetSelect.disabled = false;
+
+                // Auto-select if only one sheet
+                if (sheets.length === 1) {
+                    sheetSelect.value = sheets[0];
+                }
             }
+            // Enable submit if company is already selected
             if (submitBtn) submitBtn.disabled = !companySelect || !companySelect.value;
         } catch (err) {
             console.error(err);
@@ -142,6 +165,7 @@ if (convertForm) {
                 messageDiv.innerHTML = `❌ Error: ${err.message}`;
                 messageDiv.style.display = 'block';
             }
+            showMessage('Conversion failed: ' + err.message, 'error');
         } finally {
             setTimeout(() => {
                 if (progress) progress.style.display = 'none';
@@ -151,66 +175,7 @@ if (convertForm) {
     });
 }
 
-// ---------- PDF TO EXCEL CONVERTER ----------
-const pdfConvertForm = document.getElementById('pdfConvertForm');
-if (pdfConvertForm) {
-    pdfConvertForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const formData = new FormData(e.target);
-        const progress = document.getElementById('pdfProgress');
-        const progressBar = document.getElementById('pdfProgressBar');
-        const messageDiv = document.getElementById('pdfMessage');
-
-        if (progress) progress.style.display = 'block';
-        if (progressBar) progressBar.style.width = '0%';
-        if (messageDiv) messageDiv.style.display = 'none';
-
-        try {
-            const response = await fetch('/api/convert-pdf', {
-                method: 'POST',
-                body: formData
-            });
-
-            if (progressBar) progressBar.style.width = '100%';
-
-            if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                const contentDisposition = response.headers.get('Content-Disposition');
-                let filename = 'converted.xlsx';
-                if (contentDisposition) {
-                    const match = contentDisposition.match(/filename="?([^"]+)"?/);
-                    if (match) filename = match[1];
-                }
-                a.download = filename;
-                document.body.appendChild(a);
-                a.click();
-                a.remove();
-                window.URL.revokeObjectURL(url);
-
-                if (messageDiv) {
-                    messageDiv.className = 'message success';
-                    messageDiv.innerHTML = '✅ Conversion successful!';
-                    messageDiv.style.display = 'block';
-                }
-            } else {
-                const error = await response.text();
-                throw new Error(error);
-            }
-        } catch (err) {
-            if (messageDiv) {
-                messageDiv.className = 'message error';
-                messageDiv.innerHTML = `❌ Error: ${err.message}`;
-                messageDiv.style.display = 'block';
-            }
-        } finally {
-            setTimeout(() => {
-                if (progress) progress.style.display = 'none';
-                if (progressBar) progressBar.style.width = '0%';
-            }, 1000);
-        }
-    });
-}
-
+// Initialize on page load
+document.addEventListener('DOMContentLoaded', () => {
+    loadCompaniesForConverter();
+});
