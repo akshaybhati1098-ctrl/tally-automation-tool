@@ -369,6 +369,24 @@
             box-shadow: none;
         }
 
+        /* Converting state — progress fill inside button */
+        .converter-wrap .btn-primary.converting {
+            cursor: not-allowed;
+            background: linear-gradient(135deg, var(--accent), #3b29e8);
+            overflow: hidden;
+        }
+
+        .converter-wrap .btn-primary.converting::after {
+            content: '';
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            width: var(--btn-pct, 0%);
+            background: rgba(255,255,255,0.15);
+            transition: width 0.4s ease;
+            pointer-events: none;
+            border-radius: 14px;
+        }
+
         /* ── Progress bar ── */
         .converter-wrap .progress {
             margin-top: 1.4rem;
@@ -611,7 +629,9 @@
             </div>
 
             <button type="submit" class="btn btn-primary" id="submitBtn" disabled>
-                📄 Generate Tally Compatible File
+                <span id="btnIcon">📄</span>
+                <span id="btnText">Generate Tally Compatible File</span>
+                <span id="btnPct" style="display:none;font-size:0.82rem;opacity:0.85;margin-left:0.3rem;"></span>
             </button>
         </form>
 
@@ -1036,6 +1056,55 @@
                         <div class="upload-cta">Choose File</div>`;
                 }
             }, false); // false = does not capture, fires after original listener
+
+            // ── Button converting UI (UI only — original submit logic untouched) ──
+            const btnIcon = document.getElementById('btnIcon');
+            const btnText = document.getElementById('btnText');
+            const btnPct  = document.getElementById('btnPct');
+
+            const steps = [
+                { pct: 20,  icon: '📖', label: 'Reading file…' },
+                { pct: 50,  icon: '⚙️', label: 'Processing rows…' },
+                { pct: 80,  icon: '🔄', label: 'Building XML…' },
+                { pct: 100, icon: '✅', label: 'Done!' },
+            ];
+
+            function setBtnState(pct, icon, label) {
+                submitBtn.style.setProperty('--btn-pct', pct + '%');
+                btnIcon.textContent = icon;
+                btnText.textContent = label;
+                btnPct.style.display = 'inline';
+                btnPct.textContent   = pct + '%';
+            }
+
+            function resetBtn() {
+                submitBtn.classList.remove('converting');
+                submitBtn.style.removeProperty('--btn-pct');
+                btnIcon.textContent  = '📄';
+                btnText.textContent  = 'Generate Tally Compatible File';
+                btnPct.style.display = 'none';
+            }
+
+            form.addEventListener('submit', function() {
+                submitBtn.classList.add('converting');
+                let i = 0;
+                setBtnState(steps[0].pct, steps[0].icon, steps[0].label);
+
+                // Watch progressBar width changes to sync button UI
+                const observer = new MutationObserver(() => {
+                    const w = parseFloat(progressBar.style.width) || 0;
+                    if      (w >= 90) setBtnState(steps[3].pct, steps[3].icon, steps[3].label);
+                    else if (w >= 60) setBtnState(steps[2].pct, steps[2].icon, steps[2].label);
+                    else if (w >= 30) setBtnState(steps[1].pct, steps[1].icon, steps[1].label);
+
+                    if (w >= 100) {
+                        observer.disconnect();
+                        setTimeout(resetBtn, 2200);
+                    }
+                });
+
+                observer.observe(progressBar, { attributes: true, attributeFilter: ['style'] });
+            });
         })();
     </script>
 </div><!-- /converter-wrap -->
