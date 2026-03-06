@@ -1,820 +1,362 @@
-<div class="card">
-    <div class="card-header">
-        <h3>Ledger Mapping Editor</h3>
-    </div>
-    <div class="mapping-container" style="display: flex; gap: 2rem;">
-        <!-- Left: Company List -->
-        <div class="company-panel" style="flex: 1;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                <h4><i class="icon">🏢</i> Companies</h4>
-                <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
-            </div>
-            <div id="companyList" class="company-list"></div>
-        </div>
-
-        <!-- Right: Mapping Editor for selected company -->
-        <div class="mapping-panel" style="flex: 2;">
-            <div class="group-panel">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <h4><i class="icon">📋</i> Ledger Groups for <span id="selectedCompany" class="company-name">Select a company</span></h4>
-                    <div>
-                        <button class="btn btn-warning btn-sm" id="renameCompanyBtn" title="Rename company" style="display: none;">✏️ Rename</button>
-                        <button class="btn btn-danger btn-sm" id="deleteCompanyBtn" title="Delete company" style="display: none;">🗑️ Delete</button>
-                    </div>
-                </div>
-                <div id="groupList" class="group-list"></div>
-            </div>
-
-            <div class="rate-panel" style="margin-top: 2rem;">
-                <h4 id="currentGroupTitle">Select a group</h4>
-                <div id="rateList" class="rate-list"></div>
-                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
-                    <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Rate Modal -->
-<div id="rateModal" class="modal">
-    <div class="modal-content">
-        <h3>Add GST Rate</h3>
-        <div class="form-group">
-            <label for="modalRate">GST Rate (%)</label>
-            <input type="number" id="modalRate" step="0.01" min="0" max="100" placeholder="e.g., 18">
-        </div>
-        <div class="form-group">
-            <label for="modalLedger">Ledger Name</label>
-            <input type="text" id="modalLedger" placeholder="e.g., Local Sale @18%">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="modalOkBtn">OK</button>
-            <button class="btn btn-danger" id="modalCancelBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<!-- Company Name Modal (for Add/Rename) -->
-<div id="companyModal" class="modal">
-    <div class="modal-content">
-        <h3 id="companyModalTitle">Add Company</h3>
-        <div class="form-group">
-            <label for="companyNameInput">Company Name</label>
-            <input type="text" id="companyNameInput" placeholder="Enter company name">
-        </div>
-        <div class="modal-actions">
-            <button class="btn btn-success" id="companyModalOkBtn">OK</button>
-            <button class="btn btn-danger" id="companyModalCancelBtn">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<style>
-    /* ===== MAPPING EDITOR STYLES ===== */
-    
-    /* Company and Group Lists */
-    .company-list, .group-list, .rate-list {
-        max-height: 350px;
-        overflow-y: auto;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        background-color: #fff;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .company-item, .group-item {
-        padding: 12px 15px;
-        cursor: pointer;
-        border-bottom: 1px solid #f0f0f0;
-        transition: all 0.2s ease;
-        font-size: 14px;
-    }
-    
-    .company-item:hover, .group-item:hover {
-        background-color: #f8f9fa;
-        padding-left: 20px;
-    }
-    
-    .company-item.active, .group-item.active {
-        background-color: #e3f2fd;
-        border-left: 4px solid #2196F3;
-        font-weight: 600;
-        color: #1976d2;
-    }
-    
-    .company-item:last-child, .group-item:last-child {
-        border-bottom: none;
-    }
-    
-    /* Rate Items */
-    .rate-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 15px;
-        border-bottom: 1px solid #f0f0f0;
-        transition: background-color 0.2s ease;
-    }
-    
-    .rate-item:hover {
-        background-color: #f8f9fa;
-    }
-    
-    .rate-item span {
-        font-size: 14px;
-        color: #495057;
-    }
-    
-    .rate-item .btn-danger {
-        padding: 4px 8px;
-        font-size: 12px;
-        opacity: 0.7;
-        transition: opacity 0.2s ease;
-    }
-    
-    .rate-item .btn-danger:hover {
-        opacity: 1;
-    }
-    
-    /* Modal Styles */
-    .modal {
-        display: none;
-        position: fixed;
-        z-index: 9999;
-        left: 0;
-        top: 0;
-        width: 100%;
-        height: 100%;
-        overflow: auto;
-        background-color: rgba(0,0,0,0.5);
-        animation: fadeIn 0.3s ease;
-    }
-    
-    @keyframes fadeIn {
-        from { opacity: 0; }
-        to { opacity: 1; }
-    }
-    
-    .modal-content {
-        background-color: #fff;
-        margin: 10% auto;
-        padding: 25px;
-        border: none;
-        width: 400px;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        animation: slideDown 0.3s ease;
-    }
-    
-    @keyframes slideDown {
-        from {
-            transform: translateY(-50px);
-            opacity: 0;
-        }
-        to {
-            transform: translateY(0);
-            opacity: 1;
-        }
-    }
-    
-    .modal h3 {
-        margin-top: 0;
-        margin-bottom: 20px;
-        color: #333;
-        font-size: 20px;
-        font-weight: 600;
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 12px;
-    }
-    
-    /* Form Groups */
-    .form-group {
-        margin-bottom: 20px;
-    }
-    
-    .form-group label {
-        display: block;
-        margin-bottom: 8px;
-        color: #555;
-        font-weight: 500;
-        font-size: 14px;
-    }
-    
-    .form-group input {
-        width: 100%;
-        padding: 10px 12px;
-        border: 1px solid #ddd;
-        border-radius: 6px;
-        font-size: 14px;
-        transition: border-color 0.2s ease, box-shadow 0.2s ease;
-        box-sizing: border-box;
-    }
-    
-    .form-group input:focus {
-        outline: none;
-        border-color: #2196F3;
-        box-shadow: 0 0 0 3px rgba(33,150,243,0.1);
-    }
-    
-    .form-group input::placeholder {
-        color: #aaa;
-        font-size: 13px;
-    }
-    
-    /* Modal Actions */
-    .modal-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 10px;
-        margin-top: 25px;
-        padding-top: 15px;
-        border-top: 1px solid #f0f0f0;
-    }
-    
-    /* Button Styles */
-    .btn {
-        padding: 8px 16px;
-        border: none;
-        border-radius: 6px;
-        cursor: pointer;
-        font-size: 14px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-    
-    .btn-sm {
-        padding: 5px 10px;
-        font-size: 13px;
-    }
-    
-    .btn-success {
-        background-color: #28a745;
-        color: white;
-    }
-    
-    .btn-success:hover {
-        background-color: #218838;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(40,167,69,0.2);
-    }
-    
-    .btn-warning {
-        background-color: #ffc107;
-        color: #333;
-    }
-    
-    .btn-warning:hover {
-        background-color: #e0a800;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(255,193,7,0.2);
-    }
-    
-    .btn-danger {
-        background-color: #dc3545;
-        color: white;
-    }
-    
-    .btn-danger:hover {
-        background-color: #c82333;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(220,53,69,0.2);
-    }
-    
-    .btn-primary {
-        background-color: #007bff;
-        color: white;
-    }
-    
-    .btn-primary:hover {
-        background-color: #0069d9;
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(0,123,255,0.2);
-    }
-    
-    .btn:active {
-        transform: translateY(0);
-        box-shadow: none;
-    }
-    
-    .btn:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-    }
-    
-    /* Company name highlight */
-    .company-name {
-        font-weight: 600;
-        color: #2196F3;
-        background-color: #e3f2fd;
-        padding: 3px 10px;
-        border-radius: 20px;
-        font-size: 14px;
-    }
-    
-    /* Card styling */
-    .card {
-        background: white;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        padding: 20px;
-        margin-bottom: 20px;
-    }
-    
-    .card-header {
-        margin-bottom: 20px;
-        border-bottom: 2px solid #f0f0f0;
-        padding-bottom: 15px;
-    }
-    
-    .card-header h3 {
-        margin: 0;
-        color: #333;
-        font-size: 22px;
-        font-weight: 600;
-    }
-    
-    .card-header h4 {
-        margin: 0;
-        color: #555;
-        font-size: 16px;
-        font-weight: 500;
-    }
-    
-    /* Icons */
-    .icon {
-        font-size: 20px;
-        margin-right: 8px;
-        vertical-align: middle;
-    }
-    
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-        .mapping-container {
-            flex-direction: column;
-        }
-        
-        .modal-content {
-            width: 90%;
-            margin: 20% auto;
-            padding: 20px;
-        }
-        
-        .company-list, .group-list {
-            max-height: 250px;
-        }
-    }
-    
-    /* Scrollbar styling */
-    .company-list::-webkit-scrollbar,
-    .group-list::-webkit-scrollbar,
-    .rate-list::-webkit-scrollbar {
-        width: 8px;
-    }
-    
-    .company-list::-webkit-scrollbar-track,
-    .group-list::-webkit-scrollbar-track,
-    .rate-list::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-    }
-    
-    .company-list::-webkit-scrollbar-thumb,
-    .group-list::-webkit-scrollbar-thumb,
-    .rate-list::-webkit-scrollbar-thumb {
-        background: #c1c1c1;
-        border-radius: 4px;
-    }
-    
-    .company-list::-webkit-scrollbar-thumb:hover,
-    .group-list::-webkit-scrollbar-thumb:hover,
-    .rate-list::-webkit-scrollbar-thumb:hover {
-        background: #a8a8a8;
-    }
-    
-    /* Empty state styling */
-    .company-list:empty::after,
-    .group-list:empty::after,
-    .rate-list:empty::after {
-        content: "No items to display";
-        display: block;
-        padding: 20px;
-        text-align: center;
-        color: #999;
-        font-style: italic;
-        font-size: 14px;
-    }
-    
-    /* Rate list specific empty state */
-    .rate-list:empty::after {
-        content: "No rates added yet. Click 'Add Rate' to create one.";
-    }
-    
-    /* Company list specific empty state */
-    .company-list:empty::after {
-        content: "No companies found. Click 'Add' to create one.";
-    }
-    
-    /* Group list specific empty state */
-    .group-list:empty::after {
-        content: "Select a company to view groups";
-    }
-</style>
-
 <script>
-    // DOM elements
-    const companyListEl = document.getElementById('companyList');
-    const groupListEl = document.getElementById('groupList');
-    const rateListEl = document.getElementById('rateList');
-    const selectedCompanySpan = document.getElementById('selectedCompany');
-    const currentGroupTitle = document.getElementById('currentGroupTitle');
-    const renameCompanyBtn = document.getElementById('renameCompanyBtn');
-    const deleteCompanyBtn = document.getElementById('deleteCompanyBtn');
-    const addRateBtn = document.getElementById('addRateBtn');
-    const saveMappingBtn = document.getElementById('saveMappingBtn');
+    document.addEventListener('DOMContentLoaded', function() {
+        // DOM elements with null checks
+        const companyListEl = document.getElementById('companyList');
+        const groupListEl = document.getElementById('groupList');
+        const rateListEl = document.getElementById('rateList');
+        const selectedCompanySpan = document.getElementById('selectedCompany');
+        const currentGroupTitle = document.getElementById('currentGroupTitle');
+        const renameCompanyBtn = document.getElementById('renameCompanyBtn');
+        const deleteCompanyBtn = document.getElementById('deleteCompanyBtn');
+        const addRateBtn = document.getElementById('addRateBtn');
+        const saveMappingBtn = document.getElementById('saveMappingBtn');
 
-    // Modals
-    const companyModal = document.getElementById('companyModal');
-    const rateModal = document.getElementById('rateModal');
-    const companyModalTitle = document.getElementById('companyModalTitle');
-    const companyNameInput = document.getElementById('companyNameInput');
-    const companyModalOk = document.getElementById('companyModalOkBtn');
-    const companyModalCancel = document.getElementById('companyModalCancelBtn');
-    const modalRate = document.getElementById('modalRate');
-    const modalLedger = document.getElementById('modalLedger');
-    const modalOk = document.getElementById('modalOkBtn');
-    const modalCancel = document.getElementById('modalCancelBtn');
+        // Modals
+        const companyModal = document.getElementById('companyModal');
+        const rateModal = document.getElementById('rateModal');
+        const companyModalTitle = document.getElementById('companyModalTitle');
+        const companyNameInput = document.getElementById('companyNameInput');
+        const companyModalOk = document.getElementById('companyModalOkBtn');
+        const companyModalCancel = document.getElementById('companyModalCancelBtn');
+        const modalRate = document.getElementById('modalRate');
+        const modalLedger = document.getElementById('modalLedger');
+        const modalOk = document.getElementById('modalOkBtn');
+        const modalCancel = document.getElementById('modalCancelBtn');
 
-    // State
-    let companies = [];
-    let selectedCompany = null;
-    let selectedGroup = null;
-    let currentMapping = null;
+        // State
+        let companies = [];
+        let selectedCompany = null;
+        let selectedGroup = null;
+        let currentMapping = null;
 
-    // Group keys that match your backend structure
-    const GROUP_KEYS = ['SALES', 'SALES_IGST', 'PURCHASE', 'CGST_RATES', 'SGST_RATES', 'IGST_RATES'];
+        const GROUP_KEYS = ['SALES', 'SALES_IGST', 'PURCHASE', 'CGST_RATES', 'SGST_RATES', 'IGST_RATES'];
+        const GROUP_DISPLAY_NAMES = {
+            'SALES': 'Sales (Local)',
+            'SALES_IGST': 'Sales (IGST/Interstate)',
+            'PURCHASE': 'Purchases',
+            'CGST_RATES': 'CGST Rates',
+            'SGST_RATES': 'SGST Rates',
+            'IGST_RATES': 'IGST Rates'
+        };
 
-    // Group display names (optional - for better UI)
-    const GROUP_DISPLAY_NAMES = {
-        'SALES': 'Sales (Local)',
-        'SALES_IGST': 'Sales (IGST/Interstate)',
-        'PURCHASE': 'Purchases',
-        'CGST_RATES': 'CGST Rates',
-        'SGST_RATES': 'SGST Rates',
-        'IGST_RATES': 'IGST Rates'
-    };
-
-    // ===== COMPANY FUNCTIONS =====
-    
-    async function loadCompanies() {
-        try {
-            const res = await fetch('/api/companies');
-            const data = await res.json();
-            companies = data.companies || [];
-            renderCompanyList();
-        } catch (error) {
-            console.error('Failed to load companies:', error);
-            showError('Failed to load companies');
+        // ===== COMPANY FUNCTIONS =====
+        async function loadCompanies() {
+            try {
+                const res = await fetch('/api/companies');
+                const data = await res.json();
+                companies = data.companies || [];
+                if (companyListEl) renderCompanyList();
+            } catch (error) {
+                console.error('Failed to load companies:', error);
+                showError('Failed to load companies');
+            }
         }
-    }
 
-    function renderCompanyList() {
-        if (!companies.length) {
-            companyListEl.innerHTML = ''; // Empty state handled by CSS
-            return;
+        function renderCompanyList() {
+            if (!companyListEl) return;
+            if (!companies.length) {
+                companyListEl.innerHTML = '';
+                return;
+            }
+            companyListEl.innerHTML = companies.map(name => `
+                <div class="company-item ${name === selectedCompany ? 'active' : ''}" data-name="${name}">
+                    ${name}
+                </div>
+            `).join('');
+            document.querySelectorAll('.company-item').forEach(item => {
+                item.addEventListener('click', () => selectCompany(item.dataset.name));
+            });
         }
-        
-        companyListEl.innerHTML = companies.map(name => `
-            <div class="company-item ${name === selectedCompany ? 'active' : ''}" data-name="${name}">
-                ${name}
-            </div>
-        `).join('');
-        
-        document.querySelectorAll('.company-item').forEach(item => {
-            item.addEventListener('click', () => selectCompany(item.dataset.name));
-        });
-    }
 
-    async function selectCompany(name) {
-        selectedCompany = name;
-        selectedGroup = null; // Reset selected group
-        selectedCompanySpan.textContent = name;
-        renameCompanyBtn.style.display = 'inline-block';
-        deleteCompanyBtn.style.display = 'inline-block';
-        currentGroupTitle.textContent = 'Select a group';
+        async function selectCompany(name) {
+            selectedCompany = name;
+            selectedGroup = null;
+            if (selectedCompanySpan) selectedCompanySpan.textContent = name;
+            if (renameCompanyBtn) renameCompanyBtn.style.display = 'inline-block';
+            if (deleteCompanyBtn) deleteCompanyBtn.style.display = 'inline-block';
+            if (currentGroupTitle) currentGroupTitle.textContent = 'Select a group';
 
-        try {
-            const res = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
-            currentMapping = await res.json();
-            renderGroupList();
-            renderRateList(); // This will show empty state since no group selected
-        } catch (error) {
-            console.error('Failed to load mapping:', error);
-            showError('Failed to load company mapping');
+            try {
+                const res = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
+                currentMapping = await res.json();
+                if (groupListEl) renderGroupList();
+                if (rateListEl) renderRateList();
+            } catch (error) {
+                console.error('Failed to load mapping:', error);
+                showError('Failed to load company mapping');
+            }
         }
-    }
 
-    // ===== GROUP FUNCTIONS =====
-    
-    function renderGroupList() {
-        groupListEl.innerHTML = GROUP_KEYS.map(key => `
-            <div class="group-item ${key === selectedGroup ? 'active' : ''}" data-key="${key}">
-                ${GROUP_DISPLAY_NAMES[key] || key}
-            </div>
-        `).join('');
-        
-        document.querySelectorAll('.group-item').forEach(item => {
-            item.addEventListener('click', () => selectGroup(item.dataset.key));
-        });
-    }
-
-    function selectGroup(key) {
-        selectedGroup = key;
-        currentGroupTitle.textContent = GROUP_DISPLAY_NAMES[key] || key;
-        renderRateList();
-    }
-
-    // ===== RATE FUNCTIONS =====
-    
-    function renderRateList() {
-        if (!selectedGroup || !currentMapping) {
-            rateListEl.innerHTML = ''; // Empty state handled by CSS
-            return;
+        // ===== GROUP FUNCTIONS =====
+        function renderGroupList() {
+            if (!groupListEl) return;
+            groupListEl.innerHTML = GROUP_KEYS.map(key => `
+                <div class="group-item ${key === selectedGroup ? 'active' : ''}" data-key="${key}">
+                    ${GROUP_DISPLAY_NAMES[key] || key}
+                </div>
+            `).join('');
+            document.querySelectorAll('.group-item').forEach(item => {
+                item.addEventListener('click', () => selectGroup(item.dataset.key));
+            });
         }
-        
-        const rates = currentMapping[selectedGroup] || {};
-        const entries = Object.entries(rates);
-        
-        if (!entries.length) {
-            rateListEl.innerHTML = ''; // Empty state will show via CSS
-            return;
-        }
-        
-        rateListEl.innerHTML = entries.map(([rate, ledger]) => `
-            <div class="rate-item">
-                <span>${rate}% - ${ledger}</span>
-                <button class="btn btn-sm btn-danger" onclick="deleteRate('${rate}')">🗑️ Delete</button>
-            </div>
-        `).join('');
-    }
 
-    window.deleteRate = function(rate) {
-        if (!selectedGroup || !currentMapping) return;
-        
-        if (confirm(`Delete rate ${rate}%?`)) {
-            delete currentMapping[selectedGroup][rate];
+        function selectGroup(key) {
+            selectedGroup = key;
+            if (currentGroupTitle) currentGroupTitle.textContent = GROUP_DISPLAY_NAMES[key] || key;
             renderRateList();
         }
-    };
 
-    // ===== COMPANY ACTIONS =====
-    
-    document.getElementById('addCompanyBtn').addEventListener('click', () => {
-        companyModalTitle.textContent = 'Add Company';
-        companyNameInput.value = '';
-        companyModal.style.display = 'block';
-        companyModalOk.onclick = addCompanyHandler;
-    });
-
-    async function addCompanyHandler() {
-        const name = companyNameInput.value.trim();
-        if (!name) {
-            alert('Please enter a company name');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('name', name);
-
-        try {
-            const res = await fetch('/api/companies', {
-                method: 'POST',
-                body: formData
-            });
-            
-            if (res.ok) {
-                companyModal.style.display = 'none';
-                await loadCompanies();
-                showSuccess('Company added successfully');
-            } else {
-                const err = await res.text();
-                alert('Failed to add company: ' + err);
+        // ===== RATE FUNCTIONS =====
+        function renderRateList() {
+            if (!rateListEl) return;
+            if (!selectedGroup || !currentMapping) {
+                rateListEl.innerHTML = '';
+                return;
             }
-        } catch (error) {
-            console.error('Error adding company:', error);
-            alert('Failed to add company');
-        }
-    }
-
-    renameCompanyBtn.addEventListener('click', () => {
-        if (!selectedCompany) return;
-        
-        companyModalTitle.textContent = 'Rename Company';
-        companyNameInput.value = selectedCompany;
-        companyModal.style.display = 'block';
-        companyModalOk.onclick = renameCompanyHandler;
-    });
-
-    async function renameCompanyHandler() {
-        const newName = companyNameInput.value.trim();
-        if (!newName) {
-            alert('Please enter a company name');
-            return;
+            const rates = currentMapping[selectedGroup] || {};
+            const entries = Object.entries(rates);
+            if (!entries.length) {
+                rateListEl.innerHTML = '';
+                return;
+            }
+            rateListEl.innerHTML = entries.map(([rate, ledger]) => `
+                <div class="rate-item">
+                    <span>${rate}% - ${ledger}</span>
+                    <button class="btn btn-sm btn-danger" onclick="deleteRate('${rate}')">🗑️ Delete</button>
+                </div>
+            `).join('');
         }
 
-        // Note: Your backend doesn't support rename directly
-        // This is a workaround: delete old, create new, copy mapping
-        if (confirm('Rename will delete the old company and create a new one. Continue?')) {
+        window.deleteRate = function(rate) {
+            if (!selectedGroup || !currentMapping) return;
+            if (confirm(`Delete rate ${rate}%?`)) {
+                delete currentMapping[selectedGroup][rate];
+                renderRateList();
+            }
+        };
+
+        // ===== COMPANY ACTIONS =====
+        const addCompanyBtn = document.getElementById('addCompanyBtn');
+        if (addCompanyBtn) {
+            addCompanyBtn.addEventListener('click', () => {
+                if (companyModalTitle) companyModalTitle.textContent = 'Add Company';
+                if (companyNameInput) companyNameInput.value = '';
+                if (companyModal) companyModal.style.display = 'block';
+                if (companyModalOk) companyModalOk.onclick = addCompanyHandler;
+            });
+        }
+
+        async function addCompanyHandler() {
+            const name = companyNameInput ? companyNameInput.value.trim() : '';
+            if (!name) {
+                alert('Please enter a company name');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('name', name);
             try {
-                // Save current mapping
-                const mappingCopy = {...currentMapping};
-                
-                // Delete old company
-                const deleteRes = await fetch(`/api/companies/${encodeURIComponent(selectedCompany)}`, {
-                    method: 'DELETE'
-                });
-                
-                if (!deleteRes.ok) throw new Error('Failed to delete old company');
-                
-                // Create new company
-                const formData = new FormData();
-                formData.append('name', newName);
-                
-                const createRes = await fetch('/api/companies', {
+                const res = await fetch('/api/companies', {
                     method: 'POST',
                     body: formData
                 });
-                
-                if (!createRes.ok) throw new Error('Failed to create new company');
-                
-                // Save mapping to new company
-                const saveRes = await fetch(`/api/mapping/${encodeURIComponent(newName)}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(mappingCopy)
-                });
-                
-                if (!saveRes.ok) throw new Error('Failed to save mapping');
-                
-                companyModal.style.display = 'none';
-                await loadCompanies();
-                await selectCompany(newName);
-                showSuccess('Company renamed successfully');
-                
+                if (res.ok) {
+                    if (companyModal) companyModal.style.display = 'none';
+                    await loadCompanies();
+                    showSuccess('Company added successfully');
+                } else {
+                    const err = await res.text();
+                    alert('Failed to add company: ' + err);
+                }
             } catch (error) {
-                console.error('Error renaming company:', error);
-                alert('Failed to rename company: ' + error.message);
+                console.error('Error adding company:', error);
+                alert('Failed to add company');
             }
         }
-    }
 
-    deleteCompanyBtn.addEventListener('click', async () => {
-        if (!selectedCompany) return;
-        
-        if (!confirm(`Are you sure you want to delete company "${selectedCompany}"? This cannot be undone.`)) {
-            return;
-        }
-        
-        try {
-            const res = await fetch(`/api/companies/${encodeURIComponent(selectedCompany)}`, {
-                method: 'DELETE'
+        if (renameCompanyBtn) {
+            renameCompanyBtn.addEventListener('click', () => {
+                if (!selectedCompany) return;
+                if (companyModalTitle) companyModalTitle.textContent = 'Rename Company';
+                if (companyNameInput) companyNameInput.value = selectedCompany;
+                if (companyModal) companyModal.style.display = 'block';
+                if (companyModalOk) companyModalOk.onclick = renameCompanyHandler;
             });
-            
-            if (res.ok) {
-                selectedCompany = null;
-                selectedGroup = null;
-                currentMapping = null;
-                selectedCompanySpan.textContent = 'Select a company';
-                renameCompanyBtn.style.display = 'none';
-                deleteCompanyBtn.style.display = 'none';
-                groupListEl.innerHTML = '';
-                rateListEl.innerHTML = '';
-                currentGroupTitle.textContent = 'Select a group';
-                await loadCompanies();
-                showSuccess('Company deleted successfully');
-            } else {
-                alert('Failed to delete company');
+        }
+
+        async function renameCompanyHandler() {
+            const newName = companyNameInput ? companyNameInput.value.trim() : '';
+            if (!newName) {
+                alert('Please enter a company name');
+                return;
             }
-        } catch (error) {
-            console.error('Error deleting company:', error);
-            alert('Failed to delete company');
-        }
-    });
-
-    // ===== RATE ACTIONS =====
-    
-    addRateBtn.addEventListener('click', () => {
-        if (!selectedGroup) {
-            alert('Please select a group first');
-            return;
-        }
-        if (!selectedCompany) {
-            alert('Please select a company first');
-            return;
-        }
-        
-        modalRate.value = '';
-        modalLedger.value = '';
-        rateModal.style.display = 'block';
-    });
-
-    modalOk.addEventListener('click', async () => {
-        const rate = parseFloat(modalRate.value);
-        const ledger = modalLedger.value.trim();
-        
-        if (isNaN(rate) || rate <= 0) {
-            alert('Please enter a valid rate');
-            return;
-        }
-        if (!ledger) {
-            alert('Please enter a ledger name');
-            return;
+            if (confirm('Rename will delete the old company and create a new one. Continue?')) {
+                try {
+                    const mappingCopy = {...currentMapping};
+                    const deleteRes = await fetch(`/api/companies/${encodeURIComponent(selectedCompany)}`, {
+                        method: 'DELETE'
+                    });
+                    if (!deleteRes.ok) throw new Error('Failed to delete old company');
+                    const formData = new FormData();
+                    formData.append('name', newName);
+                    const createRes = await fetch('/api/companies', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    if (!createRes.ok) throw new Error('Failed to create new company');
+                    const saveRes = await fetch(`/api/mapping/${encodeURIComponent(newName)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(mappingCopy)
+                    });
+                    if (!saveRes.ok) throw new Error('Failed to save mapping');
+                    if (companyModal) companyModal.style.display = 'none';
+                    await loadCompanies();
+                    await selectCompany(newName);
+                    showSuccess('Company renamed successfully');
+                } catch (error) {
+                    console.error('Error renaming company:', error);
+                    alert('Failed to rename company: ' + error.message);
+                }
+            }
         }
 
-        // Add to current mapping
-        if (!currentMapping[selectedGroup]) {
-            currentMapping[selectedGroup] = {};
-        }
-        currentMapping[selectedGroup][rate] = ledger;
-
-        renderRateList();
-        rateModal.style.display = 'none';
-        showSuccess('Rate added successfully');
-    });
-
-    modalCancel.addEventListener('click', () => {
-        rateModal.style.display = 'none';
-    });
-
-    // ===== SAVE MAPPING =====
-    
-    saveMappingBtn.addEventListener('click', async () => {
-        if (!selectedCompany) {
-            alert('Please select a company first');
-            return;
-        }
-        
-        if (!currentMapping) {
-            alert('No mapping data to save');
-            return;
-        }
-        
-        try {
-            const res = await fetch(`/api/mapping/${encodeURIComponent(selectedCompany)}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(currentMapping)
+        if (deleteCompanyBtn) {
+            deleteCompanyBtn.addEventListener('click', async () => {
+                if (!selectedCompany) return;
+                if (!confirm(`Are you sure you want to delete company "${selectedCompany}"? This cannot be undone.`)) return;
+                try {
+                    const res = await fetch(`/api/companies/${encodeURIComponent(selectedCompany)}`, {
+                        method: 'DELETE'
+                    });
+                    if (res.ok) {
+                        selectedCompany = null;
+                        selectedGroup = null;
+                        currentMapping = null;
+                        if (selectedCompanySpan) selectedCompanySpan.textContent = 'Select a company';
+                        if (renameCompanyBtn) renameCompanyBtn.style.display = 'none';
+                        if (deleteCompanyBtn) deleteCompanyBtn.style.display = 'none';
+                        if (groupListEl) groupListEl.innerHTML = '';
+                        if (rateListEl) rateListEl.innerHTML = '';
+                        if (currentGroupTitle) currentGroupTitle.textContent = 'Select a group';
+                        await loadCompanies();
+                        showSuccess('Company deleted successfully');
+                    } else {
+                        alert('Failed to delete company');
+                    }
+                } catch (error) {
+                    console.error('Error deleting company:', error);
+                    alert('Failed to delete company');
+                }
             });
-            
-            if (res.ok) {
-                showSuccess('Mapping saved successfully');
-            } else {
-                alert('Failed to save mapping');
+        }
+
+        // ===== RATE ACTIONS =====
+        if (addRateBtn) {
+            addRateBtn.addEventListener('click', () => {
+                if (!selectedGroup) {
+                    alert('Please select a group first');
+                    return;
+                }
+                if (!selectedCompany) {
+                    alert('Please select a company first');
+                    return;
+                }
+                if (modalRate) modalRate.value = '';
+                if (modalLedger) modalLedger.value = '';
+                if (rateModal) rateModal.style.display = 'block';
+            });
+        }
+
+        if (modalOk) {
+            modalOk.addEventListener('click', async () => {
+                const rate = modalRate ? parseFloat(modalRate.value) : NaN;
+                const ledger = modalLedger ? modalLedger.value.trim() : '';
+                if (isNaN(rate) || rate <= 0) {
+                    alert('Please enter a valid rate');
+                    return;
+                }
+                if (!ledger) {
+                    alert('Please enter a ledger name');
+                    return;
+                }
+                if (!currentMapping[selectedGroup]) currentMapping[selectedGroup] = {};
+                currentMapping[selectedGroup][rate] = ledger;
+                renderRateList();
+                if (rateModal) rateModal.style.display = 'none';
+                showSuccess('Rate added successfully');
+            });
+        }
+
+        if (modalCancel) {
+            modalCancel.addEventListener('click', () => {
+                if (rateModal) rateModal.style.display = 'none';
+            });
+        }
+
+        // ===== SAVE MAPPING =====
+        if (saveMappingBtn) {
+            saveMappingBtn.addEventListener('click', async () => {
+                if (!selectedCompany) {
+                    alert('Please select a company first');
+                    return;
+                }
+                if (!currentMapping) {
+                    alert('No mapping data to save');
+                    return;
+                }
+                try {
+                    const res = await fetch(`/api/mapping/${encodeURIComponent(selectedCompany)}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(currentMapping)
+                    });
+                    if (res.ok) {
+                        showSuccess('Mapping saved successfully');
+                    } else {
+                        alert('Failed to save mapping');
+                    }
+                } catch (error) {
+                    console.error('Error saving mapping:', error);
+                    alert('Failed to save mapping');
+                }
+            });
+        }
+
+        // ===== MODAL CLOSE HANDLERS =====
+        if (companyModalCancel) {
+            companyModalCancel.addEventListener('click', () => {
+                if (companyModal) companyModal.style.display = 'none';
+            });
+        }
+
+        window.addEventListener('click', (e) => {
+            if (e.target === companyModal) {
+                companyModal.style.display = 'none';
             }
-        } catch (error) {
-            console.error('Error saving mapping:', error);
-            alert('Failed to save mapping');
+            if (e.target === rateModal) {
+                rateModal.style.display = 'none';
+            }
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                if (companyModal) companyModal.style.display = 'none';
+                if (rateModal) rateModal.style.display = 'none';
+            }
+        });
+
+        // ===== UTILITY FUNCTIONS =====
+        function showSuccess(message) {
+            console.log('Success:', message);
+            // You can replace with a toast notification
         }
-    });
 
-    // ===== MODAL CLOSE HANDLERS =====
-    
-    companyModalCancel.addEventListener('click', () => {
-        companyModal.style.display = 'none';
-    });
-
-    window.addEventListener('click', (e) => {
-        if (e.target === companyModal) {
-            companyModal.style.display = 'none';
+        function showError(message) {
+            console.error('Error:', message);
+            alert(message);
         }
-        if (e.target === rateModal) {
-            rateModal.style.display = 'none';
-        }
+
+        // Initialize
+        loadCompanies();
     });
-
-    // Handle Escape key to close modals
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            companyModal.style.display = 'none';
-            rateModal.style.display = 'none';
-        }
-    });
-
-    // ===== UTILITY FUNCTIONS =====
-    
-    function showSuccess(message) {
-        // You can implement a toast notification here
-        console.log('Success:', message);
-        // For now, just alert
-        // alert(message);
-    }
-    
-    function showError(message) {
-        console.error('Error:', message);
-        alert(message);
-    }
-
-    // Initialize
-    loadCompanies();
 </script>
