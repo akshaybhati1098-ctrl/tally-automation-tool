@@ -273,7 +273,7 @@
         }
     </style>
 </head>
-<body class="light-theme"> <!-- or dark-theme if you prefer -->
+<body class="light-theme">
     <div class="card">
         <div class="card-header">
             <h3>🔄 Excel to XML Converter</h3>
@@ -298,7 +298,7 @@
                 <label for="companySelect">Company</label>
                 <select name="company" id="companySelect" required class="form-select">
                     <option value="">-- Select company --</option>
-                    <!-- Options will be populated by JavaScript -->
+                    <!-- Options will be populated from /api/companies -->
                 </select>
             </div>
 
@@ -340,10 +340,10 @@
     </div>
 
     <script>
-        // Alert to indicate script start (optional)
-        alert('Converter script started');
+        (function() {
+            // Alert to indicate script start (optional)
+            alert('Converter script started');
 
-        document.addEventListener('DOMContentLoaded', function() {
             // DOM elements
             const fileInput = document.getElementById('fileInput');
             const sheetSelect = document.getElementById('sheetSelect');
@@ -355,19 +355,65 @@
             const progressBar = document.getElementById('progressBar');
             const messageDiv = document.getElementById('message');
 
-            // --- Populate company dropdown (static example) ---
-            // Replace this with your actual company list (could come from an API)
-            const companies = [
-                { value: 'comp1', text: 'ABC Pvt. Ltd.' },
-                { value: 'comp2', text: 'XYZ Enterprises' },
-                { value: 'comp3', text: 'Global Solutions' }
-            ];
-            companies.forEach(c => {
-                const option = document.createElement('option');
-                option.value = c.value;
-                option.textContent = c.text;
-                companySelect.appendChild(option);
+            // Global state for mapping
+            let currentMapping = null;
+
+            // --- Load companies from API (same as mapping editor) ---
+            async function loadCompaniesForConverter() {
+                try {
+                    const response = await fetch('/api/companies');
+                    if (!response.ok) throw new Error('Failed to fetch companies');
+                    const data = await response.json();
+                    const companies = data.companies || [];
+
+                    // Clear and repopulate dropdown
+                    companySelect.innerHTML = '<option value="">-- Select company --</option>';
+                    companies.forEach(name => {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        option.textContent = name;
+                        companySelect.appendChild(option);
+                    });
+
+                    // Optionally select first company
+                    if (companies.length > 0) {
+                        // You may choose to auto-select or leave empty
+                        // companySelect.value = companies[0];
+                        // if (companies[0]) await fetchMapping(companies[0]);
+                    }
+                } catch (err) {
+                    showMessage('Failed to load companies. Is the server running?', 'error');
+                }
+            }
+
+            // --- Fetch mapping for selected company ---
+            async function fetchMapping(companyName) {
+                try {
+                    const response = await fetch(`/api/mapping/${encodeURIComponent(companyName)}`);
+                    if (!response.ok) throw new Error('Mapping not found');
+                    currentMapping = await response.json();
+                } catch (err) {
+                    currentMapping = null;
+                    showMessage('Could not load mapping for this company. Using defaults.', 'error');
+                }
+            }
+
+            // --- Call on page load ---
+            loadCompaniesForConverter();
+
+            // --- When company changes, load its mapping ---
+            companySelect.addEventListener('change', async function() {
+                const company = companySelect.value;
+                if (company) {
+                    await fetchMapping(company);
+                } else {
+                    currentMapping = null;
+                }
+                checkFormValidity();
             });
+
+            // --- Expose function so mapping editor can refresh dropdown ---
+            window.loadCompaniesForConverter = loadCompaniesForConverter;
 
             // --- Handle file selection ---
             fileInput.addEventListener('change', function(e) {
@@ -395,6 +441,11 @@
                             option.textContent = name;
                             sheetSelect.appendChild(option);
                         });
+
+                        // Auto-select the first sheet
+                        if (sheetNames.length > 0) {
+                            sheetSelect.value = sheetNames[0];
+                        }
 
                         sheetSelect.disabled = false;
                         sheetLoading.style.display = 'none';
@@ -443,7 +494,7 @@
                     const data = await readSheetData(file, sheetName);
                     progressBar.style.width = '60%';
 
-                    // Convert to XML (example structure – adjust to your Tally format)
+                    // Convert to XML using the current mapping
                     const xml = convertToXML(data, company, vtype);
                     progressBar.style.width = '90%';
 
@@ -495,19 +546,105 @@
                 });
             }
 
-            // Example XML generator – replace with your actual Tally XML format
+            // Convert data to Tally XML using the mapping
             function convertToXML(data, company, vtype) {
+                // Default ledgers in case mapping is missing
+                const defaultLedgers = {
+                    SALES: 'Sales Account',
+                    SALES_IGST: 'Sales Interstate',
+                    PURCHASE: 'Purchase Account',
+                    CGST_RATES: {},
+                    SGST_RATES: {},
+                    IGST_RATES: {}
+                };
+
+                // Helper to get ledger for a tax rate from mapping group
+                function getTaxLedger(group, rate) {
+                    if (currentMapping && currentMapping[group] && currentMapping[group][rate]) {
+                        return currentMapping[group][rate];
+                    }
+                    // Fallback
+                    return `${group} ${rate}%`;
+                }
+
+                // Helper to get main ledger (SALES, SALES_IGST, PURCHASE)
+                function getMainLedger(group) {
+                    if (currentMapping && currentMapping[group]) {
+                        // If it's an object, take the first value (assuming single entry)
+                        const values = Object.values(currentMapping[group]);
+                        if (values.length > 0) return values[0];
+                    }
+                    return defaultLedgers[group] || group;
+                }
+
+                const companyState = (currentMapping && currentMapping.COMPANY_STATE) || 'Unknown';
+                const debug = (currentMapping && currentMapping.DEBUG) || false;
+
                 let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<ENVELOPE>\n<HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>\n<BODY>\n<IMPORTDATA>\n<REQUESTDATA>\n`;
+
                 data.forEach((row, index) => {
-                    // Example: create a voucher entry for each row
+                    // Determine transaction type and tax components
+                    const isSale = (vtype === 'sale');
+                    const igst = parseFloat(row['IGST'] || 0);
+                    const cgst = parseFloat(row['CGST'] || 0);
+                    const sgst = parseFloat(row['SGST'] || 0);
+                    const taxable = parseFloat(row['Taxable Value'] || 0);
+                    const invoiceValue = parseFloat(row['Invoice Value'] || 0);
+
+                    // Decide main ledger based on IGST presence
+                    let mainLedgerGroup;
+                    if (isSale) {
+                        mainLedgerGroup = (igst > 0) ? 'SALES_IGST' : 'SALES';
+                    } else {
+                        mainLedgerGroup = 'PURCHASE';
+                    }
+                    const mainLedger = getMainLedger(mainLedgerGroup);
+
+                    // Build voucher
                     xml += `<TALLYMESSAGE>\n<VOUCHER ACTION="Create">\n`;
-                    xml += `<VOUCHERTYPE>${vtype === 'sale' ? 'Sales' : 'Purchase'}</VOUCHERTYPE>\n`;
+                    xml += `<VOUCHERTYPE>${isSale ? 'Sales' : 'Purchase'}</VOUCHERTYPE>\n`;
                     xml += `<DATE>${row['Invoice date'] || ''}</DATE>\n`;
                     xml += `<NARRATION>Invoice ${row['Invoice Number'] || ''}</NARRATION>\n`;
                     xml += `<PARTYLEDGERNAME>${row['Recipient Name'] || ''}</PARTYLEDGERNAME>\n`;
-                    // Add more fields as needed
+                    xml += `<COMPANY>${company}</COMPANY>\n`;
+                    if (debug) xml += `<!-- DEBUG MODE ENABLED -->\n`;
+
+                    // Main ledger entry (for taxable value)
+                    xml += `<ALLLEDGERENTRIES.LIST>\n`;
+                    xml += `<LEDGERNAME>${mainLedger}</LEDGERNAME>\n`;
+                    xml += `<ISDEEMEDPOSITIVE>${isSale ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE>\n`;
+                    xml += `<AMOUNT>${isSale ? taxable : -taxable}</AMOUNT>\n`;
+                    xml += `</ALLLEDGERENTRIES.LIST>\n`;
+
+                    // Tax entries
+                    if (igst > 0) {
+                        const ledger = getTaxLedger('IGST_RATES', String(igst));
+                        xml += `<ALLLEDGERENTRIES.LIST>\n`;
+                        xml += `<LEDGERNAME>${ledger}</LEDGERNAME>\n`;
+                        xml += `<ISDEEMEDPOSITIVE>${isSale ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `<AMOUNT>${isSale ? igst : -igst}</AMOUNT>\n`;
+                        xml += `</ALLLEDGERENTRIES.LIST>\n`;
+                    }
+                    if (cgst > 0) {
+                        const ledger = getTaxLedger('CGST_RATES', String(cgst));
+                        xml += `<ALLLEDGERENTRIES.LIST>\n`;
+                        xml += `<LEDGERNAME>${ledger}</LEDGERNAME>\n`;
+                        xml += `<ISDEEMEDPOSITIVE>${isSale ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `<AMOUNT>${isSale ? cgst : -cgst}</AMOUNT>\n`;
+                        xml += `</ALLLEDGERENTRIES.LIST>\n`;
+                    }
+                    if (sgst > 0) {
+                        const ledger = getTaxLedger('SGST_RATES', String(sgst));
+                        xml += `<ALLLEDGERENTRIES.LIST>\n`;
+                        xml += `<LEDGERNAME>${ledger}</LEDGERNAME>\n`;
+                        xml += `<ISDEEMEDPOSITIVE>${isSale ? 'Yes' : 'No'}</ISDEEMEDPOSITIVE>\n`;
+                        xml += `<AMOUNT>${isSale ? sgst : -sgst}</AMOUNT>\n`;
+                        xml += `</ALLLEDGERENTRIES.LIST>\n`;
+                    }
+
                     xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
                 });
+
                 xml += `</REQUESTDATA>\n</IMPORTDATA>\n</BODY>\n</ENVELOPE>`;
                 return xml;
             }
@@ -528,7 +665,7 @@
                 messageDiv.className = `message ${type}`;
                 messageDiv.style.display = 'block';
             }
-        });
+        })();
     </script>
 </body>
 </html>
