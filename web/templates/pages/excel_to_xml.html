@@ -1,291 +1,534 @@
-alert('Converter script started');
-<div class="card">
-    <div class="card-header">
-        <h3>🔄 Excel to XML Converter</h3>
-    </div>
-    <form id="convertForm">
-        <div class="form-group">
-            <label for="fileInput">Excel File</label>
-            <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to XML Converter</title>
+    <!-- SheetJS for reading Excel files -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <style>
+        /* ===== Form Styles (matching dashboard aesthetics) ===== */
+        .card {
+            background: white;
+            border-radius: 24px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid #eef2f6;
+        }
+        .dark-theme .card {
+            background: #252b3b;
+            border-color: #3f4a5c;
+        }
+        .card-header h3 {
+            margin: 0 0 1.5rem 0;
+            color: #1e2b4f;
+            font-weight: 600;
+            font-size: 1.5rem;
+        }
+        .dark-theme .card-header h3 {
+            color: #e9edf2;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #1e2b4f;
+            font-size: 0.95rem;
+        }
+        .dark-theme .form-group label {
+            color: #b0c4de;
+        }
+        .file-input,
+        .form-select {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            background: #f9fcff;
+            border: 1px solid #e2eaf5;
+            border-radius: 16px;
+            font-size: 0.95rem;
+            color: #1e2b4f;
+            transition: all 0.2s;
+            cursor: pointer;
+            box-sizing: border-box;
+        }
+        .dark-theme .file-input,
+        .dark-theme .form-select {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
+        }
+        .file-input:hover,
+        .form-select:hover {
+            border-color: #b0c4de;
+            background: white;
+        }
+        .dark-theme .file-input:hover,
+        .dark-theme .form-select:hover {
+            background: #353e52;
+            border-color: #5f6f88;
+        }
+        .file-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: #2a3f6e;
+            box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
+        }
+        .form-select:disabled {
+            background: #eef2f6;
+            color: #8a9bb5;
+            cursor: not-allowed;
+        }
+        .dark-theme .form-select:disabled {
+            background: #3a4255;
+            color: #7f8b9f;
+        }
+        .loading-indicator {
+            margin-top: 0.5rem;
+            color: #2f5b9c;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .dark-theme .loading-indicator {
+            color: #7fa6d9;
+        }
+        /* Voucher type toggle buttons */
+        .voucher-type-group {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .voucher-type-group input[type="radio"] {
+            display: none;
+        }
+        .voucher-type-btn {
+            background: #f9fcff;
+            border: 1px solid #e2eaf5;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            color: #1e2b4f;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+        }
+        .dark-theme .voucher-type-btn {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
+        }
+        .voucher-type-btn:hover {
+            background: #e4edfc;
+            border-color: #b0c4de;
+            transform: translateY(-2px);
+        }
+        .dark-theme .voucher-type-btn:hover {
+            background: #3e485e;
+            border-color: #5f6f88;
+        }
+        input[type="radio"]:checked + .voucher-type-btn {
+            background: #1e2b4f;
+            border-color: #1e2b4f;
+            color: white;
+            box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
+        }
+        .dark-theme input[type="radio"]:checked + .voucher-type-btn {
+            background: #2f5b9c;
+            border-color: #2f5b9c;
+        }
+        /* Primary button - ENLARGED */
+        .btn-primary {
+            background: #1e2b4f;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 1rem 2rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
+            border: none;
+        }
+        .btn-primary:hover:not(:disabled) {
+            background: #2a3f6e;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
+        }
+        .btn-primary:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+        .btn-primary:disabled {
+            background: #b0c4de;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        .dark-theme .btn-primary:disabled {
+            background: #4a5670;
+        }
+        /* Progress bar */
+        .progress {
+            margin-top: 1.5rem;
+            height: 8px;
+            background: #e4edfc;
+            border-radius: 20px;
+            overflow: hidden;
+            display: none;
+        }
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
+            border-radius: 20px;
+            transition: width 0.3s ease;
+        }
+        /* Message */
+        .message {
+            margin-top: 1rem;
+            padding: 0.8rem 1rem;
+            border-radius: 16px;
+            font-size: 0.9rem;
+            display: none;
+        }
+        .message.success {
+            display: block;
+            background: #e1f7e3;
+            color: #1e5f2e;
+            border: 1px solid #a5d6a7;
+        }
+        .message.error {
+            display: block;
+            background: #ffe9e9;
+            color: #b00020;
+            border: 1px solid #ffb3b3;
+        }
+        /* Guidance card styles */
+        .guidance-content {
+            padding: 1rem 0;
+        }
+        .template-preview {
+            background: #f4f7fb;
+            padding: 1rem;
+            border-radius: 12px;
+            font-family: monospace;
+            margin: 1rem 0;
+            overflow-x: auto;
+            white-space: nowrap;
+            border: 1px solid #e2eaf5;
+        }
+        .dark-theme .template-preview {
+            background: #2d3445;
+            border-color: #3f4a5c;
+            color: #e9edf2;
+        }
+        .btn-success {
+            background: #1e5f2e;
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 0.7rem 1.5rem;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.3rem;
+            text-decoration: none;
+            border: none;
+        }
+        .btn-success:hover {
+            background: #2a7a3a;
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(30, 95, 46, 0.25);
+        }
+        .btn-icon {
+            font-size: 1.1rem;
+        }
+        /* Responsive */
+        @media (max-width: 600px) {
+            .voucher-type-group {
+                flex-direction: column;
+            }
+            .voucher-type-btn {
+                width: 100%;
+                justify-content: center;
+            }
+            .card {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body class="light-theme"> <!-- or dark-theme if you prefer -->
+    <div class="card">
+        <div class="card-header">
+            <h3>🔄 Excel to XML Converter</h3>
         </div>
-
-        <div class="form-group">
-            <label for="sheetSelect">Sheet Name</label>
-            <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
-                <option value="">-- Select a sheet --</option>
-            </select>
-            <div id="sheetLoading" class="loading-indicator" style="display: none;">
-                <small>⏳ Loading sheets...</small>
+        <form id="convertForm">
+            <div class="form-group">
+                <label for="fileInput">Excel File</label>
+                <input type="file" name="file" accept=".xlsx,.xls" required id="fileInput" class="file-input">
             </div>
-        </div>
 
-        <div class="form-group">
-            <label for="companySelect">Company</label>
-            <select name="company" id="companySelect" required class="form-select">
-                <option value="">-- Select company --</option>
-                <!-- Options will be populated by JavaScript -->
-            </select>
-        </div>
-
-        <div class="form-group">
-            <label>Voucher Type</label>
-            <div class="voucher-type-group">
-                <input type="radio" name="vtype" id="vtype-sale" value="sale" checked>
-                <label for="vtype-sale" class="voucher-type-btn">🛒 Sales Invoice</label>
-
-                <input type="radio" name="vtype" id="vtype-purchase" value="purchase">
-                <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
+            <div class="form-group">
+                <label for="sheetSelect">Sheet Name</label>
+                <select name="sheet_name" id="sheetSelect" required disabled class="form-select">
+                    <option value="">-- Select a sheet --</option>
+                </select>
+                <div id="sheetLoading" class="loading-indicator" style="display: none;">
+                    <small>⏳ Loading sheets...</small>
+                </div>
             </div>
+
+            <div class="form-group">
+                <label for="companySelect">Company</label>
+                <select name="company" id="companySelect" required class="form-select">
+                    <option value="">-- Select company --</option>
+                    <!-- Options will be populated by JavaScript -->
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Voucher Type</label>
+                <div class="voucher-type-group">
+                    <input type="radio" name="vtype" id="vtype-sale" value="sale" checked>
+                    <label for="vtype-sale" class="voucher-type-btn">🛒 Sales Invoice</label>
+
+                    <input type="radio" name="vtype" id="vtype-purchase" value="purchase">
+                    <label for="vtype-purchase" class="voucher-type-btn">📦 Purchase Invoice</label>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
+        </form>
+
+        <div class="progress" id="progress">
+            <div class="progress-bar" id="progressBar"></div>
         </div>
-
-        <button type="submit" class="btn btn-primary" id="submitBtn" disabled>📄 Generate Tally Compatible File</button>
-    </form>
-
-    <div class="progress" id="progress">
-        <div class="progress-bar" id="progressBar"></div>
+        <div id="message" class="message"></div>
     </div>
-    <div id="message" class="message"></div>
-</div>
 
-<!-- Guidance Card with fixed download link -->
-<div class="card">
-    <div class="card-header">
-        <h3>📋 Need a Template?</h3>
-    </div>
-    <div class="guidance-content">
-        <p>Your Excel file should have the following columns (in any order, but matching headers are required for mapping):</p>
-        <div class="template-preview">
-            <code>Sr, GSTIN, Recipient Name, Invoice Number, Invoice date, Invoice Value, Taxable Value, IGST, CGST, SGST, Cess</code>
+    <!-- Guidance Card with fixed download link -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📋 Need a Template?</h3>
         </div>
-        <p>Download a ready-to-use template with sample data:</p>
-        <a href="/download-template" class="btn btn-success">
-            <span class="btn-icon">📥</span> Download Template
-        </a>
+        <div class="guidance-content">
+            <p>Your Excel file should have the following columns (in any order, but matching headers are required for mapping):</p>
+            <div class="template-preview">
+                <code>Sr, GSTIN, Recipient Name, Invoice Number, Invoice date, Invoice Value, Taxable Value, IGST, CGST, SGST, Cess</code>
+            </div>
+            <p>Download a ready-to-use template with sample data:</p>
+            <a href="/download-template" class="btn btn-success">
+                <span class="btn-icon">📥</span> Download Template
+            </a>
+        </div>
     </div>
-</div>
 
-<style>
-/* ===== Form Styles (matching dashboard aesthetics) ===== */
-.form-group {
-    margin-bottom: 1.5rem;
-}
+    <script>
+        // Alert to indicate script start (optional)
+        alert('Converter script started');
 
-.form-group label {
-    display: block;
-    margin-bottom: 0.5rem;
-    font-weight: 500;
-    color: #1e2b4f;
-    font-size: 0.95rem;
-}
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM elements
+            const fileInput = document.getElementById('fileInput');
+            const sheetSelect = document.getElementById('sheetSelect');
+            const sheetLoading = document.getElementById('sheetLoading');
+            const companySelect = document.getElementById('companySelect');
+            const submitBtn = document.getElementById('submitBtn');
+            const form = document.getElementById('convertForm');
+            const progress = document.getElementById('progress');
+            const progressBar = document.getElementById('progressBar');
+            const messageDiv = document.getElementById('message');
 
-.file-input,
-.form-select {
-    width: 100%;
-    padding: 0.8rem 1rem;
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 16px;
-    font-size: 0.95rem;
-    color: #1e2b4f;
-    transition: all 0.2s;
-    cursor: pointer;
-}
+            // --- Populate company dropdown (static example) ---
+            // Replace this with your actual company list (could come from an API)
+            const companies = [
+                { value: 'comp1', text: 'ABC Pvt. Ltd.' },
+                { value: 'comp2', text: 'XYZ Enterprises' },
+                { value: 'comp3', text: 'Global Solutions' }
+            ];
+            companies.forEach(c => {
+                const option = document.createElement('option');
+                option.value = c.value;
+                option.textContent = c.text;
+                companySelect.appendChild(option);
+            });
 
-.file-input:hover,
-.form-select:hover {
-    border-color: #b0c4de;
-    background: white;
-}
+            // --- Handle file selection ---
+            fileInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
 
-.file-input:focus,
-.form-select:focus {
-    outline: none;
-    border-color: #2a3f6e;
-    box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
-}
+                // Reset sheet dropdown
+                sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
+                sheetSelect.disabled = true;
+                submitBtn.disabled = true;
+                sheetLoading.style.display = 'flex';  // show loading
 
-.form-select:disabled {
-    background: #eef2f6;
-    color: #8a9bb5;
-    cursor: not-allowed;
-}
+                // Read the Excel file
+                const reader = new FileReader();
+                reader.onload = function(loadEvent) {
+                    try {
+                        const data = new Uint8Array(loadEvent.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const sheetNames = workbook.SheetNames;
 
-.loading-indicator {
-    margin-top: 0.5rem;
-    color: #2f5b9c;
-    font-size: 0.85rem;
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-}
+                        // Populate sheet dropdown
+                        sheetNames.forEach(name => {
+                            const option = document.createElement('option');
+                            option.value = name;
+                            option.textContent = name;
+                            sheetSelect.appendChild(option);
+                        });
 
-/* Voucher type toggle buttons */
-.voucher-type-group {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-}
+                        sheetSelect.disabled = false;
+                        sheetLoading.style.display = 'none';
+                        checkFormValidity();
+                    } catch (err) {
+                        showMessage('Error reading Excel file: ' + err.message, 'error');
+                        sheetLoading.style.display = 'none';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
 
-.voucher-type-group input[type="radio"] {
-    display: none;
-}
+            // --- Enable submit when all required fields are filled ---
+            function checkFormValidity() {
+                const fileSelected = fileInput.files.length > 0;
+                const sheetSelected = sheetSelect.value && sheetSelect.value !== '';
+                const companySelected = companySelect.value && companySelect.value !== '';
+                const voucherSelected = document.querySelector('input[name="vtype"]:checked') !== null;
 
-.voucher-type-btn {
-    background: #f9fcff;
-    border: 1px solid #e2eaf5;
-    border-radius: 40px;
-    padding: 0.7rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    color: #1e2b4f;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-}
+                submitBtn.disabled = !(fileSelected && sheetSelected && companySelected && voucherSelected);
+            }
 
-.voucher-type-btn:hover {
-    background: #e4edfc;
-    border-color: #b0c4de;
-    transform: translateY(-2px);
-}
+            fileInput.addEventListener('change', checkFormValidity);
+            sheetSelect.addEventListener('change', checkFormValidity);
+            companySelect.addEventListener('change', checkFormValidity);
+            document.querySelectorAll('input[name="vtype"]').forEach(radio => {
+                radio.addEventListener('change', checkFormValidity);
+            });
 
-input[type="radio"]:checked + .voucher-type-btn {
-    background: #1e2b4f;
-    border-color: #1e2b4f;
-    color: white;
-    box-shadow: 0 6px 14px rgba(30, 43, 79, 0.25);
-}
+            // --- Form submission: generate XML ---
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
 
-/* Primary button - ENLARGED */
-.btn-primary {
-    background: #1e2b4f;
-    color: white;
-    border: none;
-    border-radius: 40px;
-    padding: 1rem 2rem;
-    font-size: 1.1rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    box-shadow: 0 8px 16px -6px rgba(30, 43, 79, 0.2);
-}
+                const file = fileInput.files[0];
+                const sheetName = sheetSelect.value;
+                const company = companySelect.value;
+                const vtype = document.querySelector('input[name="vtype"]:checked').value;
 
-.btn-primary:hover:not(:disabled) {
-    background: #2a3f6e;
-    transform: translateY(-2px);
-    box-shadow: 0 12px 20px -8px rgba(30, 43, 79, 0.3);
-}
+                // Show progress bar
+                progress.style.display = 'block';
+                progressBar.style.width = '30%';
+                messageDiv.style.display = 'none';
 
-.btn-primary:active:not(:disabled) {
-    transform: scale(0.98);
-}
+                try {
+                    // Read the selected sheet data
+                    const data = await readSheetData(file, sheetName);
+                    progressBar.style.width = '60%';
 
-.btn-primary:disabled {
-    background: #b0c4de;
-    cursor: not-allowed;
-    opacity: 0.7;
-}
+                    // Convert to XML (example structure – adjust to your Tally format)
+                    const xml = convertToXML(data, company, vtype);
+                    progressBar.style.width = '90%';
 
-/* Progress bar */
-.progress {
-    margin-top: 1.5rem;
-    height: 8px;
-    background: #e4edfc;
-    border-radius: 20px;
-    overflow: hidden;
-    display: none;
-}
+                    // Trigger download
+                    downloadXML(xml, `Tally_${vtype}_${Date.now()}.xml`);
+                    progressBar.style.width = '100%';
 
-.progress-bar {
-    height: 100%;
-    width: 0%;
-    background: linear-gradient(90deg, #2a3f6e, #1e2b4f);
-    border-radius: 20px;
-    transition: width 0.3s ease;
-}
+                    showMessage('✅ XML generated successfully!', 'success');
+                } catch (err) {
+                    showMessage('❌ Error: ' + err.message, 'error');
+                } finally {
+                    // Hide progress after a delay
+                    setTimeout(() => {
+                        progress.style.display = 'none';
+                        progressBar.style.width = '0%';
+                    }, 2000);
+                }
+            });
 
-/* Message */
-.message {
-    margin-top: 1rem;
-    padding: 0.8rem 1rem;
-    border-radius: 16px;
-    font-size: 0.9rem;
-    display: none;
-}
+            // Helper: read sheet data as array of objects
+            function readSheetData(file, sheetName) {
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        try {
+                            const data = new Uint8Array(e.target.result);
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheet = workbook.Sheets[sheetName];
+                            if (!sheet) return reject(new Error('Sheet not found'));
+                            const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                            // Assume first row is headers
+                            if (rows.length < 2) return reject(new Error('Sheet is empty'));
+                            const headers = rows[0];
+                            const dataRows = rows.slice(1);
+                            const objects = dataRows.map(row => {
+                                let obj = {};
+                                headers.forEach((h, idx) => {
+                                    obj[h] = row[idx] !== undefined ? row[idx] : '';
+                                });
+                                return obj;
+                            });
+                            resolve(objects);
+                        } catch (err) {
+                            reject(err);
+                        }
+                    };
+                    reader.onerror = reject;
+                    reader.readAsArrayBuffer(file);
+                });
+            }
 
-.message.success {
-    display: block;
-    background: #e1f7e3;
-    color: #1e5f2e;
-    border: 1px solid #a5d6a7;
-}
+            // Example XML generator – replace with your actual Tally XML format
+            function convertToXML(data, company, vtype) {
+                let xml = `<?xml version="1.0" encoding="UTF-8"?>\n<ENVELOPE>\n<HEADER><TALLYREQUEST>Import Data</TALLYREQUEST></HEADER>\n<BODY>\n<IMPORTDATA>\n<REQUESTDATA>\n`;
+                data.forEach((row, index) => {
+                    // Example: create a voucher entry for each row
+                    xml += `<TALLYMESSAGE>\n<VOUCHER ACTION="Create">\n`;
+                    xml += `<VOUCHERTYPE>${vtype === 'sale' ? 'Sales' : 'Purchase'}</VOUCHERTYPE>\n`;
+                    xml += `<DATE>${row['Invoice date'] || ''}</DATE>\n`;
+                    xml += `<NARRATION>Invoice ${row['Invoice Number'] || ''}</NARRATION>\n`;
+                    xml += `<PARTYLEDGERNAME>${row['Recipient Name'] || ''}</PARTYLEDGERNAME>\n`;
+                    // Add more fields as needed
+                    xml += `</VOUCHER>\n</TALLYMESSAGE>\n`;
+                });
+                xml += `</REQUESTDATA>\n</IMPORTDATA>\n</BODY>\n</ENVELOPE>`;
+                return xml;
+            }
 
-.message.error {
-    display: block;
-    background: #ffe9e9;
-    color: #b00020;
-    border: 1px solid #ffb3b3;
-}
+            // Trigger file download
+            function downloadXML(content, filename) {
+                const blob = new Blob([content], { type: 'application/xml' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(link.href);
+            }
 
-/* Guidance card styles */
-.guidance-content {
-    padding: 1rem 0;
-}
-.template-preview {
-    background: #f4f7fb;
-    padding: 1rem;
-    border-radius: 12px;
-    font-family: monospace;
-    margin: 1rem 0;
-    overflow-x: auto;
-    white-space: nowrap;
-    border: 1px solid #e2eaf5;
-}
-.dark-theme .template-preview {
-    background: #2d3445;
-    border-color: #3f4a5c;
-    color: #e9edf2;
-}
-.btn-success {
-    background: #1e5f2e;
-    color: white;
-    border: none;
-    border-radius: 40px;
-    padding: 0.7rem 1.5rem;
-    font-size: 0.95rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    text-decoration: none;
-}
-.btn-success:hover {
-    background: #2a7a3a;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(30, 95, 46, 0.25);
-}
-.btn-icon {
-    font-size: 1.1rem;
-}
-
-/* Responsive */
-@media (max-width: 600px) {
-    .voucher-type-group {
-        flex-direction: column;
-    }
-    .voucher-type-btn {
-        width: 100%;
-        justify-content: center;
-    }
-}
-</style>
-
+            // Show message
+            function showMessage(text, type) {
+                messageDiv.textContent = text;
+                messageDiv.className = `message ${type}`;
+                messageDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
