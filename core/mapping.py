@@ -1,10 +1,12 @@
 import json
 import os
 
-# Persistent storage location (HF Spaces safe)
+# Persistent storage directory (HF Spaces safe)
 
 DATA_DIR = "/data"
 os.makedirs(DATA_DIR, exist_ok=True)
+
+# Mapping file location
 
 MAP_FILE = os.path.join(DATA_DIR, "mapping.json")
 
@@ -57,7 +59,8 @@ return {
 def load_mapping_json():
 """
 Load the full mapping structure.
-If the file is in the old single-company format, it is automatically migrated.
+If the file doesn't exist it creates a default structure.
+Also migrates old single-company format automatically.
 """
 if not os.path.exists(MAP_FILE):
 default = {
@@ -73,7 +76,7 @@ return default
 with open(MAP_FILE, "r") as f:
     data = json.load(f)
 
-# Auto-migrate old format
+# Auto migrate old format
 if "companies" not in data:
     data = {
         "companies": ["Default"],
@@ -93,15 +96,17 @@ json.dump(data, f, indent=4)
 
 def load_companies():
 """Return the list of company names."""
-return load_mapping_json().get("companies", [])
+data = load_mapping_json()
+return data.get("companies", [])
 
 def add_company(name):
 """Add a new company with default mapping."""
 data = load_mapping_json()
-if name in data["companies"]:
-raise ValueError(f"Company '{name}' already exists")
 
 ```
+if name in data["companies"]:
+    raise ValueError(f"Company '{name}' already exists")
+
 data["companies"].append(name)
 data["mappings"][name] = get_default_mapping()
 
@@ -109,7 +114,7 @@ save_mapping_json(data)
 ```
 
 def delete_company(name):
-"""Delete a company and its mapping. Cannot delete 'Default'."""
+"""Delete a company and its mapping (except Default)."""
 if name == "Default":
 raise ValueError("Cannot delete the Default company")
 
@@ -126,7 +131,7 @@ save_mapping_json(data)
 ```
 
 def get_company_mapping(name):
-"""Return the mapping for a specific company."""
+"""Return mapping for a specific company."""
 data = load_mapping_json()
 
 ```
@@ -137,7 +142,7 @@ return data["mappings"][name]
 ```
 
 def save_company_mapping(name, mapping):
-"""Save the mapping for a specific company."""
+"""Save mapping for a specific company."""
 data = load_mapping_json()
 
 ```
