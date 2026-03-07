@@ -1,4 +1,3 @@
-
 import os
 import io
 import logging
@@ -19,7 +18,7 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
-# Existing services
+# Existing services – these now use persistent /data/mapping.json
 from core.excel_service import excel_to_xml
 from core.mapping import (
     load_companies,
@@ -166,7 +165,7 @@ async def api_me(request: Request):
     return {"authenticated": bool(user), "username": user}
 
 # =========================================================
-# MAPPING APIs (PERSISTENT)
+# MAPPING APIs (PERSISTENT – CORRECT VERSION)
 # =========================================================
 
 @app.get("/api/companies")
@@ -175,7 +174,6 @@ async def get_companies(
     user: str = Depends(require_login)
 ):
     return {"companies": load_companies()}
-
 
 @app.post("/api/companies")
 async def create_company(
@@ -187,9 +185,7 @@ async def create_company(
         add_company(name)
     except ValueError as e:
         raise HTTPException(400, str(e))
-
     return {"status": "success"}
-
 
 @app.delete("/api/companies/{name}")
 async def remove_company(
@@ -201,9 +197,7 @@ async def remove_company(
         delete_company(name)
     except ValueError as e:
         raise HTTPException(400, str(e))
-
     return {"status": "deleted"}
-
 
 @app.get("/api/mapping/{company}")
 async def get_company_mapping_api(
@@ -216,7 +210,6 @@ async def get_company_mapping_api(
     except ValueError:
         raise HTTPException(404)
 
-
 @app.post("/api/mapping/{company}")
 async def update_company_mapping(
     request: Request,
@@ -228,8 +221,8 @@ async def update_company_mapping(
         save_company_mapping(company, mapping)
     except ValueError as e:
         raise HTTPException(400, str(e))
-
     return {"status": "saved"}
+
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
@@ -279,59 +272,6 @@ async def image_to_excel_api(
         headers={"Content-Disposition": f"attachment; filename={output_filename}"}
     )
 
-@app.get("/api/companies")
-async def get_companies(
-    request: Request,
-    user: str = Depends(require_login)
-):
-    return {"companies": load_full_mapping().get("companies", [])}
-
-@app.post("/api/companies")
-async def create_company(
-    request: Request,
-    name: str = Form(...),
-    user: str = Depends(require_login)
-):
-    full = load_full_mapping()
-    if name in full["companies"]:
-        raise HTTPException(400, "Company already exists")
-    full["companies"].append(name)
-    full["mappings"][name] = {
-        "COMPANY_STATE": "Not set",
-        "SALES": {},
-        "SALES_IGST": {},
-        "PURCHASE": {},
-        "CGST_RATES": {},
-        "SGST_RATES": {},
-        "IGST_RATES": {},
-        "DEBUG": False
-    }
-    save_full_mapping(full)
-    return {"status": "success"}
-
-@app.get("/api/mapping/{company}")
-async def get_company_mapping(
-    request: Request,
-    company: str,
-    user: str = Depends(require_login)
-):
-    full = load_full_mapping()
-    if company not in full["mappings"]:
-        raise HTTPException(404)
-    return full["mappings"][company]
-
-@app.post("/api/mapping/{company}")
-async def update_company_mapping(
-    request: Request,
-    company: str,
-    mapping: dict,
-    user: str = Depends(require_login)
-):
-    full = load_full_mapping()
-    full["mappings"][company] = mapping
-    save_full_mapping(full)
-    return {"status": "saved"}
-
 @app.post("/api/sheets")
 async def get_sheet_names(
     request: Request,
@@ -373,6 +313,7 @@ async def download_template(
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
     )
+
 @app.get("/debug/persistence")
 def debug_persistence():
     import os, sqlite3
