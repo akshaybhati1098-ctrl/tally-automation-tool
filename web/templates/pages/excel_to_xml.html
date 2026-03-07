@@ -678,48 +678,38 @@
 
         .converter-wrap .tpl-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: repeat(4, 1fr);
             gap: 0.6rem;
-            margin-bottom: 1.4rem;
+            margin-bottom: 1.2rem;
         }
 
         .converter-wrap .tpl-feat {
             display: flex;
-            align-items: flex-start;
-            gap: 0.7rem;
-            padding: 0.85rem 0.95rem;
+            align-items: center;
+            justify-content: center;
+            padding: 1.1rem 0.5rem;
             background: var(--surface);
-            border: 1px solid var(--line);
-            border-radius: 13px;
-            transition: border-color 0.18s, box-shadow 0.18s, transform 0.18s;
+            border: 1.5px solid var(--line);
+            border-radius: 14px;
+            transition: border-color 0.18s, box-shadow 0.2s, transform 0.2s, background 0.18s;
+            cursor: default;
         }
 
         .converter-wrap .tpl-feat:hover {
-            border-color: var(--line2);
-            box-shadow: 0 3px 10px rgba(0,20,60,0.06);
-            transform: translateY(-1px);
+            border-color: rgba(22,81,232,0.25);
+            background: var(--white);
+            box-shadow: 0 4px 14px rgba(0,20,60,0.08);
+            transform: translateY(-3px);
         }
 
         .converter-wrap .tpl-feat-icon-wrap {
-            font-size: 1.2rem;
+            font-size: 1.9rem;
             line-height: 1;
-            flex-shrink: 0;
-            margin-top: 0.05rem;
         }
 
-        .converter-wrap .tpl-feat b {
-            display: block;
-            font-size: 0.82rem;
-            font-weight: 600;
-            color: var(--ink2);
-            margin-bottom: 0.1rem;
-        }
-
-        .converter-wrap .tpl-feat small {
-            font-size: 0.71rem;
-            color: var(--muted);
-            line-height: 1.45;
-        }
+        .converter-wrap .tpl-feat-label { display: none; }
+        .converter-wrap .tpl-feat b { display: none; }
+        .converter-wrap .tpl-feat small { display: none; }
 
         .converter-wrap .tpl-cols-section {
             background: var(--surface);
@@ -790,6 +780,159 @@
         .converter-wrap .tpl-features { display: none; }
         .converter-wrap .btn-success { display: none; }
         .converter-wrap .btn-icon { font-size: 1rem; }
+
+        .converter-wrap .tpl-cols-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.7rem;
+        }
+
+        .converter-wrap .tpl-cols-header .tpl-cols-label { margin-bottom: 0; }
+
+        .converter-wrap .tpl-inline-dl-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.38rem 0.85rem;
+            background: var(--green);
+            color: var(--white);
+            border: none;
+            border-radius: 8px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background 0.15s, transform 0.18s, box-shadow 0.18s;
+            box-shadow: 0 2px 8px rgba(23,178,106,0.25);
+            white-space: nowrap;
+        }
+
+        .converter-wrap .tpl-inline-dl-btn:hover {
+            background: var(--green2);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(23,178,106,0.35);
+        }
+
+        .converter-wrap .tpl-inline-dl-btn:active { transform: scale(0.97); }
+
+        .converter-wrap .tpl-preview-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            padding: 0.5rem 1rem;
+            background: var(--surface);
+            border: 1.5px solid var(--line2);
+            border-radius: 10px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--ink3);
+            cursor: pointer;
+            transition: background 0.15s, border-color 0.15s, color 0.15s, transform 0.18s;
+            margin-top: 0.2rem;
+        }
+
+        .converter-wrap .tpl-preview-btn:hover {
+            background: var(--white);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .converter-wrap .tpl-preview-btn.active {
+            background: rgba(22,81,232,0.07);
+            border-color: rgba(22,81,232,0.3);
+            color: var(--accent);
+        }
+
+        .converter-wrap .tpl-opt { display: none; }
+
+        /* ── Preview table ── */
+        .converter-wrap .tpl-preview-wrap {
+            background: var(--surface);
+            border: 1.5px solid var(--line);
+            border-radius: 13px;
+            overflow: hidden;
+        }
+
+        .converter-wrap .tpl-preview-label {
+            font-size: 0.66rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--muted);
+            padding: 0.65rem 1rem 0.5rem;
+            border-bottom: 1px solid var(--line);
+            background: var(--white);
+        }
+
+        .converter-wrap .tpl-table-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .converter-wrap .tpl-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.75rem;
+            font-family: 'DM Sans', sans-serif;
+            white-space: nowrap;
+        }
+
+        .converter-wrap .tpl-table thead tr {
+            background: var(--white);
+            border-bottom: 1.5px solid var(--line);
+        }
+
+        .converter-wrap .tpl-table th {
+            padding: 0.55rem 0.85rem;
+            text-align: left;
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--ink3);
+        }
+
+        .converter-wrap .tpl-table th.col-tax {
+            color: var(--accent);
+            background: rgba(22,81,232,0.04);
+        }
+
+        .converter-wrap .tpl-table tbody tr {
+            border-bottom: 1px solid var(--surface2);
+            transition: background 0.12s;
+        }
+
+        .converter-wrap .tpl-table tbody tr:last-child { border-bottom: none; }
+
+        .converter-wrap .tpl-table tbody tr:hover { background: rgba(22,81,232,0.03); }
+
+        .converter-wrap .tpl-table td {
+            padding: 0.6rem 0.85rem;
+            color: var(--ink2);
+            font-size: 0.78rem;
+        }
+
+        .converter-wrap .tpl-table td.col-tax {
+            background: rgba(22,81,232,0.025);
+            color: var(--ink3);
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+        }
+
+        .converter-wrap .tpl-table td.col-empty {
+            color: var(--line2);
+            text-align: center;
+            font-size: 0.8rem;
+        }
+
+        .converter-wrap .tpl-table td:first-child {
+            font-weight: 600;
+            color: var(--muted);
+            font-size: 0.72rem;
+        }
 
         /* ── Responsive ── */
         @media (max-width: 600px) {
@@ -903,12 +1046,8 @@
         <div class="tpl-top">
             <div class="tpl-top-left">
                 <div class="ch-eyebrow">Getting Started</div>
-                <h3 style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:1.15rem;letter-spacing:-0.01em;color:var(--ink);margin:0.3rem 0 0.25rem;">Download the Excel Template</h3>
-                <p class="ch-sub">Start with our pre-built sheet — all columns are already set up for Tally import.</p>
+                <h3 style="font-family:'DM Sans',sans-serif;font-weight:600;font-size:1.15rem;letter-spacing:-0.01em;color:var(--ink);margin:0.3rem 0 0;">Download the Excel Template</h3>
             </div>
-            <a href="/download-template" class="btn btn-success tpl-dl-btn">
-                <span>📥</span> Download .xlsx
-            </a>
         </div>
 
         <div class="tpl-divider"></div>
@@ -916,50 +1055,93 @@
         <div class="tpl-grid">
             <div class="tpl-feat">
                 <div class="tpl-feat-icon-wrap">🗂️</div>
-                <div>
-                    <b>Pre-labelled columns</b>
-                    <small>Headers exactly as Tally expects</small>
-                </div>
             </div>
             <div class="tpl-feat">
                 <div class="tpl-feat-icon-wrap">📝</div>
-                <div>
-                    <b>Sample rows included</b>
-                    <small>See the correct format instantly</small>
-                </div>
             </div>
             <div class="tpl-feat">
                 <div class="tpl-feat-icon-wrap">🧾</div>
-                <div>
-                    <b>GST-ready structure</b>
-                    <small>IGST, CGST, SGST &amp; Cess columns</small>
-                </div>
             </div>
             <div class="tpl-feat">
                 <div class="tpl-feat-icon-wrap">⚡</div>
-                <div>
-                    <b>Instant mapping</b>
-                    <small>Upload &amp; convert in seconds</small>
-                </div>
             </div>
         </div>
 
-        <div class="tpl-cols-section">
-            <div class="tpl-cols-label">Required columns</div>
-            <div class="tpl-cols">
-                <span class="tpl-col">Sr</span>
-                <span class="tpl-col">GSTIN</span>
-                <span class="tpl-col">Recipient Name</span>
-                <span class="tpl-col">Invoice Number</span>
-                <span class="tpl-col">Invoice date</span>
-                <span class="tpl-col">Invoice Value</span>
-                <span class="tpl-col">Taxable Value</span>
-                <span class="tpl-col tpl-col-tax">IGST</span>
-                <span class="tpl-col tpl-col-tax">CGST</span>
-                <span class="tpl-col tpl-col-tax">SGST</span>
-                <span class="tpl-col tpl-col-tax">Cess</span>
+        <!-- Download button -->
+        <div class="tpl-cols-section" style="margin-bottom:1rem;">
+            <button id="tplDownloadBtn2" class="tpl-inline-dl-btn" style="width:100%;justify-content:center;padding:0.65rem 1rem;font-size:0.85rem;border-radius:11px;">
+                <span>📥</span> Download Template
+            </button>
+        </div>
+
+        <!-- Preview toggle button -->
+        <button id="tplPreviewBtn" class="tpl-preview-btn">
+            <span id="tplPreviewBtnIcon">👁</span> Preview Sample Data
+        </button>
+
+        <!-- Preview table — hidden by default -->
+        <div class="tpl-preview-wrap" id="tplPreviewWrap" style="display:none;margin-top:0.9rem;">
+            <div class="tpl-preview-label">3 Sample Rows</div>
+            <div class="tpl-table-scroll">
+                <table class="tpl-table">
+                    <thead>
+                        <tr>
+                            <th>Sr</th>
+                            <th>GSTIN</th>
+                            <th>Recipient Name</th>
+                            <th>Invoice Number</th>
+                            <th>Invoice date</th>
+                            <th>Invoice Value</th>
+                            <th>Taxable Value</th>
+                            <th class="col-tax">IGST</th>
+                            <th class="col-tax">CGST</th>
+                            <th class="col-tax">SGST</th>
+                            <th class="col-tax">Cess</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>1</td>
+                            <td>27AABCU9603R1ZN</td>
+                            <td>Sharma Enterprises</td>
+                            <td>INV-2024-001</td>
+                            <td>01-04-2024</td>
+                            <td>118000</td>
+                            <td>100000</td>
+                            <td class="col-tax">18000</td>
+                            <td class="col-tax col-empty">—</td>
+                            <td class="col-tax col-empty">—</td>
+                            <td class="col-tax col-empty">—</td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>29GGGGG1314R9Z6</td>
+                            <td>Mehta &amp; Co.</td>
+                            <td>INV-2024-002</td>
+                            <td>05-04-2024</td>
+                            <td>59000</td>
+                            <td>50000</td>
+                            <td class="col-tax col-empty">—</td>
+                            <td class="col-tax">4500</td>
+                            <td class="col-tax">4500</td>
+                            <td class="col-tax col-empty">—</td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>06BZAHM6385P6Z2</td>
+                            <td>Patel Traders</td>
+                            <td>INV-2024-003</td>
+                            <td>10-04-2024</td>
+                            <td>29500</td>
+                            <td>25000</td>
+                            <td class="col-tax col-empty">—</td>
+                            <td class="col-tax">2250</td>
+                            <td class="col-tax">2250</td>
+                            <td class="col-tax col-empty">—</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-            <p class="tpl-note">Column order doesn't matter — headers must match exactly (case-insensitive)</p>
         </div>
     </div>
 
@@ -1298,6 +1480,52 @@
 
                 observer.observe(progressBar, { attributes: true, attributeFilter: ['style'] });
             });
+            // ── Preview toggle ──
+            const tplPreviewBtn  = document.getElementById('tplPreviewBtn');
+            const tplPreviewWrap = document.getElementById('tplPreviewWrap');
+            const tplPreviewIcon = document.getElementById('tplPreviewBtnIcon');
+            if (tplPreviewBtn && tplPreviewWrap) {
+                tplPreviewBtn.addEventListener('click', function() {
+                    const open = tplPreviewWrap.style.display !== 'none';
+                    tplPreviewWrap.style.display = open ? 'none' : 'block';
+                    tplPreviewIcon.textContent   = open ? '👁' : '🙈';
+                    tplPreviewBtn.querySelector('span + span') && (tplPreviewBtn.lastChild.textContent = open ? ' Preview Sample Data' : ' Hide Preview');
+                    tplPreviewBtn.classList.toggle('active', !open);
+                    // Simple slide-in animation
+                    if (!open) {
+                        tplPreviewWrap.style.animation = 'cvFadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both';
+                    }
+                });
+                // Fix button text node
+                tplPreviewBtn.innerHTML = '<span id="tplPreviewBtnIcon">👁</span> Preview Sample Data';
+            }
+
+            // ── Template download — generate .xlsx with SheetJS ──
+            function downloadTemplate() {
+                const headers = [
+                    'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
+                    'Invoice date', 'Invoice Value', 'Taxable Value',
+                    'IGST', 'CGST', 'SGST', 'Cess'
+                ];
+                const rows = [
+                    [1, '27AABCU9603R1ZN', 'Sharma Enterprises',  'INV-2024-001', '01-04-2024', 118000, 100000, 18000, '',    '',    ''],
+                    [2, '29GGGGG1314R9Z6', 'Mehta & Co.',          'INV-2024-002', '05-04-2024',  59000,  50000, '',    4500,  4500,  ''],
+                    [3, '06BZAHM6385P6Z2', 'Patel Traders',        'INV-2024-003', '10-04-2024',  29500,  25000, '',    2250,  2250,  ''],
+                ];
+                const wsData = [headers, ...rows];
+                const ws = XLSX.utils.aoa_to_sheet(wsData);
+                ws['!cols'] = [
+                    { wch: 5 }, { wch: 20 }, { wch: 22 }, { wch: 18 },
+                    { wch: 14 }, { wch: 15 }, { wch: 15 },
+                    { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 10 },
+                ];
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, 'Invoices');
+                XLSX.writeFile(wb, 'Tally_Invoice_Template.xlsx');
+            }
+
+            const tplDownloadBtn2 = document.getElementById('tplDownloadBtn2');
+            if (tplDownloadBtn2) tplDownloadBtn2.addEventListener('click', downloadTemplate);
         })();
     </script>
 </div><!-- /converter-wrap -->
