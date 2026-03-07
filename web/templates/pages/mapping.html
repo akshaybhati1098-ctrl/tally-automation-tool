@@ -774,6 +774,92 @@
     }
 
     /* ══════════════════════════════════════════
+       CHANGE STATE MODAL
+    ══════════════════════════════════════════ */
+
+    .mapping-wrap .change-state-modal-content::before {
+      background: linear-gradient(90deg, #0fa966, #1649e0, #3324d8) !important;
+    }
+
+    /* Current state pill row */
+    .mapping-wrap .state-current-row {
+      display: flex; align-items: center; gap: 0.7rem;
+      padding: 0.8rem 1.1rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 13px;
+      margin-bottom: 1.3rem;
+    }
+
+    .mapping-wrap .state-current-label {
+      font-size: 0.68rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted); white-space: nowrap;
+    }
+
+    .mapping-wrap .state-current-value {
+      font-size: 0.9rem; font-weight: 600;
+      color: var(--ink2);
+      background: var(--white);
+      border: 1px solid var(--line2);
+      border-radius: 7px;
+      padding: 0.15rem 0.65rem;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Input with icon */
+    .mapping-wrap .state-input-wrap {
+      position: relative;
+    }
+
+    .mapping-wrap .state-input-icon {
+      position: absolute;
+      left: 0.9rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 1rem;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .mapping-wrap .state-input-wrap input {
+      padding-left: 2.6rem !important;
+    }
+
+    /* Quick-pick chips */
+    .mapping-wrap .state-chips {
+      display: flex; flex-wrap: wrap; gap: 0.45rem;
+      margin-bottom: 0.3rem;
+    }
+
+    .mapping-wrap .state-chip {
+      display: inline-flex; align-items: center;
+      padding: 0.3rem 0.8rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 100px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.74rem; font-weight: 500;
+      color: var(--ink3);
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.22,1,0.36,1);
+    }
+
+    .mapping-wrap .state-chip:hover {
+      background: var(--accent-soft);
+      border-color: rgba(22,73,224,0.3);
+      color: var(--accent);
+      transform: translateY(-2px);
+      box-shadow: 0 3px 10px rgba(22,73,224,0.12);
+    }
+
+    .mapping-wrap .state-chip.selected {
+      background: var(--accent-soft);
+      border-color: rgba(22,73,224,0.35);
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    /* ══════════════════════════════════════════
        TOAST NOTIFICATION SYSTEM
     ══════════════════════════════════════════ */
 
@@ -1077,6 +1163,45 @@
     </div>
   </div>
 
+  <!-- 🏛️ Change State Modal — replaces prompt() for COMPANY_STATE -->
+  <div id="changeStateModal" class="modal">
+    <div class="modal-content change-state-modal-content">
+      <button class="modal-close-x" id="stateModalCloseX" aria-label="Close">✕</button>
+      <h3 id="stateModalTitle">Change Company State</h3>
+
+      <div class="state-current-row" id="stateCurrentRow">
+        <span class="state-current-label">Current State</span>
+        <span class="state-current-value" id="stateCurrentValue">Maharashtra</span>
+      </div>
+
+      <div class="form-group">
+        <label for="stateInput">New State</label>
+        <div class="state-input-wrap">
+          <span class="state-input-icon">🏛️</span>
+          <input type="text" id="stateInput" placeholder="e.g., Maharashtra, Gujarat…" autocomplete="off">
+        </div>
+      </div>
+
+      <div class="state-chips" id="stateChips">
+        <button class="state-chip" data-state="Maharashtra">Maharashtra</button>
+        <button class="state-chip" data-state="Gujarat">Gujarat</button>
+        <button class="state-chip" data-state="Delhi">Delhi</button>
+        <button class="state-chip" data-state="Karnataka">Karnataka</button>
+        <button class="state-chip" data-state="Tamil Nadu">Tamil Nadu</button>
+        <button class="state-chip" data-state="Rajasthan">Rajasthan</button>
+        <button class="state-chip" data-state="Uttar Pradesh">Uttar Pradesh</button>
+        <button class="state-chip" data-state="West Bengal">West Bengal</button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="stateModalCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="stateModalOkBtn">
+          <span>✅</span> Apply State
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /mapping-wrap -->
 
 <!-- Toast container -->
@@ -1152,12 +1277,12 @@
   };
 
   /* ══════════════════════════════════════════
-     PROMPT OVERRIDE — Edit Ledger Modal
+     PROMPT OVERRIDE — Edit Ledger + Change State
   ══════════════════════════════════════════ */
   const _nativePrompt = window.prompt.bind(window);
 
   window.prompt = function(message, defaultValue) {
-    // Only intercept "Edit ledger for X%:" pattern
+    // ── Edit Ledger ──
     if (typeof message === 'string' && message.startsWith('Edit ledger for')) {
       return new Promise((resolve) => {
         const modal   = document.getElementById('editLedgerModal');
@@ -1169,7 +1294,6 @@
         const closeX  = document.getElementById('editModalCloseX');
         if (!modal || !input) { resolve(_nativePrompt(message, defaultValue)); return; }
 
-        // Extract rate from message e.g. "Edit ledger for 18%:"
         const rateMatch = message.match(/Edit ledger for (.+?):/);
         const rateLabel = rateMatch ? rateMatch[1] : '';
         if (badge) badge.textContent = rateLabel;
@@ -1177,8 +1301,6 @@
 
         input.value = defaultValue || '';
         modal.classList.add('show');
-
-        // Focus input after animation
         setTimeout(() => { input.focus(); input.select(); }, 80);
 
         const cleanup = () => {
@@ -1190,20 +1312,10 @@
           input.removeEventListener('keydown', onKey);
         };
 
-        const onOk = () => {
-          const val = input.value.trim();
-          cleanup();
-          resolve(val || null);
-        };
-
+        const onOk = () => { const val = input.value.trim(); cleanup(); resolve(val || null); };
         const onCancel = () => { cleanup(); resolve(null); };
-
         const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
-
-        const onKey = (e) => {
-          if (e.key === 'Enter') onOk();
-          if (e.key === 'Escape') onCancel();
-        };
+        const onKey = (e) => { if (e.key === 'Enter') onOk(); if (e.key === 'Escape') onCancel(); };
 
         okBtn.addEventListener('click', onOk);
         cancelBtn.addEventListener('click', onCancel);
@@ -1212,7 +1324,70 @@
         input.addEventListener('keydown', onKey);
       });
     }
-    // Fall back to native for any other prompt
+
+    // ── Change Company State ──
+    if (typeof message === 'string' && message.startsWith('Enter company state')) {
+      return new Promise((resolve) => {
+        const modal      = document.getElementById('changeStateModal');
+        const input      = document.getElementById('stateInput');
+        const currentVal = document.getElementById('stateCurrentValue');
+        const chips      = document.getElementById('stateChips');
+        const okBtn      = document.getElementById('stateModalOkBtn');
+        const cancelBtn  = document.getElementById('stateModalCancelBtn');
+        const closeX     = document.getElementById('stateModalCloseX');
+        if (!modal || !input) { resolve(_nativePrompt(message, defaultValue)); return; }
+
+        // Show current state value
+        if (currentVal) currentVal.textContent = defaultValue || 'Not set';
+        input.value = defaultValue || '';
+
+        // Reset chip selections
+        document.querySelectorAll('.state-chip').forEach(c => {
+          c.classList.toggle('selected', c.dataset.state === defaultValue);
+        });
+
+        modal.classList.add('show');
+        setTimeout(() => { input.focus(); input.select(); }, 80);
+
+        // Chip click — fill input
+        const onChip = (e) => {
+          const chip = e.target.closest('.state-chip');
+          if (!chip) return;
+          input.value = chip.dataset.state;
+          document.querySelectorAll('.state-chip').forEach(c => c.classList.remove('selected'));
+          chip.classList.add('selected');
+        };
+        if (chips) chips.addEventListener('click', onChip);
+
+        const cleanup = () => {
+          modal.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          closeX.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBackdrop);
+          input.removeEventListener('keydown', onKey);
+          if (chips) chips.removeEventListener('click', onChip);
+        };
+
+        const onOk = () => {
+          const val = input.value.trim();
+          if (!val) { input.focus(); input.classList.add('input-shake'); setTimeout(() => input.classList.remove('input-shake'), 400); return; }
+          cleanup();
+          showToast(`Company state updated to "${val}" 🏛️`, 'success');
+          resolve(val);
+        };
+        const onCancel   = () => { cleanup(); resolve(null); };
+        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+        const onKey      = (e) => { if (e.key === 'Enter') onOk(); if (e.key === 'Escape') onCancel(); };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        closeX.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        input.addEventListener('keydown', onKey);
+      });
+    }
+
     return _nativePrompt(message, defaultValue);
   };
 
@@ -1351,9 +1526,45 @@
     });
   });
 
-  /* Spin keyframe */
+  /* ── Company add/rename success toast ── */
+  document.addEventListener('DOMContentLoaded', function() {
+    const companyModalOk = document.getElementById('companyModalOkBtn');
+    const companyModal   = document.getElementById('companyModal');
+    const companyNameInput = document.getElementById('companyNameInput');
+    if (!companyModalOk) return;
+
+    companyModalOk.addEventListener('click', async function() {
+      const name = companyNameInput ? companyNameInput.value.trim() : '';
+      const isRename = companyModal && companyModal.querySelector('#companyModalTitle')
+        && document.getElementById('companyModalTitle').textContent.toLowerCase().includes('rename');
+
+      // Wait a tick so the original handler runs first (it does the fetch)
+      await new Promise(r => setTimeout(r, 600));
+
+      // If modal closed, it means the original handler succeeded
+      if (companyModal && !companyModal.classList.contains('show') && name) {
+        if (isRename) {
+          showToast(`Company renamed to "${name}" successfully!`, 'success');
+        } else {
+          showToast(`Company "${name}" created successfully!`, 'success');
+        }
+      }
+    }, true); // capture — runs alongside original, not instead of
+  });
+
+  /* Spin + shake keyframes */
   const style = document.createElement('style');
-  style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+  style.textContent = `
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes inputShake {
+      0%, 100% { transform: translateX(0); }
+      20%       { transform: translateX(-6px); }
+      40%       { transform: translateX(6px); }
+      60%       { transform: translateX(-4px); }
+      80%       { transform: translateX(4px); }
+    }
+    .input-shake { animation: inputShake 0.38s ease both; border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(220,38,38,0.15) !important; }
+  `;
   document.head.appendChild(style);
 })();
 </script>
