@@ -21,7 +21,13 @@ from openpyxl.styles import Font
 
 # Existing services
 from core.excel_service import excel_to_xml
-from core.mapping import load_mapping_json, save_mapping_json
+from core.mapping import (
+    load_companies,
+    add_company,
+    delete_company,
+    get_company_mapping,
+    save_company_mapping
+)
 from core.process_service import image_to_excel
 
 # =========================================================
