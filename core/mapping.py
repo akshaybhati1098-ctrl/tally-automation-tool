@@ -13,10 +13,6 @@ logger.info(f"DATABASE_URL exists: {bool(DATABASE_URL)}")
 if DATABASE_URL:
     logger.info(f"DATABASE_URL starts with: {DATABASE_URL[:20]}...")
 
-if not DATABASE_URL:
-    logger.error("DATABASE_URL environment variable not set! Using JSON file fallback.")
-    # We'll keep JSON as fallback but log error
-
 def get_db_connection():
     """Return a connection to the PostgreSQL database."""
     if not DATABASE_URL:
@@ -107,37 +103,51 @@ def get_default_mapping():
 
 def load_all_mappings_postgres():
     """Load all companies and mappings from PostgreSQL."""
+    if not DATABASE_URL:
+        logger.warning("No DATABASE_URL, cannot load from PostgreSQL")
+        return None, None
+        
     try:
+        logger.info("🔍 Attempting to load mappings from PostgreSQL...")
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         cur.execute("SELECT company, mapping FROM company_mapping ORDER BY company")
         rows = cur.fetchall()
         cur.close()
         conn.close()
-
+        
+        logger.info(f"📊 Found {len(rows)} rows in PostgreSQL")
+        
         mappings = {}
         companies = []
-        for row in rows:
-            company = row["company"]
-            mapping = row["mapping"]
-            mappings[company] = mapping
-            companies.append(company)
-
-        # If no companies exist, create the default one
-        if not companies:
-            logger.info("No companies found in PostgreSQL, creating Default company")
-            default = "Default"
-            save_company_mapping_postgres(default, get_default_mapping())
-            companies = [default]
-            mappings[default] = get_default_mapping()
-
-        return companies, mappings
+        
+        if rows:
+            for row in rows:
+                company = row["company"]
+                mapping = row["mapping"]
+                mappings[company] = mapping
+                companies.append(company)
+                logger.info(f"  ✅ Loaded company: {company} from PostgreSQL")
+            
+            logger.info(f"✅ Successfully loaded {len(companies)} companies: {companies}")
+            return companies, mappings
+        else:
+            # No companies found, return empty lists (don't auto-create Default here)
+            logger.info("📭 No companies found in PostgreSQL database")
+            return [], {}
+            
     except Exception as e:
-        logger.error(f"Error loading from PostgreSQL: {e}")
+        logger.error(f"❌ Error loading from PostgreSQL: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
         return None, None
 
 def save_company_mapping_postgres(company, mapping):
     """Save a company mapping to PostgreSQL."""
+    if not DATABASE_URL:
+        logger.warning("No DATABASE_URL, cannot save to PostgreSQL")
+        return False
+        
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -153,14 +163,18 @@ def save_company_mapping_postgres(company, mapping):
         conn.commit()
         cur.close()
         conn.close()
-        logger.info(f"Saved mapping for company: {company} to PostgreSQL")
+        logger.info(f"💾 Saved mapping for company: {company} to PostgreSQL")
         return True
     except Exception as e:
-        logger.error(f"Error saving to PostgreSQL for {company}: {e}")
+        logger.error(f"❌ Error saving to PostgreSQL for {company}: {e}")
         return False
 
 def delete_company_postgres(company):
     """Delete a company from PostgreSQL."""
+    if not DATABASE_URL:
+        logger.warning("No DATABASE_URL, cannot delete from PostgreSQL")
+        return False
+        
     try:
         conn = get_db_connection()
         cur = conn.cursor()
@@ -168,10 +182,10 @@ def delete_company_postgres(company):
         conn.commit()
         cur.close()
         conn.close()
-        logger.info(f"Deleted company: {company} from PostgreSQL")
+        logger.info(f"🗑️ Deleted company: {company} from PostgreSQL")
         return True
     except Exception as e:
-        logger.error(f"Error deleting from PostgreSQL: {e}")
+        logger.error(f"❌ Error deleting from PostgreSQL: {e}")
         return False
 
 
@@ -213,12 +227,21 @@ def save_mapping_json(data):
 def load_companies():
     """Load companies - tries PostgreSQL first, falls back to JSON."""
     if DATABASE_URL:
+        logger.info("📋 Loading companies from PostgreSQL...")
         companies, _ = load_all_mappings_postgres()
         if companies is not None:
-            return companies
+            if companies:  # If there are companies, return them
+                logger.info(f"📋 Returning companies from PostgreSQL: {companies}")
+                return companies
+            else:
+                # No companies in PostgreSQL, create Default
+                logger.info("📋 No companies in PostgreSQL, creating Default")
+                default_mapping = get_default_mapping()
+                save_company_mapping_postgres("Default", default_mapping)
+                return ["Default"]
     
     # Fallback to JSON
-    logger.warning("Falling back to JSON file for companies")
+    logger.warning("⚠️ Falling back to JSON file for companies")
     return load_mapping_json().get("companies", [])
 
 
@@ -235,13 +258,13 @@ def add_company(name):
             
             success = save_company_mapping_postgres(name, get_default_mapping())
             if success:
-                logger.info(f"Added company {name} to PostgreSQL")
+                logger.info(f"✅ Added company {name} to PostgreSQL")
                 return
             else:
-                logger.error(f"Failed to add {name} to PostgreSQL, trying JSON fallback")
+                logger.error(f"❌ Failed to add {name} to PostgreSQL, trying JSON fallback")
     
     # Fallback to JSON
-    logger.warning(f"Falling back to JSON file for adding company: {name}")
+    logger.warning(f"⚠️ Falling back to JSON file for adding company: {name}")
     data = load_mapping_json()
     if name in data["companies"]:
         raise ValueError(f"Company '{name}' already exists")
@@ -258,13 +281,13 @@ def delete_company(name):
     if DATABASE_URL:
         success = delete_company_postgres(name)
         if success:
-            logger.info(f"Deleted company {name} from PostgreSQL")
+            logger.info(f"✅ Deleted company {name} from PostgreSQL")
             return
         else:
-            logger.error(f"Failed to delete {name} from PostgreSQL, trying JSON fallback")
+            logger.error(f"❌ Failed to delete {name} from PostgreSQL, trying JSON fallback")
     
     # Fallback to JSON
-    logger.warning(f"Falling back to JSON file for deleting company: {name}")
+    logger.warning(f"⚠️ Falling back to JSON file for deleting company: {name}")
     data = load_mapping_json()
     if name not in data["companies"]:
         raise ValueError(f"Company '{name}' not found")
@@ -276,12 +299,17 @@ def delete_company(name):
 def get_company_mapping(name):
     """Get company mapping - tries PostgreSQL first, falls back to JSON."""
     if DATABASE_URL:
+        logger.info(f"🔍 Getting mapping for {name} from PostgreSQL...")
         companies, mappings = load_all_mappings_postgres()
-        if companies is not None and name in mappings:
-            return mappings[name]
+        if companies is not None:
+            if name in mappings:
+                logger.info(f"✅ Found mapping for {name} in PostgreSQL")
+                return mappings[name]
+            else:
+                logger.warning(f"⚠️ Company {name} not found in PostgreSQL")
     
     # Fallback to JSON
-    logger.warning(f"Falling back to JSON file for getting mapping: {name}")
+    logger.warning(f"⚠️ Falling back to JSON file for getting mapping: {name}")
     data = load_mapping_json()
     if name not in data["mappings"]:
         raise ValueError(f"Company '{name}' not found")
@@ -293,13 +321,13 @@ def save_company_mapping(name, mapping):
     if DATABASE_URL:
         success = save_company_mapping_postgres(name, mapping)
         if success:
-            logger.info(f"Saved mapping for {name} to PostgreSQL")
+            logger.info(f"✅ Saved mapping for {name} to PostgreSQL")
             return
         else:
-            logger.error(f"Failed to save {name} to PostgreSQL, trying JSON fallback")
+            logger.error(f"❌ Failed to save {name} to PostgreSQL, trying JSON fallback")
     
     # Fallback to JSON
-    logger.warning(f"Falling back to JSON file for saving mapping: {name}")
+    logger.warning(f"⚠️ Falling back to JSON file for saving mapping: {name}")
     data = load_mapping_json()
     if name not in data["mappings"]:
         raise ValueError(f"Company '{name}' not found")
