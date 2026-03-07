@@ -1,3 +1,4 @@
+print("CORE XML SCRIPT RUNNING")
 #!/usr/bin/env python3
 """
 STRICT XML GENERATOR (GUI VERSION)
