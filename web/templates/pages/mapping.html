@@ -568,6 +568,60 @@
     }
     .mapping-wrap .btn-danger::before { display: none; }
 
+    /* ── Company action bar (Rename + Delete) ── */
+    .mapping-wrap .company-action-bar {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.65rem 0.8rem;
+      margin-bottom: 0.7rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 12px;
+      animation: mpFadeUp 0.2s ease both;
+    }
+
+    .mapping-wrap .btn-company-action {
+      flex: 1;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 0.4rem;
+      padding: 0.48rem 0.6rem;
+      border-radius: 9px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.78rem; font-weight: 600;
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.22,1,0.36,1);
+      border: 1.5px solid transparent;
+      letter-spacing: -0.01em;
+    }
+
+    .mapping-wrap .btn-company-rename {
+      background: rgba(217,119,6,0.08);
+      border-color: rgba(217,119,6,0.22);
+      color: var(--amber);
+    }
+    .mapping-wrap .btn-company-rename:hover {
+      background: rgba(217,119,6,0.16);
+      border-color: rgba(217,119,6,0.42);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(217,119,6,0.22);
+    }
+
+    .mapping-wrap .btn-company-delete {
+      background: rgba(220,38,38,0.07);
+      border-color: rgba(220,38,38,0.2);
+      color: var(--red);
+    }
+    .mapping-wrap .btn-company-delete:hover {
+      background: rgba(220,38,38,0.14);
+      border-color: rgba(220,38,38,0.4);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(220,38,38,0.2);
+    }
+
+    .mapping-wrap .btn-company-action:active { transform: scale(0.95); }
+
+    .mapping-wrap .btn-company-action .ca-icon { font-size: 0.88rem; line-height: 1; }
+
     /* ── Add Company button — full width in sidebar ── */
     .mapping-wrap .btn-add-company {
       width: 100%; justify-content: center;
@@ -1160,10 +1214,16 @@
               📋 Ledger Groups for
               <span id="selectedCompany" class="company-name">Select a company</span>
             </h4>
-            <div style="display:flex;gap:0.4rem;flex-shrink:0;">
-              <button class="btn btn-warning btn-sm" id="renameCompanyBtn" title="Rename company" style="display:none;">✏️ Rename</button>
-              <button class="btn btn-danger btn-sm" id="deleteCompanyBtn" title="Delete company" style="display:none;">🗑️ Delete</button>
-            </div>
+          </div>
+          <div class="company-action-bar" id="companyActionBar" style="display:none;">
+            <button class="btn-company-action btn-company-rename" id="renameCompanyBtn" title="Rename company">
+              <span class="ca-icon">✏️</span>
+              <span class="ca-label">Rename</span>
+            </button>
+            <button class="btn-company-action btn-company-delete" id="deleteCompanyBtn" title="Delete company">
+              <span class="ca-icon">🗑️</span>
+              <span class="ca-label">Delete</span>
+            </button>
           </div>
           <div id="groupList" class="group-list"></div>
           <button class="btn btn-success btn-sm" id="addGroupBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">➕ Add Ledger Group</button>
@@ -2094,14 +2154,17 @@
 
             async function selectCompany(name) {
                 currentCompany = name;
+                window.__currentCompanyForCore = name; // exposed for save-to-core
                 if (selectedCompanySpan) selectedCompanySpan.textContent = name;
                 // Update active class
                 document.querySelectorAll('#companyList .company-item').forEach(item => {
                     item.classList.toggle('active', item.dataset.name === name);
                 });
                 const isDefault = (name === 'Default');
-                if (deleteCompanyBtn) deleteCompanyBtn.style.display = isDefault ? 'none' : 'inline-block';
-                if (renameCompanyBtn) renameCompanyBtn.style.display = isDefault ? 'none' : 'inline-block';
+                const actionBar = document.getElementById('companyActionBar');
+                if (actionBar) actionBar.style.display = isDefault ? 'none' : 'flex';
+                if (deleteCompanyBtn) deleteCompanyBtn.style.display = isDefault ? 'none' : 'inline-flex';
+                if (renameCompanyBtn) renameCompanyBtn.style.display = isDefault ? 'none' : 'inline-flex';
 
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
