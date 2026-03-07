@@ -2,7 +2,7 @@ import json
 import os
 
 # HuggingFace persistent storage
-DATA_DIR = "/data"
+DATA_DIR = os.path.dirname(__file__)
 os.makedirs(DATA_DIR, exist_ok=True)
 
 MAP_FILE = os.path.join(DATA_DIR, "mapping.json")
