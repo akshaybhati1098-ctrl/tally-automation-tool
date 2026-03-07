@@ -407,17 +407,6 @@
       transform: scale(1.12); box-shadow: 0 2px 8px rgba(22,73,224,0.18);
     }
 
-    /* Add — green */
-    .mapping-wrap .group-item-actions .gi-add {
-      border-color: rgba(15,169,102,0.2);
-      background: rgba(15,169,102,0.07);
-      color: var(--green2);
-    }
-    .mapping-wrap .group-item-actions .gi-add:hover {
-      background: rgba(15,169,102,0.15); border-color: rgba(15,169,102,0.38);
-      transform: scale(1.12); box-shadow: 0 2px 8px rgba(15,169,102,0.18);
-    }
-
     /* Remove — red */
     .mapping-wrap .group-item-actions .gi-remove {
       border-color: rgba(220,38,38,0.18);
@@ -1177,6 +1166,7 @@
             </div>
           </div>
           <div id="groupList" class="group-list"></div>
+          <button class="btn btn-success btn-sm" id="addGroupBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">➕ Add Ledger Group</button>
         </div>
 
         <div class="rate-panel">
@@ -1816,12 +1806,11 @@
         labelSpan.className = 'group-item-label';
         labelSpan.textContent = item.textContent.trim();
 
-        // Build action buttons
+        // Build action buttons — edit + remove only (add is a single bottom button)
         const actions = document.createElement('div');
         actions.className = 'group-item-actions';
         actions.innerHTML = `
           <button class="gi-edit"   title="Rename group" data-group="${groupKey}">✏️</button>
-          <button class="gi-add"    title="Add ledger group" data-group="${groupKey}">➕</button>
           <button class="gi-remove" title="Remove group" data-group="${groupKey}">🗑️</button>
         `;
 
@@ -1835,9 +1824,6 @@
         // Edit group name
         actions.querySelector('.gi-edit').addEventListener('click', () => openEditGroupModal(groupKey, labelSpan));
 
-        // Add group (opens add modal, inserts after this group)
-        actions.querySelector('.gi-add').addEventListener('click', () => openAddGroupModal(groupKey));
-
         // Remove group
         actions.querySelector('.gi-remove').addEventListener('click', () => openRemoveGroupModal(groupKey));
       });
@@ -1845,6 +1831,12 @@
 
     new MutationObserver(upgradeGroupItems).observe(groupListEl, { childList: true });
     upgradeGroupItems();
+
+    // Single "Add Ledger Group" button below the list
+    const addGroupBtn = document.getElementById('addGroupBtn');
+    if (addGroupBtn) {
+      addGroupBtn.addEventListener('click', () => openAddGroupModal(null));
+    }
 
     /* ── Helpers to expose groupNames + renderGroupList ── */
     function getBridge() { return window.__groupBridge || {}; }
@@ -1919,8 +1911,12 @@
         const b = getBridge();
         if (b.groupNames && b.currentMapping) {
           if (!b.groupNames.includes(newKey)) {
-            const idx = b.groupNames.indexOf(afterKey);
-            b.groupNames.splice(idx + 1, 0, newKey);
+            if (afterKey !== null) {
+              const idx = b.groupNames.indexOf(afterKey);
+              b.groupNames.splice(idx + 1, 0, newKey);
+            } else {
+              b.groupNames.push(newKey);
+            }
             b.currentMapping[newKey] = {};
             if (b.renderGroupList) b.renderGroupList();
             if (b.selectGroup) b.selectGroup(newKey);
