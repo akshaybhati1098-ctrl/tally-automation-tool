@@ -2,7 +2,7 @@ import json
 import os
 
 # HuggingFace persistent storage
-DATA_DIR = os.path.dirname(__file__)
+DATA_DIR = "/data"
 os.makedirs(DATA_DIR, exist_ok=True)
 
 MAP_FILE = os.path.join(DATA_DIR, "mapping.json")
@@ -19,6 +19,7 @@ def get_default_mapping():
             "18": "Local Sale @18%",
             "28": "Local Sale @28%"
         },
+
         "SALES_IGST": {
             "0": "Sales - IGST 0%",
             "5": "Interstate Sale @5%",
