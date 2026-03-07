@@ -777,6 +777,11 @@
        CHANGE STATE MODAL
     ══════════════════════════════════════════ */
 
+    .mapping-wrap .change-state-modal-content {
+      max-width: 520px !important;
+      width: 520px !important;
+    }
+
     .mapping-wrap .change-state-modal-content::before {
       background: linear-gradient(90deg, #0fa966, #1649e0, #3324d8) !important;
     }
@@ -808,40 +813,52 @@
     }
 
     /* Input with icon */
-    .mapping-wrap .state-input-wrap {
-      position: relative;
-    }
+    .mapping-wrap .state-input-wrap { position: relative; }
 
     .mapping-wrap .state-input-icon {
-      position: absolute;
-      left: 0.9rem; top: 50%;
+      position: absolute; left: 0.9rem; top: 50%;
       transform: translateY(-50%);
-      font-size: 1rem;
-      pointer-events: none;
-      z-index: 1;
+      font-size: 1rem; pointer-events: none; z-index: 1;
     }
 
-    .mapping-wrap .state-input-wrap input {
-      padding-left: 2.6rem !important;
+    .mapping-wrap .state-input-wrap input { padding-left: 2.6rem !important; }
+
+    /* Section label */
+    .mapping-wrap .state-section-label {
+      font-size: 0.66rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
     }
 
-    /* Quick-pick chips */
+    /* Scrollable chip container */
     .mapping-wrap .state-chips {
-      display: flex; flex-wrap: wrap; gap: 0.45rem;
-      margin-bottom: 0.3rem;
+      display: flex; flex-wrap: wrap; gap: 0.38rem;
+      max-height: 130px;
+      overflow-y: auto;
+      padding: 0.5rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 13px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--line2) transparent;
     }
+    .mapping-wrap .state-chips::-webkit-scrollbar { width: 4px; }
+    .mapping-wrap .state-chips::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
 
+    /* State chip */
     .mapping-wrap .state-chip {
       display: inline-flex; align-items: center;
-      padding: 0.3rem 0.8rem;
-      background: var(--surface);
+      padding: 0.28rem 0.72rem;
+      background: var(--white);
       border: 1.5px solid var(--line);
       border-radius: 100px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 0.74rem; font-weight: 500;
+      font-size: 0.73rem; font-weight: 500;
       color: var(--ink3);
       cursor: pointer;
       transition: all 0.18s cubic-bezier(0.22,1,0.36,1);
+      white-space: nowrap;
     }
 
     .mapping-wrap .state-chip:hover {
@@ -854,10 +871,31 @@
 
     .mapping-wrap .state-chip.selected {
       background: var(--accent-soft);
-      border-color: rgba(22,73,224,0.35);
+      border-color: rgba(22,73,224,0.4);
       color: var(--accent);
       font-weight: 600;
     }
+
+    /* UT chips — teal tint */
+    .mapping-wrap .state-chip-ut {
+      border-color: rgba(15,169,102,0.25);
+      background: rgba(15,169,102,0.04);
+      color: #0a7845;
+    }
+    .mapping-wrap .state-chip-ut:hover {
+      background: var(--green-soft);
+      border-color: rgba(15,169,102,0.4);
+      color: var(--green2);
+      box-shadow: 0 3px 10px rgba(15,169,102,0.14);
+    }
+    .mapping-wrap .state-chip-ut.selected {
+      background: var(--green-soft);
+      border-color: rgba(15,169,102,0.45);
+      color: var(--green2);
+    }
+
+    /* Hidden chip (filtered out) */
+    .mapping-wrap .state-chip.hidden { display: none; }
 
     /* ══════════════════════════════════════════
        TOAST NOTIFICATION SYSTEM
@@ -1163,6 +1201,24 @@
     </div>
   </div>
 
+  <!-- 🏢 Delete Company confirm modal -->
+  <div id="deleteCompanyConfirmModal" class="modal">
+    <div class="modal-content delete-modal-content">
+      <button class="modal-close-x" id="deleteCompanyModalCloseX" aria-label="Close">✕</button>
+      <div class="delete-icon-wrap">
+        <div class="delete-icon-circle">🏢</div>
+      </div>
+      <h3 class="delete-modal-title">Delete Company?</h3>
+      <p class="delete-modal-msg">You are about to permanently delete<br><strong id="deleteCompanyNameSpan" style="color:var(--red);">Company Name</strong>.<br>All its ledger mappings will be lost.</p>
+      <div class="modal-actions delete-modal-actions">
+        <button class="btn btn-outline" id="deleteCompanyModalCancelBtn">Cancel</button>
+        <button class="btn btn-danger-solid" id="deleteCompanyModalOkBtn">
+          <span>🗑️</span> Delete Company
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- 🏛️ Change State Modal — replaces prompt() for COMPANY_STATE -->
   <div id="changeStateModal" class="modal">
     <div class="modal-content change-state-modal-content">
@@ -1175,22 +1231,55 @@
       </div>
 
       <div class="form-group">
-        <label for="stateInput">New State</label>
+        <label for="stateInput">Select or Type State / UT</label>
         <div class="state-input-wrap">
-          <span class="state-input-icon">🏛️</span>
-          <input type="text" id="stateInput" placeholder="e.g., Maharashtra, Gujarat…" autocomplete="off">
+          <span class="state-input-icon">🔍</span>
+          <input type="text" id="stateInput" placeholder="Search state or UT…" autocomplete="off">
         </div>
       </div>
 
+      <div class="state-section-label">📍 States</div>
       <div class="state-chips" id="stateChips">
-        <button class="state-chip" data-state="Maharashtra">Maharashtra</button>
+        <button class="state-chip" data-state="Andhra Pradesh">Andhra Pradesh</button>
+        <button class="state-chip" data-state="Arunachal Pradesh">Arunachal Pradesh</button>
+        <button class="state-chip" data-state="Assam">Assam</button>
+        <button class="state-chip" data-state="Bihar">Bihar</button>
+        <button class="state-chip" data-state="Chhattisgarh">Chhattisgarh</button>
+        <button class="state-chip" data-state="Goa">Goa</button>
         <button class="state-chip" data-state="Gujarat">Gujarat</button>
-        <button class="state-chip" data-state="Delhi">Delhi</button>
+        <button class="state-chip" data-state="Haryana">Haryana</button>
+        <button class="state-chip" data-state="Himachal Pradesh">Himachal Pradesh</button>
+        <button class="state-chip" data-state="Jharkhand">Jharkhand</button>
         <button class="state-chip" data-state="Karnataka">Karnataka</button>
-        <button class="state-chip" data-state="Tamil Nadu">Tamil Nadu</button>
+        <button class="state-chip" data-state="Kerala">Kerala</button>
+        <button class="state-chip" data-state="Madhya Pradesh">Madhya Pradesh</button>
+        <button class="state-chip" data-state="Maharashtra">Maharashtra</button>
+        <button class="state-chip" data-state="Manipur">Manipur</button>
+        <button class="state-chip" data-state="Meghalaya">Meghalaya</button>
+        <button class="state-chip" data-state="Mizoram">Mizoram</button>
+        <button class="state-chip" data-state="Nagaland">Nagaland</button>
+        <button class="state-chip" data-state="Odisha">Odisha</button>
+        <button class="state-chip" data-state="Punjab">Punjab</button>
         <button class="state-chip" data-state="Rajasthan">Rajasthan</button>
+        <button class="state-chip" data-state="Sikkim">Sikkim</button>
+        <button class="state-chip" data-state="Tamil Nadu">Tamil Nadu</button>
+        <button class="state-chip" data-state="Telangana">Telangana</button>
+        <button class="state-chip" data-state="Tripura">Tripura</button>
         <button class="state-chip" data-state="Uttar Pradesh">Uttar Pradesh</button>
+        <button class="state-chip" data-state="Uttarakhand">Uttarakhand</button>
         <button class="state-chip" data-state="West Bengal">West Bengal</button>
+      </div>
+
+      <div class="state-section-label" style="margin-top:0.85rem;">🏙️ Union Territories</div>
+      <div class="state-chips" id="utChips">
+        <button class="state-chip state-chip-ut" data-state="Andaman and Nicobar Islands">Andaman &amp; Nicobar</button>
+        <button class="state-chip state-chip-ut" data-state="Chandigarh">Chandigarh</button>
+        <button class="state-chip state-chip-ut" data-state="Dadra and Nagar Haveli and Daman and Diu">Dadra, NH &amp; Daman</button>
+        <button class="state-chip state-chip-ut" data-state="Delhi">Delhi (NCT)</button>
+        <button class="state-chip state-chip-ut" data-state="Jammu and Kashmir">Jammu &amp; Kashmir</button>
+        <button class="state-chip state-chip-ut" data-state="Ladakh">Ladakh</button>
+        <button class="state-chip state-chip-ut" data-state="Lakshadweep">Lakshadweep</button>
+        <button class="state-chip state-chip-ut" data-state="Puducherry">Puducherry</button>
       </div>
 
       <div class="modal-actions">
@@ -1331,7 +1420,6 @@
         const modal      = document.getElementById('changeStateModal');
         const input      = document.getElementById('stateInput');
         const currentVal = document.getElementById('stateCurrentValue');
-        const chips      = document.getElementById('stateChips');
         const okBtn      = document.getElementById('stateModalOkBtn');
         const cancelBtn  = document.getElementById('stateModalCancelBtn');
         const closeX     = document.getElementById('stateModalCloseX');
@@ -1339,39 +1427,60 @@
 
         // Show current state value
         if (currentVal) currentVal.textContent = defaultValue || 'Not set';
-        input.value = defaultValue || '';
+        input.value = '';
 
-        // Reset chip selections
-        document.querySelectorAll('.state-chip').forEach(c => {
+        // Reset chip selections and show all
+        const allChips = document.querySelectorAll('.state-chip');
+        allChips.forEach(c => {
+          c.classList.remove('selected', 'hidden');
           c.classList.toggle('selected', c.dataset.state === defaultValue);
         });
 
         modal.classList.add('show');
-        setTimeout(() => { input.focus(); input.select(); }, 80);
+        setTimeout(() => { input.focus(); }, 80);
 
-        // Chip click — fill input
-        const onChip = (e) => {
+        // Live search filter
+        const onSearch = () => {
+          const q = input.value.trim().toLowerCase();
+          allChips.forEach(c => {
+            const matches = !q || c.dataset.state.toLowerCase().includes(q) || c.textContent.toLowerCase().includes(q);
+            c.classList.toggle('hidden', !matches);
+          });
+        };
+        input.addEventListener('input', onSearch);
+
+        // Chip click — fill input and select
+        const allChipContainers = document.querySelectorAll('#stateChips, #utChips');
+        const onChipClick = (e) => {
           const chip = e.target.closest('.state-chip');
           if (!chip) return;
           input.value = chip.dataset.state;
-          document.querySelectorAll('.state-chip').forEach(c => c.classList.remove('selected'));
+          allChips.forEach(c => c.classList.remove('selected'));
           chip.classList.add('selected');
+          // Reset filter so chip is visible
+          onSearch();
         };
-        if (chips) chips.addEventListener('click', onChip);
+        allChipContainers.forEach(c => c.addEventListener('click', onChipClick));
 
         const cleanup = () => {
           modal.classList.remove('show');
+          input.removeEventListener('input', onSearch);
+          allChipContainers.forEach(c => c.removeEventListener('click', onChipClick));
           okBtn.removeEventListener('click', onOk);
           cancelBtn.removeEventListener('click', onCancel);
           closeX.removeEventListener('click', onCancel);
           modal.removeEventListener('click', onBackdrop);
           input.removeEventListener('keydown', onKey);
-          if (chips) chips.removeEventListener('click', onChip);
         };
 
         const onOk = () => {
           const val = input.value.trim();
-          if (!val) { input.focus(); input.classList.add('input-shake'); setTimeout(() => input.classList.remove('input-shake'), 400); return; }
+          if (!val) {
+            input.focus();
+            input.classList.add('input-shake');
+            setTimeout(() => input.classList.remove('input-shake'), 400);
+            return;
+          }
           cleanup();
           showToast(`Company state updated to "${val}" 🏛️`, 'success');
           resolve(val);
@@ -1434,7 +1543,50 @@
         document.addEventListener('keydown', onKey);
       });
     }
-    // Fall back to native confirm for all other messages (rename, delete company, etc.)
+    // ── Delete Company ──
+    if (typeof message === 'string' && message.includes('delete company')) {
+      return new Promise((resolve) => {
+        const modal     = document.getElementById('deleteCompanyConfirmModal');
+        const nameSpan  = document.getElementById('deleteCompanyNameSpan');
+        const okBtn     = document.getElementById('deleteCompanyModalOkBtn');
+        const cancelBtn = document.getElementById('deleteCompanyModalCancelBtn');
+        const closeX    = document.getElementById('deleteCompanyModalCloseX');
+        if (!modal) { resolve(_nativeConfirm(message)); return; }
+
+        const nameMatch = message.match(/delete company "(.+?)"/i);
+        const companyName = nameMatch ? nameMatch[1] : 'this company';
+        if (nameSpan) nameSpan.textContent = companyName;
+
+        modal.classList.add('show');
+
+        const cleanup = () => {
+          modal.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          closeX.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBackdrop);
+          document.removeEventListener('keydown', onKey);
+        };
+
+        const onOk = () => {
+          cleanup();
+          // Toast fires after a short delay so the DELETE fetch can run first
+          setTimeout(() => showToast(`🏢 Company "${companyName}" deleted successfully`, 'success'), 700);
+          resolve(true);
+        };
+        const onCancel   = () => { cleanup(); resolve(false); };
+        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+        const onKey      = (e) => { if (e.key === 'Escape') onCancel(); };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        closeX.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+      });
+    }
+
+    // Fall back to native confirm for everything else
     return _nativeConfirm(message);
   };
 
@@ -1526,30 +1678,37 @@
     });
   });
 
-  /* ── Company add/rename success toast ── */
+  /* ── Add company toast — MutationObserver (fires the instant the list updates) ── */
   document.addEventListener('DOMContentLoaded', function() {
-    const companyModalOk = document.getElementById('companyModalOkBtn');
-    const companyModal   = document.getElementById('companyModal');
+    const companyList      = document.getElementById('companyList');
+    const companyModalOk   = document.getElementById('companyModalOkBtn');
     const companyNameInput = document.getElementById('companyNameInput');
-    if (!companyModalOk) return;
+    if (!companyList || !companyModalOk) return;
 
-    companyModalOk.addEventListener('click', async function() {
-      const name = companyNameInput ? companyNameInput.value.trim() : '';
-      const isRename = companyModal && companyModal.querySelector('#companyModalTitle')
-        && document.getElementById('companyModalTitle').textContent.toLowerCase().includes('rename');
+    let pendingAddName = '';
 
-      // Wait a tick so the original handler runs first (it does the fetch)
-      await new Promise(r => setTimeout(r, 600));
-
-      // If modal closed, it means the original handler succeeded
-      if (companyModal && !companyModal.classList.contains('show') && name) {
-        if (isRename) {
-          showToast(`Company renamed to "${name}" successfully!`, 'success');
-        } else {
-          showToast(`Company "${name}" created successfully!`, 'success');
-        }
+    // Capture the name at mousedown — before the original click handler fires
+    companyModalOk.addEventListener('mousedown', function() {
+      const title = document.getElementById('companyModalTitle');
+      const isAdd = title && title.textContent.toLowerCase().includes('add');
+      if (isAdd && companyNameInput) {
+        pendingAddName = companyNameInput.value.trim();
+      } else {
+        pendingAddName = '';
       }
-    }, true); // capture — runs alongside original, not instead of
+    }, true);
+
+    // Watch for new <div class="company-item"> nodes added to the list
+    let previousCount = companyList.querySelectorAll('.company-item').length;
+    const observer = new MutationObserver(() => {
+      const newCount = companyList.querySelectorAll('.company-item').length;
+      if (newCount > previousCount && pendingAddName) {
+        showToast(`🏢 New company "${pendingAddName}" created successfully!`, 'success');
+        pendingAddName = '';
+      }
+      previousCount = newCount;
+    });
+    observer.observe(companyList, { childList: true });
   });
 
   /* Spin + shake keyframes */
