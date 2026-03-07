@@ -211,10 +211,7 @@ async def get_company_mapping_api(
     company: str,
     user: str = Depends(require_login)
 ):
-    try:
-        return get_company_mapping(company)
-    except ValueError:
-        raise HTTPException(404)
+    return get_company_mapping(company)
 
 
 @app.post("/api/mapping/{company}")
