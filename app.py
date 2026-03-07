@@ -25,7 +25,7 @@ from core.mapping import (
     load_companies,
     add_company,
     delete_company,
-    get_company_mapping,
+    get_company_mapping as get_company_mapping_data,
     save_company_mapping
 )
 from core.process_service import image_to_excel
@@ -166,7 +166,7 @@ async def api_me(request: Request):
     return {"authenticated": bool(user), "username": user}
 
 # =========================================================
-# MAPPING APIs (PERSISTENT STORAGE)
+# MAPPING APIs (PERSISTENT)
 # =========================================================
 
 @app.get("/api/companies")
@@ -211,7 +211,10 @@ async def get_company_mapping_api(
     company: str,
     user: str = Depends(require_login)
 ):
-    return get_company_mapping(company)
+    try:
+        return get_company_mapping_data(company)
+    except ValueError:
+        raise HTTPException(404)
 
 
 @app.post("/api/mapping/{company}")
