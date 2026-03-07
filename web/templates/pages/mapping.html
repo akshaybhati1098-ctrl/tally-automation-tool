@@ -344,16 +344,18 @@
       font-size: 0.84rem; font-weight: 500; color: var(--ink3);
       position: relative;
       animation: mpSlideIn 0.22s ease both;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 0.4rem;
     }
     .mapping-wrap .group-item:last-child { border-bottom: none; }
 
     .mapping-wrap .group-item:hover {
-      background: var(--surface); padding-left: 1.35rem; color: var(--ink2);
+      background: var(--surface); color: var(--ink2);
     }
 
     .mapping-wrap .group-item.active {
       background: var(--accent-soft);
-      color: var(--accent); font-weight: 600; padding-left: 1rem;
+      color: var(--accent); font-weight: 600;
     }
 
     .mapping-wrap .group-item.active::before {
@@ -365,6 +367,69 @@
       animation: mpActiveBar 0.2s cubic-bezier(0.22,1,0.36,1) both;
       transform-origin: top;
     }
+
+    /* Group item label */
+    .mapping-wrap .group-item-label {
+      flex: 1; min-width: 0;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* Group action buttons — hidden until hover/active */
+    .mapping-wrap .group-item-actions {
+      display: flex; gap: 0.28rem; flex-shrink: 0;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.18s;
+    }
+    .mapping-wrap .group-item:hover .group-item-actions,
+    .mapping-wrap .group-item.active .group-item-actions {
+      opacity: 1; pointer-events: all;
+    }
+
+    .mapping-wrap .group-item-actions button {
+      width: 26px; height: 26px;
+      border-radius: 7px;
+      border: 1.5px solid transparent;
+      background: var(--white);
+      cursor: pointer; font-size: 0.78rem;
+      display: grid; place-items: center;
+      transition: background 0.15s, border-color 0.15s, transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s;
+      flex-shrink: 0;
+    }
+
+    /* Edit — blue */
+    .mapping-wrap .group-item-actions .gi-edit {
+      border-color: rgba(22,73,224,0.18);
+      background: rgba(22,73,224,0.06);
+      color: var(--accent);
+    }
+    .mapping-wrap .group-item-actions .gi-edit:hover {
+      background: rgba(22,73,224,0.14); border-color: rgba(22,73,224,0.35);
+      transform: scale(1.12); box-shadow: 0 2px 8px rgba(22,73,224,0.18);
+    }
+
+    /* Add — green */
+    .mapping-wrap .group-item-actions .gi-add {
+      border-color: rgba(15,169,102,0.2);
+      background: rgba(15,169,102,0.07);
+      color: var(--green2);
+    }
+    .mapping-wrap .group-item-actions .gi-add:hover {
+      background: rgba(15,169,102,0.15); border-color: rgba(15,169,102,0.38);
+      transform: scale(1.12); box-shadow: 0 2px 8px rgba(15,169,102,0.18);
+    }
+
+    /* Remove — red */
+    .mapping-wrap .group-item-actions .gi-remove {
+      border-color: rgba(220,38,38,0.18);
+      background: rgba(220,38,38,0.06);
+      color: var(--red);
+    }
+    .mapping-wrap .group-item-actions .gi-remove:hover {
+      background: rgba(220,38,38,0.13); border-color: rgba(220,38,38,0.35);
+      transform: scale(1.12); box-shadow: 0 2px 8px rgba(220,38,38,0.16);
+    }
+
+    .mapping-wrap .group-item-actions button:active { transform: scale(0.88); }
 
     /* ══════════════════════════════════════════
        RATE ITEMS
@@ -1219,6 +1284,58 @@
     </div>
   </div>
 
+  <!-- ✏️ Edit Group Name Modal -->
+  <div id="editGroupModal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close-x" id="editGroupModalCloseX" aria-label="Close">✕</button>
+      <h3>Rename Group</h3>
+      <div class="edit-rate-badge-row">
+        <span class="edit-rate-label">Current Name</span>
+        <span class="edit-rate-badge" id="editGroupCurrentName" style="color:var(--ink2);background:var(--surface2);border-color:var(--line2);">GROUP</span>
+      </div>
+      <div class="form-group">
+        <label for="editGroupInput">New Group Name</label>
+        <input type="text" id="editGroupInput" placeholder="e.g., SALES_IGST">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="editGroupCancelBtn">Cancel</button>
+        <button class="btn btn-primary" id="editGroupOkBtn"><span>✏️</span> Rename</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ➕ Add Ledger Group Modal -->
+  <div id="addGroupModal" class="modal">
+    <div class="modal-content">
+      <button class="modal-close-x" id="addGroupModalCloseX" aria-label="Close">✕</button>
+      <h3>Add Ledger Group</h3>
+      <div class="form-group">
+        <label for="addGroupInput">Group Name</label>
+        <input type="text" id="addGroupInput" placeholder="e.g., PURCHASE_IGST">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline" id="addGroupCancelBtn">Cancel</button>
+        <button class="btn btn-success" id="addGroupOkBtn"><span>➕</span> Add Group</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🗑️ Remove Ledger Group confirm Modal -->
+  <div id="removeGroupModal" class="modal">
+    <div class="modal-content delete-modal-content">
+      <button class="modal-close-x" id="removeGroupModalCloseX" aria-label="Close">✕</button>
+      <div class="delete-icon-wrap">
+        <div class="delete-icon-circle">📋</div>
+      </div>
+      <h3 class="delete-modal-title">Remove Group?</h3>
+      <p class="delete-modal-msg">Remove ledger group<br><strong id="removeGroupNameSpan" style="color:var(--red);">GROUP</strong><br>and all its rate mappings?</p>
+      <div class="modal-actions delete-modal-actions">
+        <button class="btn btn-outline" id="removeGroupCancelBtn">Keep it</button>
+        <button class="btn btn-danger-solid" id="removeGroupOkBtn"><span>🗑️</span> Remove</button>
+      </div>
+    </div>
+  </div>
+
   <!-- 🏛️ Change State Modal — replaces prompt() for COMPANY_STATE -->
   <div id="changeStateModal" class="modal">
     <div class="modal-content change-state-modal-content">
@@ -1678,7 +1795,180 @@
     });
   });
 
-  /* ── Add company toast — MutationObserver (fires the instant the list updates) ── */
+  /* ══════════════════════════════════════════
+     LEDGER GROUP ACTIONS
+     MutationObserver injects ✏️ / ➕ / 🗑️ buttons
+     into each group-item after renderGroupList runs.
+     All logic uses __mappingBridge + __groupBridge.
+  ══════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', function() {
+    const groupListEl = document.getElementById('groupList');
+    if (!groupListEl) return;
+
+    /* ── Inject action buttons into each group item ── */
+    function upgradeGroupItems() {
+      groupListEl.querySelectorAll('.group-item:not([data-gi-upgraded])').forEach(item => {
+        item.dataset.giUpgraded = '1';
+        const groupKey = item.dataset.key;
+
+        // Wrap existing text in a label span
+        const labelSpan = document.createElement('span');
+        labelSpan.className = 'group-item-label';
+        labelSpan.textContent = item.textContent.trim();
+
+        // Build action buttons
+        const actions = document.createElement('div');
+        actions.className = 'group-item-actions';
+        actions.innerHTML = `
+          <button class="gi-edit"   title="Rename group" data-group="${groupKey}">✏️</button>
+          <button class="gi-add"    title="Add ledger group" data-group="${groupKey}">➕</button>
+          <button class="gi-remove" title="Remove group" data-group="${groupKey}">🗑️</button>
+        `;
+
+        item.textContent = '';
+        item.appendChild(labelSpan);
+        item.appendChild(actions);
+
+        // Stop button clicks from selecting the group
+        actions.addEventListener('click', e => e.stopPropagation());
+
+        // Edit group name
+        actions.querySelector('.gi-edit').addEventListener('click', () => openEditGroupModal(groupKey, labelSpan));
+
+        // Add group (opens add modal, inserts after this group)
+        actions.querySelector('.gi-add').addEventListener('click', () => openAddGroupModal(groupKey));
+
+        // Remove group
+        actions.querySelector('.gi-remove').addEventListener('click', () => openRemoveGroupModal(groupKey));
+      });
+    }
+
+    new MutationObserver(upgradeGroupItems).observe(groupListEl, { childList: true });
+    upgradeGroupItems();
+
+    /* ── Helpers to expose groupNames + renderGroupList ── */
+    function getBridge() { return window.__groupBridge || {}; }
+
+    /* ── EDIT GROUP MODAL ── */
+    function openEditGroupModal(groupKey, labelSpan) {
+      const modal   = document.getElementById('editGroupModal');
+      const badge   = document.getElementById('editGroupCurrentName');
+      const input   = document.getElementById('editGroupInput');
+      const okBtn   = document.getElementById('editGroupOkBtn');
+      const cancelBtn = document.getElementById('editGroupCancelBtn');
+      const closeX  = document.getElementById('editGroupModalCloseX');
+      if (!modal || !input) return;
+
+      if (badge) badge.textContent = groupKey;
+      input.value = groupKey;
+      modal.classList.add('show');
+      setTimeout(() => { input.focus(); input.select(); }, 80);
+
+      const cleanup = () => {
+        modal.classList.remove('show');
+        okBtn.onclick = null; cancelBtn.onclick = null; closeX.onclick = null;
+        modal.onclick = null; input.onkeydown = null;
+      };
+
+      okBtn.onclick = () => {
+        const newKey = input.value.trim().toUpperCase().replace(/\s+/g, '_');
+        if (!newKey || newKey === groupKey) { cleanup(); return; }
+        const b = getBridge();
+        if (b.groupNames && b.currentMapping) {
+          const idx = b.groupNames.indexOf(groupKey);
+          if (idx !== -1) b.groupNames[idx] = newKey;
+          b.currentMapping[newKey] = b.currentMapping[groupKey] || {};
+          delete b.currentMapping[groupKey];
+          if (b.renderGroupList) b.renderGroupList();
+          if (b.selectGroup) b.selectGroup(newKey);
+        }
+        cleanup();
+        showToast(`Group renamed to "${newKey}" ✏️`, 'success');
+      };
+      cancelBtn.onclick = closeX.onclick = cleanup;
+      modal.onclick = (e) => { if (e.target === modal) cleanup(); };
+      input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.onclick(); if (e.key === 'Escape') cleanup(); };
+    }
+
+    /* ── ADD GROUP MODAL ── */
+    function openAddGroupModal(afterKey) {
+      const modal   = document.getElementById('addGroupModal');
+      const input   = document.getElementById('addGroupInput');
+      const okBtn   = document.getElementById('addGroupOkBtn');
+      const cancelBtn = document.getElementById('addGroupCancelBtn');
+      const closeX  = document.getElementById('addGroupModalCloseX');
+      if (!modal || !input) return;
+
+      input.value = '';
+      modal.classList.add('show');
+      setTimeout(() => input.focus(), 80);
+
+      const cleanup = () => {
+        modal.classList.remove('show');
+        okBtn.onclick = null; cancelBtn.onclick = null; closeX.onclick = null;
+        modal.onclick = null; input.onkeydown = null;
+      };
+
+      okBtn.onclick = () => {
+        const newKey = input.value.trim().toUpperCase().replace(/\s+/g, '_');
+        if (!newKey) {
+          input.classList.add('input-shake');
+          setTimeout(() => input.classList.remove('input-shake'), 400);
+          return;
+        }
+        const b = getBridge();
+        if (b.groupNames && b.currentMapping) {
+          if (!b.groupNames.includes(newKey)) {
+            const idx = b.groupNames.indexOf(afterKey);
+            b.groupNames.splice(idx + 1, 0, newKey);
+            b.currentMapping[newKey] = {};
+            if (b.renderGroupList) b.renderGroupList();
+            if (b.selectGroup) b.selectGroup(newKey);
+          }
+        }
+        cleanup();
+        showToast(`Group "${newKey}" added ➕`, 'success');
+      };
+      cancelBtn.onclick = closeX.onclick = cleanup;
+      modal.onclick = (e) => { if (e.target === modal) cleanup(); };
+      input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.onclick(); if (e.key === 'Escape') cleanup(); };
+    }
+
+    /* ── REMOVE GROUP MODAL ── */
+    function openRemoveGroupModal(groupKey) {
+      const modal   = document.getElementById('removeGroupModal');
+      const span    = document.getElementById('removeGroupNameSpan');
+      const okBtn   = document.getElementById('removeGroupOkBtn');
+      const cancelBtn = document.getElementById('removeGroupCancelBtn');
+      const closeX  = document.getElementById('removeGroupModalCloseX');
+      if (!modal) return;
+
+      if (span) span.textContent = groupKey;
+      modal.classList.add('show');
+
+      const cleanup = () => {
+        modal.classList.remove('show');
+        okBtn.onclick = null; cancelBtn.onclick = null; closeX.onclick = null;
+        modal.onclick = null;
+      };
+
+      okBtn.onclick = () => {
+        const b = getBridge();
+        if (b.groupNames && b.currentMapping) {
+          const idx = b.groupNames.indexOf(groupKey);
+          if (idx !== -1) b.groupNames.splice(idx, 1);
+          delete b.currentMapping[groupKey];
+          if (b.renderGroupList) b.renderGroupList();
+          // Select first remaining group
+          if (b.groupNames.length > 0 && b.selectGroup) b.selectGroup(b.groupNames[0]);
+        }
+        cleanup();
+        showToast(`Group "${groupKey}" removed 🗑️`, 'success');
+      };
+      cancelBtn.onclick = closeX.onclick = cleanup;
+      modal.onclick = (e) => { if (e.target === modal) cleanup(); };
+    }
+  });
   document.addEventListener('DOMContentLoaded', function() {
     const companyList      = document.getElementById('companyList');
     const companyModalOk   = document.getElementById('companyModalOkBtn');
@@ -1823,6 +2113,8 @@
                     // Update bridge
                     if (!window.__mappingBridge) window.__mappingBridge = {};
                     window.__mappingBridge.currentMapping = currentMapping;
+                    if (!window.__groupBridge) window.__groupBridge = {};
+                    window.__groupBridge.currentMapping = currentMapping;
                     renderGroupList();
                     if (groupNames.length > 0) selectGroup(groupNames[0]);
                 } catch (err) {
@@ -1832,6 +2124,12 @@
 
             // ===== GROUP FUNCTIONS =====
             function renderGroupList() {
+                // Expose bridge for group action patch
+                if (!window.__groupBridge) window.__groupBridge = {};
+                window.__groupBridge.groupNames = groupNames;
+                window.__groupBridge.currentMapping = currentMapping;
+                window.__groupBridge.renderGroupList = renderGroupList;
+                window.__groupBridge.selectGroup = selectGroup;
                 if (!groupListEl) return;
                 groupListEl.innerHTML = '';
                 groupNames.forEach(name => {
