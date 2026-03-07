@@ -9,36 +9,108 @@
   <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
   <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
     /* ══════════════════════════════════════════
-       ALL STYLES SCOPED UNDER .mapping-wrap
-       Zero global bleed — safe to embed anywhere
+       DESIGN TOKENS
+    ══════════════════════════════════════════ */
+    :root {
+      --ink:        #0a0f1e;
+      --ink2:       #1a2035;
+      --ink3:       #344260;
+      --muted:      #7688a8;
+      --line:       #e2ebf8;
+      --line2:      #c8d8f0;
+      --surface:    #f4f7fd;
+      --surface2:   #edf2fb;
+      --white:      #ffffff;
+      --accent:     #1649e0;
+      --accent2:    #3324d8;
+      --accent-soft: rgba(22,73,224,0.08);
+      --green:      #0fa966;
+      --green2:     #0b8f56;
+      --green-soft: rgba(15,169,102,0.09);
+      --amber:      #d97706;
+      --amber-bg:   rgba(217,119,6,0.08);
+      --red:        #dc2626;
+      --red-bg:     rgba(220,38,38,0.07);
+      --shadow-sm:  0 1px 3px rgba(10,15,30,0.05), 0 4px 12px rgba(10,15,30,0.06);
+      --shadow-md:  0 2px 8px rgba(10,15,30,0.06), 0 16px 36px rgba(10,15,30,0.10);
+    }
+
+    /* ══════════════════════════════════════════
+       PAGE
+    ══════════════════════════════════════════ */
+    body {
+      font-family: 'DM Sans', sans-serif;
+      color: var(--ink);
+      min-height: 100vh;
+      background: #e8eef8;
+      background-image:
+        radial-gradient(ellipse 75% 55% at 10% 0%,   rgba(22,73,224,0.12) 0%, transparent 55%),
+        radial-gradient(ellipse 55% 45% at 90% 100%,  rgba(15,169,102,0.10) 0%, transparent 50%);
+      padding: 2.5rem 1.5rem 4rem;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image: radial-gradient(circle, rgba(22,73,224,0.07) 1px, transparent 1px);
+      background-size: 28px 28px;
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       WRAPPER
     ══════════════════════════════════════════ */
     .mapping-wrap {
-      --ink:       #0d1117;
-      --ink2:      #1c2534;
-      --ink3:      #354460;
-      --muted:     #7a8fa8;
-      --line:      #dce5f0;
-      --line2:     #c8d8ec;
-      --surface:   #f5f8fc;
-      --surface2:  #eef3fa;
-      --white:     #ffffff;
-      --accent:    #1651e8;
-      --accent2:   #3b29e8;
-      --green:     #17b26a;
-      --green2:    #0e9956;
-      --amber:     #d97706;
-      --amber-bg:  rgba(217,119,6,0.08);
-      --red:       #dc2626;
-      --red-bg:    rgba(220,38,38,0.07);
+      position: relative; z-index: 1;
+      max-width: 1000px;
+      margin: 0 auto;
       font-family: 'DM Sans', sans-serif;
       color: var(--ink);
     }
 
-    /* ── Keyframes ── */
+    /* Page header */
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      animation: mpFadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .page-header .badge {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      background: rgba(22,73,224,0.1);
+      border: 1px solid rgba(22,73,224,0.2);
+      color: var(--accent);
+      border-radius: 100px;
+      padding: 0.3rem 0.9rem;
+      font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      margin-bottom: 0.85rem;
+    }
+
+    .page-header h1 {
+      font-family: 'Syne', sans-serif;
+      font-size: clamp(1.7rem, 4vw, 2.4rem);
+      font-weight: 800; letter-spacing: -0.04em;
+      color: var(--ink); line-height: 1.15; margin-bottom: 0.5rem;
+    }
+
+    .page-header h1 span {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-header p { font-size: 0.92rem; color: var(--muted); }
+
+    /* ══════════════════════════════════════════
+       KEYFRAMES
+    ══════════════════════════════════════════ */
     @keyframes mpFadeUp {
-      from { opacity: 0; transform: translateY(18px) scale(0.99); }
-      to   { opacity: 1; transform: translateY(0) scale(1); }
+      from { opacity: 0; transform: translateY(20px) scale(0.987); }
+      to   { opacity: 1; transform: none; }
     }
     @keyframes mpSlideIn {
       from { opacity: 0; transform: translateX(-8px); }
@@ -54,155 +126,166 @@
       to   { transform: scaleY(1); }
     }
 
-    /* ── Card ── */
+    /* ══════════════════════════════════════════
+       CARD
+    ══════════════════════════════════════════ */
     .mapping-wrap .card {
       background: var(--white);
-      border: 1px solid var(--line);
-      border-radius: 24px;
-      padding: 1.8rem 2rem;
-      box-shadow: 0 1px 3px rgba(0,20,60,0.04), 0 8px 28px rgba(0,20,60,0.07);
+      border: 1px solid rgba(255,255,255,0.85);
+      border-radius: 28px;
+      padding: 0;
+      box-shadow: var(--shadow-md);
       animation: mpFadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
-      transition: box-shadow 0.25s;
+      overflow: hidden;
+      position: relative;
     }
 
-    /* ── Card header ── */
+    .mapping-wrap .card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
+    }
+
+    /* ══════════════════════════════════════════
+       CARD HEADER
+    ══════════════════════════════════════════ */
     .mapping-wrap .card-header {
-      display: flex;
-      align-items: center;
-      gap: 0.9rem;
-      margin-bottom: 1.8rem;
-      padding-bottom: 1.3rem;
+      display: flex; align-items: center; gap: 1.1rem;
+      padding: 1.8rem 2.2rem 1.6rem;
       border-bottom: 1px solid var(--line);
+      background: linear-gradient(135deg, rgba(22,73,224,0.03) 0%, transparent 60%);
     }
 
     .mapping-wrap .card-header-icon {
-      width: 48px; height: 48px;
+      width: 54px; height: 54px;
       background: var(--ink);
-      border-radius: 14px;
+      border-radius: 16px;
       display: grid; place-items: center;
-      font-size: 1.3rem;
-      flex-shrink: 0;
-      box-shadow: 0 4px 14px rgba(13,17,23,0.2);
-      transition: transform 0.2s, box-shadow 0.2s;
+      font-size: 1.5rem; flex-shrink: 0;
+      box-shadow: 0 6px 18px rgba(10,15,30,0.24);
+      transition: transform 0.25s, box-shadow 0.25s;
     }
     .mapping-wrap .card-header-icon:hover {
-      transform: rotate(-4deg) scale(1.05);
-      box-shadow: 0 6px 20px rgba(13,17,23,0.28);
+      transform: rotate(-5deg) scale(1.06);
+      box-shadow: 0 8px 24px rgba(10,15,30,0.3);
     }
 
-    .mapping-wrap .card-header-text { display: flex; flex-direction: column; gap: 0.1rem; }
+    .mapping-wrap .card-header-text { display: flex; flex-direction: column; gap: 0.15rem; }
 
     .mapping-wrap .card-eyebrow {
-      font-size: 0.65rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
+      font-size: 0.64rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.12em;
       color: var(--accent);
     }
 
     .mapping-wrap .card-header h3 {
       font-family: 'DM Sans', sans-serif;
-      font-size: 1.15rem;
-      font-weight: 500;
-      letter-spacing: 0;
-      color: var(--ink);
-      margin: 0;
-      line-height: 1.2;
+      font-size: 1.25rem; font-weight: 600;
+      letter-spacing: -0.02em; color: var(--ink);
+      margin: 0; line-height: 1.25;
     }
 
-    .mapping-wrap .card-header-sub {
-      font-size: 0.73rem;
-      color: var(--muted);
-      margin-top: 0.05rem;
-    }
+    .mapping-wrap .card-header-sub { font-size: 0.76rem; color: var(--muted); }
 
-    /* ── Layout grid ── */
+    /* ══════════════════════════════════════════
+       LAYOUT — wider left column
+    ══════════════════════════════════════════ */
     .mapping-wrap .mapping-container {
       display: grid;
-      grid-template-columns: 210px 1fr;
-      gap: 1.4rem;
-      align-items: start;
+      grid-template-columns: 290px 1fr;
+      gap: 0;
+      align-items: stretch;
+      min-height: 520px;
     }
 
-    /* ── Panel heading row ── */
+    /* ══════════════════════════════════════════
+       LEFT PANEL — company sidebar
+    ══════════════════════════════════════════ */
+    .mapping-wrap .company-panel {
+      border-right: 1px solid var(--line);
+      padding: 1.6rem 1.4rem;
+      background: linear-gradient(180deg, var(--surface) 0%, rgba(244,247,253,0.4) 100%);
+      display: flex; flex-direction: column; gap: 1rem;
+    }
+
+    /* ══════════════════════════════════════════
+       RIGHT PANEL
+    ══════════════════════════════════════════ */
+    .mapping-wrap .mapping-panel {
+      padding: 1.6rem 2rem;
+      display: flex; flex-direction: column; gap: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       PANEL HEADINGS
+    ══════════════════════════════════════════ */
     .mapping-wrap .panel-head {
-      display: flex;
-      align-items: center;
+      display: flex; align-items: center;
       justify-content: space-between;
-      margin-bottom: 0.75rem;
-      gap: 0.5rem;
+      margin-bottom: 0.85rem; gap: 0.5rem;
     }
 
     .mapping-wrap .panel-title {
-      font-size: 0.68rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.09em;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
       color: var(--ink3);
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+      display: flex; align-items: center; gap: 0.4rem;
     }
 
-    /* ── Scrollable lists ── */
-    .mapping-wrap .company-list,
-    .mapping-wrap .group-list,
-    .mapping-wrap .rate-list {
-      max-height: 300px;
+    /* ══════════════════════════════════════════
+       COMPANY LIST
+    ══════════════════════════════════════════ */
+    .mapping-wrap .company-list {
+      flex: 1;
       overflow-y: auto;
       border: 1.5px solid var(--line);
-      border-radius: 14px;
+      border-radius: 16px;
       background: var(--white);
-      box-shadow: 0 2px 8px rgba(0,20,60,0.04);
+      box-shadow: var(--shadow-sm);
       scrollbar-width: thin;
       scrollbar-color: var(--line2) transparent;
     }
-    .mapping-wrap .company-list::-webkit-scrollbar,
-    .mapping-wrap .group-list::-webkit-scrollbar,
-    .mapping-wrap .rate-list::-webkit-scrollbar { width: 4px; }
-    .mapping-wrap .company-list::-webkit-scrollbar-thumb,
-    .mapping-wrap .group-list::-webkit-scrollbar-thumb,
-    .mapping-wrap .rate-list::-webkit-scrollbar-thumb {
-      background: var(--line2); border-radius: 4px;
-    }
+    .mapping-wrap .company-list::-webkit-scrollbar { width: 4px; }
+    .mapping-wrap .company-list::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
 
-    /* ── Company / Group rows ── */
-    .mapping-wrap .company-item,
-    .mapping-wrap .group-item {
-      padding: 0.7rem 1rem;
+    .mapping-wrap .company-item {
+      padding: 0.85rem 1.2rem;
       cursor: pointer;
       border-bottom: 1px solid var(--surface);
-      transition: background 0.15s, padding-left 0.2s cubic-bezier(0.22,1,0.36,1), color 0.15s;
-      font-size: 0.83rem;
-      font-weight: 500;
+      transition: background 0.15s, padding-left 0.22s cubic-bezier(0.22,1,0.36,1), color 0.15s;
+      font-size: 0.9rem; font-weight: 500;
       color: var(--ink3);
       position: relative;
       animation: mpSlideIn 0.22s ease both;
+      display: flex; align-items: center; gap: 0.6rem;
     }
-    .mapping-wrap .company-item:last-child,
-    .mapping-wrap .group-item:last-child { border-bottom: none; }
+    .mapping-wrap .company-item::before {
+      content: '🏢';
+      font-size: 0.85rem; flex-shrink: 0;
+      opacity: 0.5;
+      transition: opacity 0.15s;
+    }
+    .mapping-wrap .company-item:last-child { border-bottom: none; }
 
-    .mapping-wrap .company-item:hover,
-    .mapping-wrap .group-item:hover {
+    .mapping-wrap .company-item:hover {
       background: var(--surface);
-      padding-left: 1.35rem;
+      padding-left: 1.5rem;
       color: var(--ink2);
     }
+    .mapping-wrap .company-item:hover::before { opacity: 0.8; }
 
-    .mapping-wrap .company-item.active,
-    .mapping-wrap .group-item.active {
-      background: rgba(22,81,232,0.07);
+    .mapping-wrap .company-item.active {
+      background: var(--accent-soft);
       color: var(--accent);
       font-weight: 600;
-      padding-left: 1rem;
+      padding-left: 1.4rem;
     }
+    .mapping-wrap .company-item.active::before { opacity: 1; }
 
-    /* Animated accent bar on active */
-    .mapping-wrap .company-item.active::before,
-    .mapping-wrap .group-item.active::before {
+    /* Active accent bar */
+    .mapping-wrap .company-item.active::after {
       content: '';
-      position: absolute;
-      left: 0; top: 0; bottom: 0;
+      position: absolute; left: 0; top: 0; bottom: 0;
       width: 3px;
       background: linear-gradient(to bottom, var(--accent), var(--accent2));
       border-radius: 0 3px 3px 0;
@@ -210,232 +293,250 @@
       transform-origin: top;
     }
 
-    /* ── Rate rows ── */
-    .mapping-wrap .rate-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
+    /* Count badge on company item (cosmetic) */
+    .mapping-wrap .company-item .company-meta {
+      margin-left: auto;
+      font-size: 0.65rem; font-weight: 700;
+      color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--line);
+      border-radius: 100px;
+      padding: 0.1rem 0.5rem;
+    }
+    .mapping-wrap .company-item.active .company-meta {
+      background: rgba(22,73,224,0.1);
+      border-color: rgba(22,73,224,0.2);
+      color: var(--accent);
+    }
+
+    /* ── Add company quick-hint ── */
+    .mapping-wrap .company-hint {
+      font-size: 0.7rem; color: var(--muted);
+      text-align: center;
+      padding: 0.5rem 0.4rem;
+      line-height: 1.5;
+    }
+
+    /* ══════════════════════════════════════════
+       GROUP + RATE LISTS
+    ══════════════════════════════════════════ */
+    .mapping-wrap .group-list,
+    .mapping-wrap .rate-list {
+      max-height: 220px;
+      overflow-y: auto;
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+      background: var(--white);
+      box-shadow: var(--shadow-sm);
+      scrollbar-width: thin;
+      scrollbar-color: var(--line2) transparent;
+    }
+    .mapping-wrap .group-list::-webkit-scrollbar,
+    .mapping-wrap .rate-list::-webkit-scrollbar { width: 4px; }
+    .mapping-wrap .group-list::-webkit-scrollbar-thumb,
+    .mapping-wrap .rate-list::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
+
+    .mapping-wrap .group-item {
       padding: 0.72rem 1rem;
+      cursor: pointer;
       border-bottom: 1px solid var(--surface);
-      font-size: 0.83rem;
-      color: var(--ink2);
+      transition: background 0.15s, padding-left 0.2s cubic-bezier(0.22,1,0.36,1), color 0.15s;
+      font-size: 0.84rem; font-weight: 500; color: var(--ink3);
+      position: relative;
+      animation: mpSlideIn 0.22s ease both;
+    }
+    .mapping-wrap .group-item:last-child { border-bottom: none; }
+
+    .mapping-wrap .group-item:hover {
+      background: var(--surface); padding-left: 1.35rem; color: var(--ink2);
+    }
+
+    .mapping-wrap .group-item.active {
+      background: var(--accent-soft);
+      color: var(--accent); font-weight: 600; padding-left: 1rem;
+    }
+
+    .mapping-wrap .group-item.active::before {
+      content: '';
+      position: absolute; left: 0; top: 0; bottom: 0;
+      width: 3px;
+      background: linear-gradient(to bottom, var(--accent), var(--accent2));
+      border-radius: 0 3px 3px 0;
+      animation: mpActiveBar 0.2s cubic-bezier(0.22,1,0.36,1) both;
+      transform-origin: top;
+    }
+
+    /* ══════════════════════════════════════════
+       RATE ITEMS
+    ══════════════════════════════════════════ */
+    .mapping-wrap .rate-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--surface);
+      font-size: 0.84rem; color: var(--ink2);
       transition: background 0.15s;
       animation: mpSlideIn 0.2s ease both;
     }
     .mapping-wrap .rate-item:last-child { border-bottom: none; }
     .mapping-wrap .rate-item:hover { background: var(--surface); }
 
-    /* Rate % badge */
     .mapping-wrap .rate-item b {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 0.78rem;
-      font-weight: 600;
+      font-size: 0.79rem; font-weight: 600;
       color: var(--accent);
-      background: rgba(22,81,232,0.08);
-      border: 1px solid rgba(22,81,232,0.16);
-      border-radius: 5px;
-      padding: 0.08rem 0.45rem;
-      margin-right: 0.25rem;
+      background: rgba(22,73,224,0.08);
+      border: 1px solid rgba(22,73,224,0.16);
+      border-radius: 6px; padding: 0.08rem 0.48rem;
+      margin-right: 0.3rem;
     }
 
-    /* ── Edit / Delete action buttons ── */
-    .mapping-wrap .rate-actions {
-      display: flex;
-      gap: 0.35rem;
-    }
+    /* ══════════════════════════════════════════
+       ACTION BUTTONS (edit/delete)
+    ══════════════════════════════════════════ */
+    .mapping-wrap .rate-actions { display: flex; gap: 0.35rem; }
 
     .mapping-wrap .rate-actions button {
-      width: 30px; height: 30px;
-      background: var(--surface);
-      border: 1px solid var(--line);
-      cursor: pointer;
-      font-size: 0.88rem;
-      border-radius: 8px;
+      width: 32px; height: 32px;
+      background: var(--surface); border: 1.5px solid var(--line);
+      cursor: pointer; font-size: 0.88rem; border-radius: 9px;
       display: grid; place-items: center;
-      transition: background 0.15s, border-color 0.15s, transform 0.18s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s;
+      transition: background 0.15s, border-color 0.15s, transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.15s;
     }
     .mapping-wrap .rate-actions .btn-edit:hover {
-      background: rgba(22,81,232,0.08);
-      border-color: rgba(22,81,232,0.25);
-      transform: scale(1.14);
-      box-shadow: 0 2px 8px rgba(22,81,232,0.14);
+      background: rgba(22,73,224,0.08); border-color: rgba(22,73,224,0.28);
+      transform: scale(1.15); box-shadow: 0 3px 10px rgba(22,73,224,0.15);
     }
     .mapping-wrap .rate-actions .btn-delete:hover {
-      background: var(--red-bg);
-      border-color: rgba(220,38,38,0.28);
-      transform: scale(1.14);
-      box-shadow: 0 2px 8px rgba(220,38,38,0.14);
+      background: var(--red-bg); border-color: rgba(220,38,38,0.3);
+      transform: scale(1.15); box-shadow: 0 3px 10px rgba(220,38,38,0.15);
     }
-    .mapping-wrap .rate-actions button:active {
-      transform: scale(0.92);
-    }
+    .mapping-wrap .rate-actions button:active { transform: scale(0.9); }
 
-    /* ── Rate panel separator ── */
+    /* ══════════════════════════════════════════
+       SECTION DIVIDERS
+    ══════════════════════════════════════════ */
     .mapping-wrap .rate-panel {
-      margin-top: 1.4rem;
-      padding-top: 1.4rem;
+      margin-top: 1.5rem; padding-top: 1.5rem;
       border-top: 1px solid var(--line);
     }
 
     .mapping-wrap #currentGroupTitle {
       font-family: 'Syne', sans-serif;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--ink2);
-      letter-spacing: -0.02em;
-      margin-bottom: 0.85rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      font-size: 0.92rem; font-weight: 700;
+      color: var(--ink2); letter-spacing: -0.02em;
+      margin-bottom: 0.9rem;
+      display: flex; align-items: center; gap: 0.55rem;
     }
     .mapping-wrap #currentGroupTitle::before {
       content: '';
-      width: 3px; height: 16px;
+      width: 3px; height: 18px;
       background: linear-gradient(to bottom, var(--accent), var(--accent2));
-      border-radius: 2px;
-      flex-shrink: 0;
+      border-radius: 2px; flex-shrink: 0;
     }
 
     /* ── Company name badge ── */
     .mapping-wrap .company-name {
-      font-weight: 700;
-      color: var(--accent);
-      background: rgba(22,81,232,0.08);
-      border: 1px solid rgba(22,81,232,0.18);
-      padding: 0.18rem 0.65rem;
-      border-radius: 100px;
-      font-size: 0.8rem;
+      font-weight: 700; color: var(--accent);
+      background: rgba(22,73,224,0.09);
+      border: 1px solid rgba(22,73,224,0.2);
+      padding: 0.2rem 0.7rem;
+      border-radius: 100px; font-size: 0.81rem;
       white-space: nowrap;
     }
 
-    /* ══════════════════════════════
+    /* ══════════════════════════════════════════
        BUTTONS
-    ══════════════════════════════ */
+    ══════════════════════════════════════════ */
     .mapping-wrap .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.35rem;
-      padding: 0.58rem 1.1rem;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center;
+      gap: 0.38rem; padding: 0.62rem 1.2rem;
+      border: none; border-radius: 11px; cursor: pointer;
       font-family: 'DM Sans', sans-serif;
-      font-size: 0.83rem;
-      font-weight: 600;
-      transition:
-        transform 0.2s cubic-bezier(0.22,1,0.36,1),
-        box-shadow 0.18s,
-        background 0.15s,
-        opacity 0.15s;
-      position: relative;
-      overflow: hidden;
-      white-space: nowrap;
-      letter-spacing: -0.01em;
+      font-size: 0.85rem; font-weight: 600;
+      transition: transform 0.2s cubic-bezier(0.22,1,0.36,1), box-shadow 0.18s, background 0.15s;
+      position: relative; overflow: hidden;
+      white-space: nowrap; letter-spacing: -0.01em;
     }
 
-    /* Shine gloss */
     .mapping-wrap .btn::before {
       content: '';
-      position: absolute;
-      inset: 0;
+      position: absolute; inset: 0;
       background: linear-gradient(135deg, rgba(255,255,255,0.16), transparent 58%);
-      pointer-events: none;
-      border-radius: inherit;
+      pointer-events: none; border-radius: inherit;
     }
 
-    /* Ripple on active */
     .mapping-wrap .btn::after {
-      content: '';
-      position: absolute;
-      left: 50%; top: 50%;
+      content: ''; position: absolute; left: 50%; top: 50%;
       width: 0; height: 0;
       background: rgba(255,255,255,0.22);
-      border-radius: 50%;
-      transform: translate(-50%,-50%);
-      transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease;
-      opacity: 0;
+      border-radius: 50%; transform: translate(-50%,-50%);
+      transition: width 0.4s ease, height 0.4s ease, opacity 0.4s ease; opacity: 0;
     }
-    .mapping-wrap .btn:active::after {
-      width: 300px; height: 300px; opacity: 0;
-      transition: 0s;
-    }
+    .mapping-wrap .btn:active::after { width: 300px; height: 300px; opacity: 0; transition: 0s; }
 
     .mapping-wrap .btn:hover:not(:disabled) { transform: translateY(-2px); }
     .mapping-wrap .btn:active:not(:disabled) { transform: scale(0.96) translateY(0); }
 
-    .mapping-wrap .btn-sm {
-      padding: 0.38rem 0.8rem;
-      font-size: 0.75rem;
-      border-radius: 8px;
-    }
+    .mapping-wrap .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.76rem; border-radius: 9px; }
 
-    /* Success — green */
     .mapping-wrap .btn-success {
-      background: var(--green);
-      color: var(--white);
-      box-shadow: 0 3px 10px rgba(23,178,106,0.28);
+      background: var(--green); color: var(--white);
+      box-shadow: 0 3px 12px rgba(15,169,102,0.3);
     }
     .mapping-wrap .btn-success:hover {
       background: var(--green2);
-      box-shadow: 0 7px 20px rgba(23,178,106,0.4);
+      box-shadow: 0 7px 22px rgba(15,169,102,0.42);
     }
 
-    /* Primary — blue gradient */
     .mapping-wrap .btn-primary {
       background: linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
-      color: var(--white);
-      box-shadow: 0 3px 12px rgba(22,81,232,0.3);
+      color: var(--white); box-shadow: 0 3px 14px rgba(22,73,224,0.32);
     }
-    .mapping-wrap .btn-primary:hover {
-      box-shadow: 0 8px 22px rgba(22,81,232,0.42);
-    }
+    .mapping-wrap .btn-primary:hover { box-shadow: 0 8px 24px rgba(22,73,224,0.44); }
 
-    /* Warning — amber ghost */
     .mapping-wrap .btn-warning {
-      background: var(--amber-bg);
-      color: var(--amber);
-      border: 1.5px solid rgba(217,119,6,0.22);
-      box-shadow: none;
+      background: var(--amber-bg); color: var(--amber);
+      border: 1.5px solid rgba(217,119,6,0.24); box-shadow: none;
     }
     .mapping-wrap .btn-warning:hover {
       background: rgba(217,119,6,0.14);
-      box-shadow: 0 4px 12px rgba(217,119,6,0.18);
+      box-shadow: 0 4px 14px rgba(217,119,6,0.2);
     }
     .mapping-wrap .btn-warning::before { display: none; }
 
-    /* Danger — red ghost */
     .mapping-wrap .btn-danger {
-      background: var(--red-bg);
-      color: var(--red);
-      border: 1.5px solid rgba(220,38,38,0.2);
-      box-shadow: none;
+      background: var(--red-bg); color: var(--red);
+      border: 1.5px solid rgba(220,38,38,0.22); box-shadow: none;
     }
     .mapping-wrap .btn-danger:hover {
       background: rgba(220,38,38,0.13);
-      box-shadow: 0 4px 12px rgba(220,38,38,0.18);
+      box-shadow: 0 4px 14px rgba(220,38,38,0.2);
     }
     .mapping-wrap .btn-danger::before { display: none; }
 
-    /* ── h4 headings in panels ── */
-    .mapping-wrap h4 {
-      font-family: 'DM Sans', sans-serif;
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: var(--ink2);
-      margin: 0;
-      display: flex;
-      align-items: center;
-      gap: 0.45rem;
-      flex-wrap: wrap;
+    /* ── Add Company button — full width in sidebar ── */
+    .mapping-wrap .btn-add-company {
+      width: 100%; justify-content: center;
+      padding: 0.75rem 1rem;
+      background: linear-gradient(135deg, var(--green) 0%, var(--green2) 100%);
+      color: var(--white); font-size: 0.87rem;
+      border-radius: 13px; border: none;
+      box-shadow: 0 4px 14px rgba(15,169,102,0.28);
+    }
+    .mapping-wrap .btn-add-company:hover {
+      box-shadow: 0 8px 22px rgba(15,169,102,0.4);
     }
 
-    /* ── Action button row ── */
+    /* ── h4 headings ── */
+    .mapping-wrap h4 {
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.88rem; font-weight: 600;
+      color: var(--ink2); margin: 0;
+      display: flex; align-items: center; gap: 0.45rem; flex-wrap: wrap;
+    }
+
     .mapping-wrap .action-row {
-      display: flex;
-      gap: 0.55rem;
-      margin-top: 1rem;
-      flex-wrap: wrap;
+      display: flex; gap: 0.55rem; margin-top: 1.1rem; flex-wrap: wrap;
     }
 
     /* ── Empty states ── */
@@ -443,117 +544,403 @@
     .mapping-wrap .group-list:empty::after,
     .mapping-wrap .rate-list:empty::after {
       content: "No items to display";
-      display: block;
-      padding: 2rem 1rem;
-      text-align: center;
-      color: var(--muted);
-      font-size: 0.8rem;
+      display: block; padding: 2rem 1rem;
+      text-align: center; color: var(--muted); font-size: 0.8rem;
     }
     .mapping-wrap .rate-list:empty::after   { content: "No rates yet — click Add Rate to create one."; }
     .mapping-wrap .company-list:empty::after { content: "No companies found — click Add to create one."; }
     .mapping-wrap .group-list:empty::after   { content: "Select a company to view groups."; }
 
-    /* ══════════════════════════════
+    /* ══════════════════════════════════════════
+       GROUP PANEL SEPARATOR
+    ══════════════════════════════════════════ */
+    .mapping-wrap .group-panel { margin-bottom: 0; }
+
+    /* Divider between group and rate panels */
+    .mapping-wrap .section-label {
+      font-size: 0.63rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.1em;
+      color: var(--muted); margin-bottom: 0.7rem;
+    }
+
+    /* ══════════════════════════════════════════
        MODAL
-    ══════════════════════════════ */
+    ══════════════════════════════════════════ */
     .mapping-wrap .modal {
-      display: none;
-      position: fixed;
-      z-index: 9999;
-      inset: 0;
-      background: rgba(10,15,25,0.52);
-      backdrop-filter: blur(5px);
-      -webkit-backdrop-filter: blur(5px);
-      align-items: center;
-      justify-content: center;
+      display: none; position: fixed; z-index: 9999; inset: 0;
+      background: rgba(10,15,25,0.5);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      align-items: center; justify-content: center;
     }
     .mapping-wrap .modal.show { display: flex; }
 
     .mapping-wrap .modal-content {
-      background: var(--white);
-      width: 420px;
+      background: var(--white); width: 440px;
       max-width: calc(100vw - 2rem);
-      border-radius: 22px;
-      padding: 2rem;
+      border-radius: 24px; padding: 2.2rem;
       box-shadow:
         0 0 0 1px var(--line),
-        0 24px 60px rgba(0,10,40,0.18),
-        0 4px 12px rgba(0,10,40,0.08);
+        0 28px 64px rgba(0,10,40,0.2),
+        0 4px 14px rgba(0,10,40,0.08);
       animation: mpPop 0.38s cubic-bezier(0.22,1,0.36,1) both;
+      position: relative; overflow: hidden;
+    }
+
+    .mapping-wrap .modal-content::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2), var(--green));
     }
 
     .mapping-wrap .modal-content h3 {
       font-family: 'Syne', sans-serif;
-      font-size: 1.1rem;
-      font-weight: 800;
-      letter-spacing: -0.03em;
-      color: var(--ink);
-      margin: 0 0 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
+      font-size: 1.15rem; font-weight: 800;
+      letter-spacing: -0.03em; color: var(--ink);
+      margin: 0 0 1.6rem;
+      display: flex; align-items: center; gap: 0.55rem;
     }
     .mapping-wrap .modal-content h3::before {
       content: '';
-      width: 4px; height: 18px;
+      width: 4px; height: 20px;
       background: linear-gradient(to bottom, var(--accent), var(--accent2));
-      border-radius: 3px;
-      flex-shrink: 0;
+      border-radius: 3px; flex-shrink: 0;
     }
 
-    .mapping-wrap .modal .form-group { margin-bottom: 1.2rem; }
+    .mapping-wrap .modal .form-group { margin-bottom: 1.3rem; }
 
     .mapping-wrap .modal .form-group label {
-      display: block;
-      margin-bottom: 0.45rem;
-      font-size: 0.71rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.07em;
+      display: block; margin-bottom: 0.5rem;
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.08em;
       color: var(--ink3);
     }
 
     .mapping-wrap .modal .form-group input {
-      width: 100%;
-      padding: 0.78rem 1rem;
+      width: 100%; padding: 0.88rem 1.1rem;
       border: 1.5px solid var(--line);
-      border-radius: 12px;
+      border-radius: 13px;
       font-family: 'DM Sans', sans-serif;
-      font-size: 0.88rem;
-      color: var(--ink2);
+      font-size: 0.92rem; color: var(--ink2);
       background: var(--surface);
-      box-sizing: border-box;
-      outline: none;
+      box-sizing: border-box; outline: none;
       transition: border-color 0.18s, box-shadow 0.18s, background 0.18s;
     }
     .mapping-wrap .modal .form-group input:hover {
-      border-color: var(--line2);
-      background: var(--white);
+      border-color: var(--line2); background: var(--white);
     }
     .mapping-wrap .modal .form-group input:focus {
-      border-color: var(--accent);
-      background: var(--white);
-      box-shadow: 0 0 0 3.5px rgba(22,81,232,0.12);
+      border-color: var(--accent); background: var(--white);
+      box-shadow: 0 0 0 4px rgba(22,73,224,0.1);
     }
 
     .mapping-wrap .modal-actions {
-      display: flex;
-      justify-content: flex-end;
-      gap: 0.6rem;
-      margin-top: 1.6rem;
-      padding-top: 1.2rem;
+      display: flex; justify-content: flex-end; gap: 0.65rem;
+      margin-top: 1.8rem; padding-top: 1.3rem;
       border-top: 1px solid var(--line);
     }
 
-    /* ── Responsive ── */
-    @media (max-width: 720px) {
+    /* ══════════════════════════════════════════
+       EDIT LEDGER MODAL
+    ══════════════════════════════════════════ */
+
+    /* Close ✕ button in top-right */
+    .mapping-wrap .modal-close-x {
+      position: absolute;
+      top: 1.1rem; right: 1.1rem;
+      width: 30px; height: 30px;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 8px;
+      cursor: pointer; font-size: 0.8rem;
+      color: var(--muted);
+      display: grid; place-items: center;
+      transition: background 0.15s, color 0.15s, transform 0.2s;
+      z-index: 2;
+    }
+    .mapping-wrap .modal-close-x:hover {
+      background: var(--surface2); color: var(--ink2);
+      transform: scale(1.1) rotate(90deg);
+    }
+
+    /* Edit modal — amber accent stripe */
+    .mapping-wrap .edit-modal-content::before {
+      background: linear-gradient(90deg, var(--accent), var(--accent2)) !important;
+    }
+
+    /* Rate badge row */
+    .mapping-wrap .edit-rate-badge-row {
+      display: flex; align-items: center; gap: 0.65rem;
+      margin-bottom: 1.4rem;
+      padding: 0.85rem 1.1rem;
+      background: var(--surface);
+      border: 1.5px solid var(--line);
+      border-radius: 14px;
+    }
+
+    .mapping-wrap .edit-rate-label {
+      font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.09em;
+      color: var(--muted);
+    }
+
+    .mapping-wrap .edit-rate-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1rem; font-weight: 700;
+      color: var(--accent);
+      background: rgba(22,73,224,0.09);
+      border: 1.5px solid rgba(22,73,224,0.2);
+      border-radius: 8px;
+      padding: 0.22rem 0.75rem;
+      letter-spacing: -0.01em;
+    }
+
+    /* ══════════════════════════════════════════
+       DELETE CONFIRM MODAL
+    ══════════════════════════════════════════ */
+
+    .mapping-wrap .delete-modal-content {
+      text-align: center;
+    }
+
+    .mapping-wrap .delete-modal-content::before {
+      background: linear-gradient(90deg, var(--red), #ef4444, #f97316) !important;
+    }
+
+    .mapping-wrap .delete-icon-wrap {
+      margin: 0.4rem auto 1.2rem;
+    }
+
+    .mapping-wrap .delete-icon-circle {
+      width: 64px; height: 64px;
+      background: var(--red-bg);
+      border: 2px solid rgba(220,38,38,0.2);
+      border-radius: 50%;
+      display: grid; place-items: center;
+      font-size: 1.7rem;
+      margin: 0 auto;
+      animation: deleteIconPop 0.45s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes deleteIconPop {
+      0%   { transform: scale(0) rotate(-15deg); opacity: 0; }
+      65%  { transform: scale(1.15) rotate(5deg); }
+      100% { transform: scale(1) rotate(0); opacity: 1; }
+    }
+
+    .mapping-wrap .delete-modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.2rem; font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--ink);
+      margin: 0 0 0.75rem;
+    }
+    /* Override the ::before bar for delete title */
+    .mapping-wrap .delete-modal-title::before { display: none !important; }
+
+    .mapping-wrap .delete-modal-msg {
+      font-size: 0.87rem; color: var(--ink3);
+      line-height: 1.65; margin-bottom: 0;
+    }
+
+    .mapping-wrap .delete-modal-actions {
+      justify-content: center !important;
+      gap: 0.75rem;
+    }
+
+    /* Outline cancel button */
+    .mapping-wrap .btn-outline {
+      background: var(--white);
+      color: var(--ink3);
+      border: 1.5px solid var(--line2);
+      box-shadow: none;
+    }
+    .mapping-wrap .btn-outline:hover {
+      background: var(--surface);
+      border-color: var(--ink3);
+      box-shadow: none;
+    }
+    .mapping-wrap .btn-outline::before { display: none; }
+
+    /* Solid red delete button */
+    .mapping-wrap .btn-danger-solid {
+      background: var(--red);
+      color: var(--white);
+      border: none;
+      box-shadow: 0 4px 14px rgba(220,38,38,0.32);
+    }
+    .mapping-wrap .btn-danger-solid:hover {
+      background: #b91c1c;
+      box-shadow: 0 7px 22px rgba(220,38,38,0.44);
+    }
+
+    /* ══════════════════════════════════════════
+       TOAST NOTIFICATION SYSTEM
+    ══════════════════════════════════════════ */
+
+    /* Container — bottom-right stack */
+    #toast-container {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 0.75rem;
+      pointer-events: none;
+    }
+
+    /* Individual toast */
+    .toast {
+      pointer-events: all;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.85rem;
+      min-width: 320px;
+      max-width: 420px;
+      padding: 1.05rem 1.2rem 1.05rem 1.1rem;
+      background: var(--white);
+      border-radius: 18px;
+      box-shadow:
+        0 0 0 1px rgba(10,15,30,0.07),
+        0 8px 24px rgba(10,15,30,0.12),
+        0 32px 64px rgba(10,15,30,0.10);
+      position: relative;
+      overflow: hidden;
+      cursor: default;
+      animation: toastIn 0.45s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .toast.toast-leaving {
+      animation: toastOut 0.38s cubic-bezier(0.55,0,1,0.45) both;
+    }
+
+    @keyframes toastIn {
+      0%   { opacity: 0; transform: translateX(60px) scale(0.94); }
+      60%  { transform: translateX(-6px) scale(1.01); }
+      100% { opacity: 1; transform: translateX(0) scale(1); }
+    }
+
+    @keyframes toastOut {
+      0%   { opacity: 1; transform: translateX(0) scale(1);     max-height: 120px; }
+      100% { opacity: 0; transform: translateX(60px) scale(0.92); max-height: 0; padding: 0; margin: 0; }
+    }
+
+    /* Coloured left stripe */
+    .toast::before {
+      content: '';
+      position: absolute;
+      left: 0; top: 0; bottom: 0;
+      width: 4px;
+      border-radius: 18px 0 0 18px;
+    }
+
+    .toast-success::before { background: linear-gradient(to bottom, var(--green), var(--green2)); }
+    .toast-error::before   { background: linear-gradient(to bottom, var(--red), #b91c1c); }
+    .toast-info::before    { background: linear-gradient(to bottom, var(--accent), var(--accent2)); }
+    .toast-warn::before    { background: linear-gradient(to bottom, var(--amber), #b45309); }
+
+    /* Progress bar — auto-dismiss timer */
+    .toast-progress {
+      position: absolute;
+      bottom: 0; left: 0;
+      height: 3px;
+      border-radius: 0 0 18px 18px;
+      transform-origin: left;
+      animation: toastProgress linear both;
+    }
+
+    .toast-success .toast-progress { background: var(--green); }
+    .toast-error   .toast-progress { background: var(--red); }
+    .toast-info    .toast-progress { background: var(--accent); }
+    .toast-warn    .toast-progress { background: var(--amber); }
+
+    @keyframes toastProgress {
+      from { width: 100%; }
+      to   { width: 0%; }
+    }
+
+    /* Icon bubble */
+    .toast-icon {
+      width: 38px; height: 38px;
+      border-radius: 12px;
+      display: grid; place-items: center;
+      font-size: 1.15rem;
+      flex-shrink: 0;
+      margin-top: 0.05rem;
+    }
+
+    .toast-success .toast-icon { background: var(--green-soft); }
+    .toast-error   .toast-icon { background: var(--red-bg); }
+    .toast-info    .toast-icon { background: var(--accent-soft); }
+    .toast-warn    .toast-icon { background: var(--amber-bg); }
+
+    /* Text */
+    .toast-body { flex: 1; min-width: 0; }
+
+    .toast-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      margin-bottom: 0.2rem;
+    }
+
+    .toast-success .toast-title { color: #0a6b40; }
+    .toast-error   .toast-title { color: var(--red); }
+    .toast-info    .toast-title { color: var(--accent); }
+    .toast-warn    .toast-title { color: var(--amber); }
+
+    .toast-msg {
+      font-size: 0.82rem;
+      color: var(--ink3);
+      line-height: 1.5;
+    }
+
+    /* Dismiss × */
+    .toast-close {
+      width: 26px; height: 26px;
+      background: var(--surface);
+      border: none; border-radius: 7px;
+      cursor: pointer; flex-shrink: 0;
+      display: grid; place-items: center;
+      font-size: 0.85rem; color: var(--muted);
+      transition: background 0.15s, color 0.15s, transform 0.2s;
+      margin-top: 0.02rem;
+    }
+    .toast-close:hover { background: var(--surface2); color: var(--ink2); transform: scale(1.1); }
+
+    /* Save button loading pulse */
+    @keyframes savePulse {
+      0%, 100% { box-shadow: 0 3px 14px rgba(22,73,224,0.32); }
+      50%       { box-shadow: 0 3px 24px rgba(22,73,224,0.6); }
+    }
+    #saveMappingBtn.saving {
+      animation: savePulse 0.9s ease-in-out infinite;
+      opacity: 0.85;
+      cursor: wait;
+      pointer-events: none;
+    }
+
+    /* ══════════════════════════════════════════
+       RESPONSIVE
+    ══════════════════════════════════════════ */
+    @media (max-width: 760px) {
       .mapping-wrap .mapping-container { grid-template-columns: 1fr; }
-      .mapping-wrap .card { padding: 1.2rem 1.1rem; }
+      .mapping-wrap .company-panel { border-right: none; border-bottom: 1px solid var(--line); }
+      .mapping-wrap .card-header { padding: 1.4rem 1.3rem 1.2rem; }
+      .mapping-wrap .mapping-panel { padding: 1.4rem 1.3rem; }
+      .mapping-wrap .company-panel { padding: 1.4rem 1.3rem; }
     }
   </style>
 </head>
 <body>
 <div class="mapping-wrap">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="badge">🗂️ Tally Configuration</div>
+    <h1>Ledger <span>Mapping</span> Editor</h1>
+    <p>Map GST rates to Tally ledger names per company</p>
+  </div>
 
   <div class="card">
 
@@ -569,16 +956,24 @@
 
     <div class="mapping-container">
 
-      <!-- Left: Company panel -->
+      <!-- ══ LEFT: Company sidebar ══ -->
       <div class="company-panel">
         <div class="panel-head">
           <div class="panel-title">🏢 Companies</div>
           <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
         </div>
+
         <div id="companyList" class="company-list"></div>
+
+        <!-- Full-width Add button at bottom of sidebar -->
+        <button class="btn btn-add-company" id="addCompanyBtn2" style="display:none;">
+          ➕ Add New Company
+        </button>
+
+        <p class="company-hint">Select a company to view and edit its ledger groups and GST rate mappings.</p>
       </div>
 
-      <!-- Right: Mapping panel -->
+      <!-- ══ RIGHT: Mapping panel ══ -->
       <div class="mapping-panel">
 
         <div class="group-panel">
@@ -642,7 +1037,326 @@
     </div>
   </div>
 
+  <!-- ✏️ Edit Ledger Modal — replaces prompt() -->
+  <div id="editLedgerModal" class="modal">
+    <div class="modal-content edit-modal-content">
+      <button class="modal-close-x" id="editModalCloseX" aria-label="Close">✕</button>
+      <h3 id="editModalTitle">Edit Ledger</h3>
+      <div class="edit-rate-badge-row">
+        <span class="edit-rate-label">GST Rate</span>
+        <span class="edit-rate-badge" id="editRateBadge">18%</span>
+      </div>
+      <div class="form-group">
+        <label for="editLedgerInput">Ledger Name</label>
+        <input type="text" id="editLedgerInput" placeholder="e.g., Local Sale @18%">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-danger" id="editModalCancelBtn">Discard</button>
+        <button class="btn btn-primary" id="editModalOkBtn">
+          <span>✏️</span> Update Ledger
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🗑️ Delete Confirm Modal — replaces confirm() for deleteRate -->
+  <div id="deleteConfirmModal" class="modal">
+    <div class="modal-content delete-modal-content">
+      <button class="modal-close-x" id="deleteModalCloseX" aria-label="Close">✕</button>
+      <div class="delete-icon-wrap">
+        <div class="delete-icon-circle">🗑️</div>
+      </div>
+      <h3 class="delete-modal-title">Delete Mapping?</h3>
+      <p class="delete-modal-msg" id="deleteModalMsg">Are you sure you want to delete the mapping for <strong id="deleteRateSpan">18%</strong>? This action cannot be undone.</p>
+      <div class="modal-actions delete-modal-actions">
+        <button class="btn btn-outline" id="deleteModalCancelBtn">Keep it</button>
+        <button class="btn btn-danger-solid" id="deleteModalOkBtn">
+          <span>🗑️</span> Yes, Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
 </div><!-- /mapping-wrap -->
+
+<!-- Toast container -->
+<div id="toast-container"></div>
+
+<!-- ═══════════════════════════════════════════
+     TOAST ENGINE — intercepts alert() calls
+     and replaces with beautiful notifications
+════════════════════════════════════════════ -->
+<script>
+(function() {
+  /* ── Toast config ── */
+  const DURATION = 4200; // ms before auto-dismiss
+
+  /* ── Classify the message to pick type/icon/title ── */
+  function classify(msg) {
+    const m = (msg || '').toLowerCase();
+    if (m.includes('successfully') || m.includes('saved') || m.includes('success')) {
+      return { type: 'success', icon: '✅', title: 'Success' };
+    }
+    if (m.includes('failed') || m.includes('error') || m.includes('invalid') || m.includes('please fill')) {
+      return { type: 'error', icon: '❌', title: 'Error' };
+    }
+    if (m.includes('no company') || m.includes('no group') || m.includes('cannot rename')) {
+      return { type: 'warn', icon: '⚠️', title: 'Warning' };
+    }
+    return { type: 'info', icon: 'ℹ️', title: 'Notice' };
+  }
+
+  /* ── Create and show one toast ── */
+  window.showToast = function(msg, overrideType) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+
+    const { type, icon, title } = overrideType
+      ? { type: overrideType, icon: overrideType === 'success' ? '✅' : overrideType === 'error' ? '❌' : 'ℹ️', title: overrideType.charAt(0).toUpperCase() + overrideType.slice(1) }
+      : classify(msg);
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+      <div class="toast-icon">${icon}</div>
+      <div class="toast-body">
+        <div class="toast-title">${title}</div>
+        <div class="toast-msg">${msg}</div>
+      </div>
+      <button class="toast-close" aria-label="Dismiss">✕</button>
+      <div class="toast-progress" style="animation-duration:${DURATION}ms;"></div>
+    `;
+
+    /* Dismiss logic */
+    const dismiss = () => {
+      toast.classList.add('toast-leaving');
+      toast.addEventListener('animationend', () => toast.remove(), { once: true });
+    };
+
+    toast.querySelector('.toast-close').addEventListener('click', dismiss);
+    const timer = setTimeout(dismiss, DURATION);
+    toast.addEventListener('mouseenter', () => clearTimeout(timer));
+    toast.addEventListener('mouseleave', () => setTimeout(dismiss, 1200));
+
+    container.appendChild(toast);
+  };
+
+  /* ── Override window.alert to use toasts ── */
+  const _nativeAlert = window.alert.bind(window);
+  window.alert = function(msg) {
+    if (typeof msg === 'string') {
+      showToast(String(msg));
+    } else {
+      _nativeAlert(msg);
+    }
+  };
+
+  /* ══════════════════════════════════════════
+     PROMPT OVERRIDE — Edit Ledger Modal
+  ══════════════════════════════════════════ */
+  const _nativePrompt = window.prompt.bind(window);
+
+  window.prompt = function(message, defaultValue) {
+    // Only intercept "Edit ledger for X%:" pattern
+    if (typeof message === 'string' && message.startsWith('Edit ledger for')) {
+      return new Promise((resolve) => {
+        const modal   = document.getElementById('editLedgerModal');
+        const input   = document.getElementById('editLedgerInput');
+        const badge   = document.getElementById('editRateBadge');
+        const title   = document.getElementById('editModalTitle');
+        const okBtn   = document.getElementById('editModalOkBtn');
+        const cancelBtn = document.getElementById('editModalCancelBtn');
+        const closeX  = document.getElementById('editModalCloseX');
+        if (!modal || !input) { resolve(_nativePrompt(message, defaultValue)); return; }
+
+        // Extract rate from message e.g. "Edit ledger for 18%:"
+        const rateMatch = message.match(/Edit ledger for (.+?):/);
+        const rateLabel = rateMatch ? rateMatch[1] : '';
+        if (badge) badge.textContent = rateLabel;
+        if (title) title.textContent = 'Edit Ledger Mapping';
+
+        input.value = defaultValue || '';
+        modal.classList.add('show');
+
+        // Focus input after animation
+        setTimeout(() => { input.focus(); input.select(); }, 80);
+
+        const cleanup = () => {
+          modal.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          closeX.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBackdrop);
+          input.removeEventListener('keydown', onKey);
+        };
+
+        const onOk = () => {
+          const val = input.value.trim();
+          cleanup();
+          resolve(val || null);
+        };
+
+        const onCancel = () => { cleanup(); resolve(null); };
+
+        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+
+        const onKey = (e) => {
+          if (e.key === 'Enter') onOk();
+          if (e.key === 'Escape') onCancel();
+        };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        closeX.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        input.addEventListener('keydown', onKey);
+      });
+    }
+    // Fall back to native for any other prompt
+    return _nativePrompt(message, defaultValue);
+  };
+
+  /* ══════════════════════════════════════════
+     CONFIRM OVERRIDE — Delete Confirm Modal
+  ══════════════════════════════════════════ */
+  const _nativeConfirm = window.confirm.bind(window);
+
+  window.confirm = function(message) {
+    // Only intercept "Delete mapping for X%?" pattern
+    if (typeof message === 'string' && message.startsWith('Delete mapping for')) {
+      return new Promise((resolve) => {
+        const modal     = document.getElementById('deleteConfirmModal');
+        const rateSpan  = document.getElementById('deleteRateSpan');
+        const okBtn     = document.getElementById('deleteModalOkBtn');
+        const cancelBtn = document.getElementById('deleteModalCancelBtn');
+        const closeX    = document.getElementById('deleteModalCloseX');
+        if (!modal) { resolve(_nativeConfirm(message)); return; }
+
+        // Extract rate from "Delete mapping for 18%?"
+        const rateMatch = message.match(/Delete mapping for (.+?)\?/);
+        if (rateSpan) rateSpan.textContent = rateMatch ? rateMatch[1] : 'this rate';
+
+        modal.classList.add('show');
+
+        const cleanup = () => {
+          modal.classList.remove('show');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          closeX.removeEventListener('click', onCancel);
+          modal.removeEventListener('click', onBackdrop);
+          document.removeEventListener('keydown', onKey);
+        };
+
+        const onOk     = () => { cleanup(); resolve(true); };
+        const onCancel = () => { cleanup(); resolve(false); };
+        const onBackdrop = (e) => { if (e.target === modal) onCancel(); };
+        const onKey    = (e) => { if (e.key === 'Escape') onCancel(); };
+
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        closeX.addEventListener('click', onCancel);
+        modal.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+      });
+    }
+    // Fall back to native confirm for all other messages (rename, delete company, etc.)
+    return _nativeConfirm(message);
+  };
+
+  /* ──────────────────────────────────────────
+     Patch: intercept edit/delete button clicks
+     at capture phase (fires before original
+     per-button listeners) and use async modals.
+     Original editRate/deleteRate receive
+     undefined from async prompt/confirm → no-op.
+  ────────────────────────────────────────── */
+  document.addEventListener('DOMContentLoaded', function() {
+    const rateListEl = document.getElementById('rateList');
+    if (!rateListEl) return;
+
+    // Listen for custom events dispatched after modal resolution
+    rateListEl.addEventListener('_editDone', function(e) {
+      const { group, rate, newLedger } = e.detail;
+      // Walk up to find currentMapping via the global scope isn't accessible,
+      // so we trigger a simulated input change on the rate item's edit btn
+      // The data is applied here via a shared bridge object
+      if (window.__mappingBridge && window.__mappingBridge.currentMapping) {
+        window.__mappingBridge.currentMapping[group][rate] = newLedger;
+        if (window.__mappingBridge.renderRateList) {
+          window.__mappingBridge.renderRateList(group);
+        }
+      }
+    });
+
+    rateListEl.addEventListener('_deleteDone', function(e) {
+      const { group, rate } = e.detail;
+      if (window.__mappingBridge && window.__mappingBridge.currentMapping) {
+        delete window.__mappingBridge.currentMapping[group][rate];
+        if (window.__mappingBridge.renderRateList) {
+          window.__mappingBridge.renderRateList(group);
+        }
+      }
+    });
+
+    rateListEl.addEventListener('click', async function(e) {
+      const editBtn   = e.target.closest('.btn-edit');
+      const deleteBtn = e.target.closest('.btn-delete');
+
+      if (editBtn) {
+        e.stopImmediatePropagation();
+        const group  = editBtn.dataset.group;
+        const rate   = editBtn.dataset.rate;
+        const ledger = editBtn.dataset.ledger;
+
+        const result = await window.prompt(`Edit ledger for ${rate}%:`, ledger);
+        if (result && result.trim()) {
+          editBtn.dispatchEvent(new CustomEvent('_editDone', {
+            bubbles: true,
+            detail: { group, rate, newLedger: result.trim() }
+          }));
+        }
+      }
+
+      if (deleteBtn) {
+        e.stopImmediatePropagation();
+        const group = deleteBtn.dataset.group;
+        const rate  = deleteBtn.dataset.rate;
+
+        const confirmed = await window.confirm(`Delete mapping for ${rate}?`);
+        if (confirmed) {
+          deleteBtn.dispatchEvent(new CustomEvent('_deleteDone', {
+            bubbles: true,
+            detail: { group, rate }
+          }));
+        }
+      }
+    }, true); // capture phase — fires before original listeners
+  });
+
+  /* ── Save button loading pulse ── */
+  document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('saveMappingBtn');
+    if (!btn) return;
+
+    const origText = btn.innerHTML;
+
+    btn.addEventListener('click', function() {
+      btn.classList.add('saving');
+      btn.innerHTML = '<span style="display:inline-flex;align-items:center;gap:0.45rem;"><span style="animation:spin 0.7s linear infinite;display:inline-block;">⏳</span> Saving…</span>';
+
+      setTimeout(() => {
+        btn.classList.remove('saving');
+        btn.innerHTML = origText;
+      }, 2000);
+    });
+  });
+
+  /* Spin keyframe */
+  const style = document.createElement('style');
+  style.textContent = `@keyframes spin { to { transform: rotate(360deg); } }`;
+  document.head.appendChild(style);
+})();
+</script>
 
 <!-- ═══════════════════════════════════════════
      ALL JS BELOW IS 100% ORIGINAL — UNTOUCHED
@@ -736,6 +1450,9 @@
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
                     currentMapping = await response.json();
+                    // Update bridge
+                    if (!window.__mappingBridge) window.__mappingBridge = {};
+                    window.__mappingBridge.currentMapping = currentMapping;
                     renderGroupList();
                     if (groupNames.length > 0) selectGroup(groupNames[0]);
                 } catch (err) {
@@ -768,6 +1485,10 @@
 
             // ===== RATE FUNCTIONS =====
             function renderRateList(group) {
+                // Expose bridge for async modal patch
+                if (!window.__mappingBridge) window.__mappingBridge = {};
+                window.__mappingBridge.currentMapping = currentMapping;
+                window.__mappingBridge.renderRateList = renderRateList;
                 if (!rateListEl || !addRateBtn) return;
                 const data = currentMapping ? currentMapping[group] : null;
 
