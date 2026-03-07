@@ -160,21 +160,70 @@ async def api_me(request: Request):
     return {"authenticated": bool(user), "username": user}
 
 # =========================================================
-# MAPPING HELPERS (UNCHANGED)
+# MAPPING APIs (PERSISTENT STORAGE)
 # =========================================================
-def load_full_mapping():
-    data = load_mapping_json()
-    if "companies" not in data:
-        data = {
-            "companies": ["Default"],
-            "mappings": {"Default": data}
-        }
-        save_full_mapping(data)
-    return data
 
-def save_full_mapping(data):
-    save_mapping_json(data)
+@app.get("/api/companies")
+async def get_companies(
+    request: Request,
+    user: str = Depends(require_login)
+):
+    return {"companies": load_companies()}
 
+
+@app.post("/api/companies")
+async def create_company(
+    request: Request,
+    name: str = Form(...),
+    user: str = Depends(require_login)
+):
+    try:
+        add_company(name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    return {"status": "success"}
+
+
+@app.delete("/api/companies/{name}")
+async def remove_company(
+    request: Request,
+    name: str,
+    user: str = Depends(require_login)
+):
+    try:
+        delete_company(name)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    return {"status": "deleted"}
+
+
+@app.get("/api/mapping/{company}")
+async def get_company_mapping_api(
+    request: Request,
+    company: str,
+    user: str = Depends(require_login)
+):
+    try:
+        return get_company_mapping(company)
+    except ValueError:
+        raise HTTPException(404)
+
+
+@app.post("/api/mapping/{company}")
+async def update_company_mapping(
+    request: Request,
+    company: str,
+    mapping: dict,
+    user: str = Depends(require_login)
+):
+    try:
+        save_company_mapping(company, mapping)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+    return {"status": "saved"}
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
