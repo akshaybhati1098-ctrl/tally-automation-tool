@@ -1,196 +1,284 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Akshay's Tally Tool</title>
-<style>
-* { margin: 0; padding: 0; box-sizing: border-box; }
-body {
-    font-family: 'Segoe UI', sans-serif;
-    background: #f0f4fa;
-    display: flex;
-    min-height: 100vh;
-}
-
-/* ── SIDEBAR (vertical left nav) ── */
-.top-nav {
-    background: white;
-    border-radius: 0 24px 24px 0;
-    box-shadow: 6px 0 30px -5px rgba(0, 20, 40, 0.12);
-    padding: 1.8rem 1.2rem;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.4rem;
-    border-right: 1px solid rgba(220, 230, 245, 0.8);
-    width: 220px;
-    min-height: 100vh;
-    position: fixed;
-    left: 0;
-    top: 0;
-    transition: all 0.2s ease;
-    z-index: 100;
-}
-
-.top-nav:hover {
-    box-shadow: 8px 0 35px -5px rgba(0, 30, 60, 0.18);
-}
-
-/* Logo block */
-.logo {
-    margin-bottom: 1.4rem;
-    padding-bottom: 1.2rem;
-    border-bottom: 1.5px solid #e4ecf7;
-    width: 100%;
-}
-
-.logo h2 {
-    font-size: 1.15rem;
-    font-weight: 750;
-    background: linear-gradient(135deg, #1e2b4f, #2a3f6e);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    letter-spacing: -0.02em;
-    line-height: 1.3;
-}
-
-.logo p {
-    font-size: 0.75rem;
-    color: #8a9fbc;
-    margin-top: 0.2rem;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-
-/* Nav links — vertical stack */
-.nav-links {
-    display: flex;
-    flex-direction: column;
-    gap: 0.3rem;
-    width: 100%;
-    flex: 1;
-}
-
-.nav-link {
-    background: transparent;
-    border: none;
-    padding: 0.65rem 1rem;
-    border-radius: 12px;
-    font-size: 0.92rem;
-    font-weight: 500;
-    color: #3a4e6e;
-    cursor: pointer;
-    transition: all 0.18s ease;
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    white-space: nowrap;
-    width: 100%;
-    text-align: left;
-}
-
-.nav-link:hover {
-    background: #e8f0fc;
-    color: #0f1a2e;
-    transform: translateX(4px);
-}
-
-.nav-link.active {
-    background: linear-gradient(135deg, #1e2b4f, #2a4080);
-    color: white;
-    box-shadow: 0 4px 12px rgba(30, 43, 79, 0.25);
-}
-
-.nav-link:active {
-    transform: scale(0.97);
-}
-
-/* Logout — pinned to bottom */
-#logout-btn {
-    margin-top: auto;
-    color: #c0392b;
-    border-top: 1.5px solid #e4ecf7;
-    padding-top: 1rem;
-    margin-top: 1rem;
-}
-
-#logout-btn:hover {
-    background: #fdecea;
-    color: #a93226;
-    transform: translateX(4px);
-}
-
-/* Main content area offset */
-.main-content {
-    margin-left: 220px;
-    padding: 2rem;
-    flex: 1;
-}
-
-/* Responsive */
-@media (max-width: 700px) {
-    .top-nav {
-        width: 100%;
-        min-height: auto;
-        position: relative;
-        border-radius: 0 0 20px 20px;
-        flex-direction: column;
-        padding: 1rem;
-    }
-    .main-content {
-        margin-left: 0;
-    }
-    .nav-link {
-        font-size: 0.85rem;
-    }
-}
-</style>
-</head>
-<body>
-
-<!-- LEFT VERTICAL SIDEBAR -->
+<!-- Improved Top Navigation - now matches dashboard width -->
 <div class="top-nav">
     <div class="logo">
         <h2>Akshay's Tally Tool</h2>
         <p>v3.3 • Tally-Inspired</p>
     </div>
     <div class="nav-links">
-        <button class="nav-link protected active" data-page="dashboard" onclick="navigateTo('dashboard'); setActive(this)">🏠 Dashboard</button>
+        <!-- Protected links (visible only when logged in) -->
+        <button class="nav-link protected" data-page="dashboard" onclick="navigateTo('dashboard'); setActive(this)">🏠 Dashboard</button>
         <button class="nav-link protected" data-page="converter" onclick="navigateTo('converter'); setActive(this)">🔄 Excel → XML</button>
         <button class="nav-link protected" data-page="mapping" onclick="navigateTo('mapping'); setActive(this)">⚙️ Mapping Editor</button>
         <button class="nav-link protected" data-page="settings" onclick="navigateTo('settings'); setActive(this)">⚙️ Settings</button>
+        
+        <!-- Public links (visible only when logged out) -->
         <button class="nav-link public" id="login-btn" onclick="window.location.href='/login'">🔑 Login</button>
         <button class="nav-link public" id="signup-btn" onclick="window.location.href='/signup'">📝 Sign Up</button>
+        
+        <!-- Logout (visible only when logged in) -->
         <button class="nav-link protected" id="logout-btn" onclick="logout()">🚪 Logout <span id="username-display"></span></button>
     </div>
 </div>
 
-<!-- MAIN CONTENT -->
-<div class="main-content">
-    <div class="page active" id="dashboard"><h2>📊 Dashboard Page</h2></div>
-    <div class="page" id="converter"><h2>🔄 Converter Page</h2></div>
-    <div class="page" id="mapping"><h2>⚙️ Mapping Editor Page</h2></div>
-    <div class="page" id="settings"><h2>⚙️ Settings Page</h2></div>
-</div>
+<style>
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap');
+
+body {
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    background: #f0f4fa;
+    display: flex;
+    min-height: 100vh;
+}
+
+/* ════════════════════════════════════════
+   SIDEBAR — vertical left nav (white theme)
+════════════════════════════════════════ */
+.top-nav {
+    position: fixed;
+    left: 0; top: 0; bottom: 0;
+    width: 220px;
+    min-height: 100vh;
+
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 0;
+    padding: 0;
+
+    /* White theme */
+    background: #ffffff;
+    border-radius: 0 20px 20px 0;
+    border: none;
+    border-right: 1px solid #e2ebf7;
+    box-shadow: 6px 0 30px rgba(0, 20, 60, 0.08);
+    backdrop-filter: none;
+
+    max-width: none;
+    margin: 0;
+    margin-bottom: 0;
+    z-index: 100;
+    overflow: hidden;
+    transition: box-shadow 0.2s ease;
+}
+
+.top-nav:hover {
+    box-shadow: 8px 0 36px rgba(0, 20, 60, 0.13);
+}
+
+/* Soft blue tint at top */
+.top-nav::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 180px;
+    background: radial-gradient(ellipse 130% 80% at 50% 0%,
+        rgba(59, 130, 246, 0.07) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Very subtle dot-grid */
+.top-nav::after {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(59,130,246,0.06) 1px, transparent 1px);
+    background-size: 20px 20px;
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* ── Logo ── */
+.logo {
+    width: 100%;
+    padding: 1.65rem 1.35rem 1.4rem;
+    border-bottom: 1px solid #e8f0fb;
+    flex-shrink: 0;
+    margin-bottom: 0;
+    position: relative; z-index: 1;
+}
+
+.logo h2 {
+    font-family: 'Syne', 'Segoe UI', sans-serif;
+    font-size: 1.06rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #1e2b4f, #2a4080);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.03em;
+    line-height: 1.25;
+}
+
+.logo p {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.62rem;
+    color: #8a9fbc;
+    margin-top: 0.32rem;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    -webkit-text-fill-color: #8a9fbc;
+    display: flex;
+    align-items: center;
+    gap: 0.42rem;
+}
+
+/* Pulsing live dot */
+.logo p::before {
+    content: '';
+    display: inline-block;
+    width: 5px; height: 5px;
+    background: #22c55e;
+    border-radius: 50%;
+    box-shadow: 0 0 6px #22c55e;
+    flex-shrink: 0;
+    animation: livepulse 2.2s ease-in-out infinite;
+}
+
+@keyframes livepulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.35; transform: scale(0.78); }
+}
+
+/* ── Nav links ── */
+.nav-links {
+    display: flex;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 0.22rem;
+    width: 100%;
+    flex: 1;
+    padding: 0.9rem 0.72rem;
+    position: relative; z-index: 1;
+    justify-content: flex-start;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.62rem;
+    width: 100%;
+    text-align: left;
+    white-space: nowrap;
+    padding: 0.64rem 0.95rem;
+
+    font-family: 'DM Sans', 'Segoe UI', sans-serif;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #3a4e6e;
+    letter-spacing: -0.01em;
+
+    border-radius: 11px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+
+    transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: none;
+    transform: none;
+    flex: none;
+    justify-content: flex-start;
+}
+
+.nav-link:hover {
+    background: #eef4fd;
+    color: #1e2b4f;
+    transform: translateX(3px);
+    border-color: rgba(59,130,246,0.1);
+}
+
+.nav-link.active {
+    background: #e8f0fc;
+    color: #1e2b4f;
+    font-weight: 600;
+    border-color: rgba(59, 130, 246, 0.2);
+    box-shadow: inset 3px 0 0 #3b82f6;
+}
+
+.nav-link:active {
+    transform: scale(0.97);
+}
+
+/* ── Logout ── */
+#logout-btn {
+    margin-top: auto;
+    color: #c0392b;
+    border-top: 1px solid #e8f0fb;
+    border-radius: 0;
+    padding-top: 0.9rem;
+    margin-top: 0.65rem;
+}
+
+#logout-btn:hover {
+    background: #fdecea;
+    color: #a93226;
+    transform: translateX(3px);
+}
+
+/* ── Offset page content to the right of sidebar ── */
+.dashboard-container {
+    margin-left: 220px;
+    max-width: none;
+    width: auto;
+    padding: 2rem 2rem;
+}
+
+/* Responsive: collapse to top bar on small screens */
+@media (max-width: 700px) {
+    .top-nav {
+        position: relative;
+        width: 100%;
+        min-height: auto;
+        border-radius: 0 0 18px 18px;
+        border-right: none;
+        border-bottom: 1px solid #18243a;
+        flex-direction: column;
+        padding: 1rem;
+        overflow: visible;
+    }
+    .top-nav::before, .top-nav::after { display: none; }
+    .nav-links {
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 0.4rem 0;
+    }
+    .nav-link {
+        flex: 1 1 auto;
+        justify-content: center;
+        font-size: 0.8rem;
+        padding: 0.5rem 0.4rem;
+    }
+    .dashboard-container {
+        margin-left: 0;
+        padding: 1rem;
+    }
+}
+</style>
 
 <script>
-// Simulate logged-in user for preview
-window.currentUser = 'Akshay';
-
+// Set initial visibility based on login state
 function updateNavbarVisibility() {
     const isLoggedIn = window.currentUser && window.currentUser !== '';
-    document.querySelectorAll('.nav-link.protected').forEach(btn => {
+    const protectedLinks = document.querySelectorAll('.nav-link.protected');
+    const publicLinks = document.querySelectorAll('.nav-link.public');
+    
+    protectedLinks.forEach(btn => {
         btn.style.display = isLoggedIn ? 'flex' : 'none';
     });
-    document.querySelectorAll('.nav-link.public').forEach(btn => {
+    
+    publicLinks.forEach(btn => {
         btn.style.display = isLoggedIn ? 'none' : 'flex';
     });
+    
     if (isLoggedIn) {
         document.getElementById('username-display').textContent = `(${window.currentUser})`;
     }
 }
 
+// Logout function (AJAX)
 async function logout() {
     try {
         const response = await fetch('/logout', {
@@ -200,29 +288,31 @@ async function logout() {
         if (data.success) {
             window.currentUser = '';
             updateNavbarVisibility();
-            window.location.href = data.redirect;
+            window.location.href = data.redirect; // Redirect to login page
         }
     } catch (error) {
-        window.currentUser = '';
-        updateNavbarVisibility();
+        console.error('Logout failed:', error);
+        window.location.href = '/login';
     }
 }
 
+// Original navigation functions
 function setActive(clickedButton) {
-    document.querySelectorAll('.nav-link').forEach(btn => btn.classList.remove('active'));
+    const navLinks = document.querySelectorAll('.nav-link');
+    navLinks.forEach(btn => btn.classList.remove('active'));
     clickedButton.classList.add('active');
 }
 
 function navigateTo(page) {
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById(page).style.display = 'block';
+    console.log(`Navigating to: ${page}`);
+    // Your existing navigation logic
+    // Hide all pages, show selected page
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(page).classList.add('active');
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+// Run on page load
+document.addEventListener('DOMContentLoaded', function() {
     updateNavbarVisibility();
-    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
-    document.getElementById('dashboard').style.display = 'block';
 });
 </script>
-</body>
-</html>
