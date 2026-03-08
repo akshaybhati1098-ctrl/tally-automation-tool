@@ -56,9 +56,6 @@ templates = Jinja2Templates(directory="web/templates")
 # =========================================================
 # USER DB (PostgreSQL) – persistent across rebuilds
 # =========================================================
-import psycopg2
-from psycopg2.extras import RealDictCursor
-
 DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set")
@@ -109,8 +106,21 @@ def create_user(username: str, password: str):
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
+
 # =========================================================
-# UI ROUTES (IMPORTANT FIX)
+# AUTH HELPERS (FIXED – DEFINED BEFORE ROUTES THAT USE THEM)
+# =========================================================
+def get_current_user(request: Request) -> Optional[str]:
+    return request.session.get("username")
+
+def require_login(request: Request):
+    user = get_current_user(request)
+    if not user:
+        return RedirectResponse("/login", status_code=302)
+    return user
+
+# =========================================================
+# UI ROUTES
 # =========================================================
 @app.get("/")
 async def serve_ui(request: Request):
@@ -324,7 +334,6 @@ def debug_persistence():
     # Check PostgreSQL users
     postgres_users = []
     try:
-        from app import get_db_connection
         conn = get_db_connection()
         cur = conn.cursor()
         cur.execute("SELECT username FROM users ORDER BY username")
