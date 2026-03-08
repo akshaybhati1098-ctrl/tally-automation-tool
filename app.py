@@ -3,6 +3,8 @@ import io
 import logging
 import sqlite3
 import bcrypt
+import psycopg2 
+from psycopg2.extras import RealDictCursor 
 os.makedirs("/data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
@@ -52,60 +54,61 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
 # =========================================================
-# USER DB (SQLite)
+# USER DB (PostgreSQL) – persistent across rebuilds
 # =========================================================
-DB_PATH = "/data/users.db"
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable not set")
+
+def get_db_connection():
+    return psycopg2.connect(DATABASE_URL)
 
 def init_user_db():
-    conn = sqlite3.connect(DB_PATH)
+    """Create users table if it doesn't exist."""
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
             password_hash TEXT NOT NULL
         )
     """)
     conn.commit()
+    cur.close()
     conn.close()
+    print("✅ User database table initialized in PostgreSQL")
 
+# Initialize the table on startup
 init_user_db()
 
 def get_user(username: str):
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    cur = conn.cursor()
-    cur.execute("SELECT * FROM users WHERE username = ?", (username,))
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM users WHERE username = %s", (username,))
     user = cur.fetchone()
+    cur.close()
     conn.close()
     return user
 
 def create_user(username: str, password: str):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
-    conn = sqlite3.connect(DB_PATH)
+    conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO users (username, password_hash) VALUES (?, ?)",
+        "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
         (username, hashed)
     )
     conn.commit()
+    cur.close()
     conn.close()
+    print(f"✅ User '{username}' created in PostgreSQL")
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
-
-# =========================================================
-# AUTH HELPERS
-# =========================================================
-def get_current_user(request: Request) -> Optional[str]:
-    return request.session.get("username")
-
-def require_login(request: Request):
-    user = get_current_user(request)
-    if not user:
-        return RedirectResponse("/login", status_code=302)
-    return user
-
 # =========================================================
 # UI ROUTES (IMPORTANT FIX)
 # =========================================================
@@ -316,20 +319,33 @@ async def download_template(
 
 @app.get("/debug/persistence")
 def debug_persistence():
-    import os, sqlite3
-
-    data_exists = os.path.exists("/data")
-    data_files = os.listdir("/data") if data_exists else []
-
-    users = []
-    if os.path.exists(DB_PATH):
-        users = sqlite3.connect(DB_PATH).execute(
-            "SELECT username FROM users"
-        ).fetchall()
-
+    import os
+    
+    # Check PostgreSQL users
+    postgres_users = []
+    try:
+        from app import get_db_connection
+        conn = get_db_connection()
+        cur = conn.cursor()
+        cur.execute("SELECT username FROM users ORDER BY username")
+        postgres_users = [row[0] for row in cur.fetchall()]
+        cur.close()
+        conn.close()
+    except Exception as e:
+        postgres_users = [f"Error: {str(e)}"]
+    
+    # Check if old SQLite file still exists
+    sqlite_exists = os.path.exists("/data/users.db")
+    
+    # Get mapping info from PostgreSQL
+    from core.mapping import load_all_mappings_postgres
+    companies, mappings = load_all_mappings_postgres() or ([], {})
+    
     return {
-        "data_dir_exists": data_exists,
-        "data_dir_files": data_files,
-        "db_path": DB_PATH,
-        "users_in_db": users
+        "database_url_set": bool(os.environ.get("DATABASE_URL")),
+        "postgres_users": postgres_users,
+        "postgres_users_count": len([u for u in postgres_users if isinstance(u, str)]),
+        "old_sqlite_db_exists": sqlite_exists,
+        "postgres_companies": companies,
+        "postgres_mappings_count": len(mappings)
     }
