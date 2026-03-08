@@ -2081,19 +2081,7 @@
     (function() {
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Group keys (including DEBUG and COMPANY_STATE)
-            const groupNames = [
-                'COMPANY_STATE',
-                'SALES',
-                'SALES_IGST',
-                'PURCHASE',
-                'CGST_RATES',
-                'SGST_RATES',
-                'IGST_RATES',
-                'DEBUG'
-            ];
-
-            // State variables
+            // State variables (no hardcoded groupNames!)
             let companies = [];
             let currentCompany = null;
             let currentGroup = null;
@@ -2101,6 +2089,7 @@
             let companyModalMode = 'add'; // 'add' or 'rename'
             let oldCompanyName = null;
             let currentModalGroup = null;
+            let groupNames = []; // will be populated from mapping
 
             // DOM elements
             const companyListEl = document.getElementById('companyList');
@@ -2154,7 +2143,7 @@
 
             async function selectCompany(name) {
                 currentCompany = name;
-                window.__currentCompanyForCore = name; // exposed for save-to-core
+                window.__currentCompanyForCore = name;
                 if (selectedCompanySpan) selectedCompanySpan.textContent = name;
                 // Update active class
                 document.querySelectorAll('#companyList .company-item').forEach(item => {
@@ -2169,11 +2158,23 @@
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
                     currentMapping = await response.json();
-                    // Update bridge
+                    
+                    // === DYNAMIC GROUP LIST: extract all keys from mapping ===
+                    groupNames = Object.keys(currentMapping).sort(); // simple alphabetical order
+                    // (Optional: preserve default order by using a predefined list)
+                    
+                    // Update bridge for group actions (modals use this)
+                    if (!window.__groupBridge) window.__groupBridge = {};
+                    window.__groupBridge.groupNames = groupNames;
+                    window.__groupBridge.currentMapping = currentMapping;
+                    window.__groupBridge.renderGroupList = renderGroupList;
+                    window.__groupBridge.selectGroup = selectGroup;
+                    
+                    // Also update mapping bridge for rate actions
                     if (!window.__mappingBridge) window.__mappingBridge = {};
                     window.__mappingBridge.currentMapping = currentMapping;
-                    if (!window.__groupBridge) window.__groupBridge = {};
-                    window.__groupBridge.currentMapping = currentMapping;
+                    window.__mappingBridge.renderRateList = renderRateList;
+
                     renderGroupList();
                     if (groupNames.length > 0) selectGroup(groupNames[0]);
                 } catch (err) {
@@ -2183,12 +2184,6 @@
 
             // ===== GROUP FUNCTIONS =====
             function renderGroupList() {
-                // Expose bridge for group action patch
-                if (!window.__groupBridge) window.__groupBridge = {};
-                window.__groupBridge.groupNames = groupNames;
-                window.__groupBridge.currentMapping = currentMapping;
-                window.__groupBridge.renderGroupList = renderGroupList;
-                window.__groupBridge.selectGroup = selectGroup;
                 if (!groupListEl) return;
                 groupListEl.innerHTML = '';
                 groupNames.forEach(name => {
@@ -2212,10 +2207,6 @@
 
             // ===== RATE FUNCTIONS =====
             function renderRateList(group) {
-                // Expose bridge for async modal patch
-                if (!window.__mappingBridge) window.__mappingBridge = {};
-                window.__mappingBridge.currentMapping = currentMapping;
-                window.__mappingBridge.renderRateList = renderRateList;
                 if (!rateListEl || !addRateBtn) return;
                 const data = currentMapping ? currentMapping[group] : null;
 
@@ -2515,5 +2506,3 @@
         });
     })();
 </script>
-</body>
-</html>
