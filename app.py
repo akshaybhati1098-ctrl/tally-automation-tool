@@ -331,30 +331,54 @@ async def download_template(
 def debug_persistence():
     import os
     
-    # Check PostgreSQL users
-    postgres_users = []
+    result = {
+        "app_status": "running",
+        "database_url_set": bool(os.environ.get("DATABASE_URL")),
+        "environment": os.environ.get("RENDER", "not set"),
+    }
+    
+    # Test database connection
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        cur.execute("SELECT username FROM users ORDER BY username")
-        postgres_users = [row[0] for row in cur.fetchall()]
+        
+        # Check users table
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')")
+        users_table_exists = cur.fetchone()[0]
+        result["users_table_exists"] = users_table_exists
+        
+        if users_table_exists:
+            cur.execute("SELECT COUNT(*) FROM users")
+            user_count = cur.fetchone()[0]
+            result["user_count"] = user_count
+            
+            cur.execute("SELECT username FROM users LIMIT 5")
+            users = [row[0] for row in cur.fetchall()]
+            result["sample_users"] = users
+        
+        # Check mapping table  
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'company_mapping')")
+        mapping_table_exists = cur.fetchone()[0]
+        result["mapping_table_exists"] = mapping_table_exists
+        
+        if mapping_table_exists:
+            cur.execute("SELECT COUNT(*) FROM company_mapping")
+            company_count = cur.fetchone()[0]
+            result["company_count"] = company_count
+            
+            cur.execute("SELECT company FROM company_mapping LIMIT 5")
+            companies = [row[0] for row in cur.fetchall()]
+            result["sample_companies"] = companies
+        
         cur.close()
         conn.close()
+        result["database_connected"] = True
+        
     except Exception as e:
-        postgres_users = [f"Error: {str(e)}"]
+        result["database_connected"] = False
+        result["database_error"] = str(e)
     
-    # Check if old SQLite file still exists
-    sqlite_exists = os.path.exists("/data/users.db")
+    # Check if old SQLite file exists
+    result["old_sqlite_exists"] = os.path.exists("/data/users.db")
     
-    # Get mapping info from PostgreSQL
-    from core.mapping import load_all_mappings_postgres
-    companies, mappings = load_all_mappings_postgres() or ([], {})
-    
-    return {
-        "database_url_set": bool(os.environ.get("DATABASE_URL")),
-        "postgres_users": postgres_users,
-        "postgres_users_count": len([u for u in postgres_users if isinstance(u, str)]),
-        "old_sqlite_db_exists": sqlite_exists,
-        "postgres_companies": companies,
-        "postgres_mappings_count": len(mappings)
-    }
+    return result
