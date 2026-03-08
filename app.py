@@ -32,6 +32,17 @@ from core.mapping import (
 from core.process_service import image_to_excel
 
 # =========================================================
+# ✅ ADDITION 1 OF 4 — import the email verification router
+# =========================================================
+from core.email_verification import (
+    router as verify_router,
+    migrate_users_table,
+    generate_token,
+    register_and_send,
+    check_verified,
+)
+
+# =========================================================
 # APP
 # =========================================================
 app = FastAPI(title="Tally Automation Tool")
@@ -52,6 +63,11 @@ app.add_middleware(
 # =========================================================
 app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
+
+# =========================================================
+# ✅ ADDITION 2 OF 4 — register the verification routes
+# =========================================================
+app.include_router(verify_router)
 
 # =========================================================
 # USER DB (PostgreSQL) – persistent across rebuilds
@@ -82,6 +98,11 @@ def init_user_db():
 # Initialize the table on startup
 init_user_db()
 
+# =========================================================
+# ✅ ADDITION 3 OF 4 — run the column migration on startup
+# =========================================================
+migrate_users_table()
+
 def get_user(username: str):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -91,13 +112,14 @@ def get_user(username: str):
     conn.close()
     return user
 
-def create_user(username: str, password: str):
+def create_user(username: str, password: str, email: str = ""):
+    # ✅ ADDITION 4 OF 4 — also stores email when creating a user
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO users (username, password_hash) VALUES (%s, %s)",
-        (username, hashed)
+        "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
+        (username, hashed, email)
     )
     conn.commit()
     cur.close()
@@ -145,6 +167,16 @@ async def login_post(
     username = username.strip()
     user = get_user(username)
     if user and verify_password(password, user["password_hash"]):
+        # Block login if email is not yet verified
+        if not check_verified(user):
+            return templates.TemplateResponse("pages/signup.html", {
+                "request": request,
+                "flashes": [{
+                    "category": "error",
+                    "message": "Please verify your email before logging in. "
+                               "Check your inbox or use the resend option."
+                }]
+            })
         request.session["username"] = username
         return RedirectResponse("/", status_code=302)
     return RedirectResponse("/login?error=1", status_code=302)
@@ -157,15 +189,36 @@ async def signup_page(request: Request):
 async def signup_post(
     request: Request,
     username: str = Form(...),
-    password: str = Form(...)
+    password: str = Form(...),
+    email: str = Form(default="")          # new field from signup.html
 ):
     username = username.strip()
+    email    = email.strip().lower()
+
     if not username or not password:
         return RedirectResponse("/signup?error=1", status_code=302)
     if get_user(username):
         return RedirectResponse("/signup?exists=1", status_code=302)
-    create_user(username, password)
-    return RedirectResponse("/login?created=1", status_code=302)
+
+    # Create the user (unverified by default — is_verified = FALSE)
+    create_user(username, password, email)
+
+    # Generate token and send verification email (only if email provided)
+    if email:
+        try:
+            token = generate_token(email)
+            register_and_send(email, token)
+        except Exception as e:
+            print(f"[SIGNUP] Email send failed: {e}")
+            # Account created but email failed — user can resend from pending page
+
+    # Render the verify-pending view inside signup.html
+    return templates.TemplateResponse("pages/signup.html", {
+        "request": request,
+        "show_pending": True,       # tells the template to show view-pending
+        "pending_email": email,
+        "flashes": []
+    })
 
 @app.get("/logout")
 async def logout(request: Request):

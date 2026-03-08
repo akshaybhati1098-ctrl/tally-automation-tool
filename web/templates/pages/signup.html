@@ -3,7 +3,7 @@
 
 <div class="login-shell">
 
-  <!-- Left panel — branding -->
+  <!-- ══ LEFT PANEL — stays the same for both views ══ -->
   <div class="login-panel-left">
     <div class="lp-brand">
       <div class="lp-logo">🧾</div>
@@ -16,7 +16,6 @@
     <div class="lp-body">
       <h2>Join hundreds of accountants.</h2>
       <p>Create your free account and start converting Excel invoices to Tally XML in seconds — no setup required.</p>
-
       <div class="lp-features">
         <div class="lp-feat"><span>🚀</span> Up and running in under 2 minutes</div>
         <div class="lp-feat"><span>🔧</span> Save ledger mappings forever</div>
@@ -25,22 +24,23 @@
       </div>
     </div>
 
-    <div class="lp-footer">
-      Free to use · No credit card required
-    </div>
+    <div class="lp-footer">Free to use · No credit card required</div>
   </div>
 
-  <!-- Right panel — form -->
+  <!-- ══ RIGHT PANEL — two views inside ══ -->
   <div class="login-panel-right">
-    <div class="login-card">
+
+    <!-- ─────────────────────────────────────
+         VIEW 1: SIGNUP FORM
+    ───────────────────────────────────────── -->
+    <div class="login-card" id="view-signup">
 
       <div class="lc-header">
         <div class="ch-eyebrow">Get started free</div>
         <h3>Create your account</h3>
-        <p class="lc-sub">Fill in the details below to sign up</p>
+        <p class="lc-sub">We'll send a verification link to your email</p>
       </div>
 
-      <!-- Flash messages -->
       {% if flashes %}
         {% for flash in flashes %}
           <div class="flash {{ flash.category }}">
@@ -50,41 +50,120 @@
         {% endfor %}
       {% endif %}
 
-      <form method="post" action="/signup" class="lc-form">
+      <form method="post" action="/signup" class="lc-form" id="signup-form" onsubmit="return handleSignup(event)">
 
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
-            <input type="text" id="username" name="username" placeholder="Choose a username" required>
+            <input type="text" id="username" name="username"
+              placeholder="Choose a username"
+              required minlength="3" maxlength="20"
+              pattern="[a-zA-Z0-9_]+"
+              oninput="validateUsername(this)">
           </div>
+          <div class="field-hint">3–20 characters, letters, numbers or underscores only</div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">📧</span>
+            <input type="email" id="email" name="email"
+              placeholder="you@example.com"
+              required
+              oninput="validateEmail(this)">
+          </div>
+          <div class="field-hint" id="email-hint">A verification link will be sent here</div>
         </div>
 
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
-            <input type="password" id="password" name="password" placeholder="Create a password" required>
-            <button type="button" class="toggle-pw" onclick="togglePassword()" tabindex="-1">👁️</button>
+            <input type="password" id="password" name="password"
+              placeholder="Create a password"
+              required minlength="6"
+              oninput="checkStrength(this.value); checkMatch()">
+            <button type="button" class="toggle-pw" onclick="togglePassword('password')" tabindex="-1">👁️</button>
+          </div>
+          <div class="strength-wrap">
+            <div class="strength-bar"><div class="strength-fill" id="strength-fill"></div></div>
+            <span class="strength-label" id="strength-label"></span>
+          </div>
+          <div class="pw-rules">
+            <div class="pw-rule" id="rule-len">✗ At least 6 characters</div>
+            <div class="pw-rule" id="rule-upper">✗ One uppercase letter</div>
+            <div class="pw-rule" id="rule-num">✗ One number</div>
           </div>
         </div>
 
-        <button type="submit" class="btn-login">
-          <span>Create Account</span>
-          <span class="btn-arrow">→</span>
+        <div class="form-group">
+          <label for="confirm_password">Confirm Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔐</span>
+            <input type="password" id="confirm_password" name="confirm_password"
+              placeholder="Re-enter your password"
+              required
+              oninput="checkMatch()">
+            <button type="button" class="toggle-pw" onclick="togglePassword('confirm_password')" tabindex="-1">👁️</button>
+          </div>
+          <div class="match-hint" id="match-hint"></div>
+        </div>
+
+        <button type="submit" class="btn-login" id="submit-btn">
+          <span id="btn-label">Create Account</span>
+          <span class="btn-arrow" id="btn-arrow">→</span>
         </button>
 
       </form>
 
       <p class="lc-signup">Already have an account? <a href="/login">Log in</a></p>
+    </div>
+
+    <!-- ─────────────────────────────────────
+         VIEW 2: VERIFY PENDING
+         Hidden until signup succeeds
+    ───────────────────────────────────────── -->
+    <div class="login-card" id="view-pending" style="display:none;">
+
+      <div class="verify-icon">📬</div>
+
+      <div class="verify-head">
+        <div class="ch-eyebrow">Almost there</div>
+        <h3>Check your inbox</h3>
+        <p>We've sent a verification link to <strong id="pending-email">—</strong>. Click the link in that email to activate your account.</p>
+      </div>
+
+      <div class="verify-steps">
+        <div class="vs-step">
+          <div class="vs-num">1</div>
+          <div class="vs-text">Open your email app</div>
+        </div>
+        <div class="vs-step">
+          <div class="vs-num">2</div>
+          <div class="vs-text">Find the email from <strong>Tally Tool</strong></div>
+        </div>
+        <div class="vs-step">
+          <div class="vs-num">3</div>
+          <div class="vs-text">Click <strong>Verify my email</strong> in the email</div>
+        </div>
+      </div>
+
+      <div class="verify-note">
+        Link expires in <strong>24 hours</strong>. Didn't get it? Check spam, or
+        <button type="button" class="resend-link" id="resend-btn" onclick="resendEmail()">resend the email</button>.
+        <span id="resend-countdown" style="display:none;font-size:0.72rem;color:var(--muted);"></span>
+      </div>
+
+      <button class="btn-back" onclick="switchView('signup')">← Back to Sign Up</button>
 
     </div>
-  </div>
 
-</div>
+  </div><!-- /login-panel-right -->
+</div><!-- /login-shell -->
 
 <style>
-/* ── Design tokens ── */
 :root {
   --ink:     #0d1117;
   --ink2:    #1c2534;
@@ -108,7 +187,7 @@ body {
   color: var(--ink);
 }
 
-/* ── Two-panel shell ── */
+/* ── Shell ── */
 .login-shell {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -139,111 +218,31 @@ body {
 
 .login-panel-left::before {
   content: '';
-  position: absolute;
-  top: -80px; right: -80px;
-  width: 320px; height: 320px;
-  border-radius: 50%;
+  position: absolute; top: -80px; right: -80px;
+  width: 320px; height: 320px; border-radius: 50%;
   background: radial-gradient(circle, rgba(22,81,232,0.35), transparent 70%);
   pointer-events: none;
 }
 
 .login-panel-left::after {
   content: '';
-  position: absolute;
-  bottom: -60px; left: -60px;
-  width: 240px; height: 240px;
-  border-radius: 50%;
+  position: absolute; bottom: -60px; left: -60px;
+  width: 240px; height: 240px; border-radius: 50%;
   background: radial-gradient(circle, rgba(23,178,106,0.18), transparent 70%);
   pointer-events: none;
 }
 
-.lp-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  position: relative;
-  z-index: 1;
-}
-
-.lp-logo {
-  width: 40px; height: 40px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px;
-  display: grid; place-items: center;
-  font-size: 1.2rem;
-}
-
-.lp-name {
-  font-family: 'Syne', sans-serif;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-.lp-version {
-  font-size: 0.68rem;
-  color: rgba(255,255,255,0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.lp-body {
-  flex: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.lp-body h2 {
-  font-family: 'Syne', sans-serif;
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 1rem;
-}
-
-.lp-body p {
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.5);
-  line-height: 1.7;
-  margin-bottom: 2rem;
-  max-width: 300px;
-}
-
-.lp-features {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.lp-feat {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.7);
-  font-weight: 500;
-}
-
-.lp-feat span {
-  width: 28px; height: 28px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 8px;
-  display: grid; place-items: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.lp-footer {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.25);
-  letter-spacing: 0.03em;
-  position: relative;
-  z-index: 1;
-}
+.lp-brand { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+.lp-logo { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; }
+.lp-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+.lp-version { font-size: 0.68rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.05em; }
+.lp-body { flex: 1; position: relative; z-index: 1; }
+.lp-body h2 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; line-height: 1.15; margin-bottom: 1rem; }
+.lp-body p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.7; margin-bottom: 2rem; max-width: 300px; }
+.lp-features { display: flex; flex-direction: column; gap: 0.65rem; }
+.lp-feat { display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); font-weight: 500; }
+.lp-feat span { width: 28px; height: 28px; background: rgba(255,255,255,0.07); border-radius: 8px; display: grid; place-items: center; font-size: 0.9rem; flex-shrink: 0; }
+.lp-footer { font-size: 0.72rem; color: rgba(255,255,255,0.25); letter-spacing: 0.03em; position: relative; z-index: 1; }
 
 /* ── Right panel ── */
 .login-panel-right {
@@ -251,205 +250,387 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem 2rem;
+  padding: 2rem 2rem;
+  overflow-y: auto;
+  position: relative;
 }
 
+/* ── Card (shared by both views) ── */
 .login-card {
   width: 100%;
   max-width: 380px;
+  animation: viewIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
 }
 
-/* ── Card header ── */
-.lc-header { margin-bottom: 2rem; }
-
-.ch-eyebrow {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--accent);
-  margin-bottom: 0.4rem;
+@keyframes viewIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.lc-header h3 {
-  font-family: 'Syne', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-  margin-bottom: 0.3rem;
-}
-
+/* ════════ VIEW 1: SIGNUP ════════ */
+.lc-header { margin-bottom: 1.6rem; }
+.ch-eyebrow { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--accent); margin-bottom: 0.4rem; }
+.lc-header h3, .verify-head h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.3rem; }
 .lc-sub { font-size: 0.8rem; color: var(--muted); }
 
-/* ── Flash messages ── */
-.flash {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  margin-bottom: 1.2rem;
-}
+.flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.82rem; font-weight: 500; margin-bottom: 1.2rem; }
+.flash.success { background: rgba(23,178,106,0.1); color: #0e6b41; border: 1px solid rgba(23,178,106,0.2); }
+.flash.error { background: rgba(220,38,38,0.07); color: #b91c1c; border: 1px solid rgba(220,38,38,0.15); }
 
-.flash.success {
-  background: rgba(23,178,106,0.1);
-  color: #0e6b41;
-  border: 1px solid rgba(23,178,106,0.2);
-}
+.lc-form { display: flex; flex-direction: column; gap: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: 0.4rem; }
+.form-group label { font-size: 0.78rem; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; }
 
-.flash.error {
-  background: rgba(220,38,38,0.07);
-  color: #b91c1c;
-  border: 1px solid rgba(220,38,38,0.15);
-}
-
-/* ── Form ── */
-.lc-form { display: flex; flex-direction: column; gap: 1.2rem; }
-
-.form-group { display: flex; flex-direction: column; gap: 0.45rem; }
-
-.form-group label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--ink3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 0.9rem;
-  font-size: 0.95rem;
-  pointer-events: none;
-  z-index: 1;
-}
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-icon { position: absolute; left: 0.9rem; font-size: 0.95rem; pointer-events: none; z-index: 1; }
 
 .input-wrap input {
   width: 100%;
-  padding: 0.75rem 2.8rem 0.75rem 2.5rem;
+  padding: 0.72rem 2.8rem 0.72rem 2.5rem;
   background: var(--surface);
   border: 1.5px solid var(--line);
   border-radius: 12px;
   font-family: 'DM Sans', sans-serif;
-  font-size: 0.88rem;
-  color: var(--ink);
+  font-size: 0.88rem; color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .input-wrap input::placeholder { color: var(--muted); }
 .input-wrap input:hover { border-color: #b8cbe8; }
+.input-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,81,232,0.1); background: var(--white); }
+.input-wrap input.input-error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
+.input-wrap input.input-ok { border-color: var(--green); box-shadow: 0 0 0 3px rgba(23,178,106,0.1); }
 
-.input-wrap input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
-  background: var(--white);
-}
-
-.toggle-pw {
-  position: absolute;
-  right: 0.8rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  opacity: 0.5;
-  transition: opacity 0.15s;
-  padding: 0;
-  line-height: 1;
-}
-
+.toggle-pw { position: absolute; right: 0.8rem; background: none; border: none; cursor: pointer; font-size: 0.95rem; opacity: 0.5; transition: opacity 0.15s; padding: 0; line-height: 1; }
 .toggle-pw:hover { opacity: 1; }
 
-/* ── Signup button ── */
+.field-hint { font-size: 0.71rem; color: var(--muted); transition: color 0.2s; }
+
+.strength-wrap { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.3rem; }
+.strength-bar { flex: 1; height: 4px; background: var(--line); border-radius: 100px; overflow: hidden; }
+.strength-fill { height: 100%; width: 0%; border-radius: 100px; transition: width 0.3s ease, background 0.3s ease; }
+.strength-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; min-width: 44px; text-align: right; }
+
+.pw-rules { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.25rem; }
+.pw-rule { font-size: 0.71rem; color: var(--muted); transition: color 0.2s; }
+.pw-rule.pass { color: var(--green); }
+
+.match-hint { font-size: 0.72rem; font-weight: 600; min-height: 1rem; transition: color 0.2s; }
+
 .btn-login {
-  width: 100%;
-  margin-top: 0.4rem;
-  padding: 0.9rem 1.5rem;
+  width: 100%; margin-top: 0.4rem; padding: 0.9rem 1.5rem;
   background: linear-gradient(135deg, var(--accent), #3b29e8);
-  color: var(--white);
-  border: none;
-  border-radius: 12px;
-  font-family: 'Syne', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  color: var(--white); border: none; border-radius: 12px;
+  font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; transition: all 0.2s;
   box-shadow: 0 4px 16px rgba(22,81,232,0.35);
-  position: relative;
+  position: relative; overflow: hidden;
+}
+.btn-login::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent); pointer-events: none; }
+.btn-arrow { opacity: 0.7; transition: transform 0.2s, opacity 0.2s; }
+.btn-login:hover { box-shadow: 0 8px 24px rgba(22,81,232,0.45); transform: translateY(-2px); }
+.btn-login:hover .btn-arrow { transform: translateX(4px); opacity: 1; }
+.btn-login:active { transform: scale(0.98); }
+.btn-login:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.lc-signup { margin-top: 1.4rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
+.lc-signup a { color: var(--accent); font-weight: 600; text-decoration: none; }
+.lc-signup a:hover { text-decoration: underline; }
+
+/* ════════ VIEW 2: VERIFY PENDING ════════ */
+#view-pending {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.6rem;
+  text-align: center;
+}
+
+.verify-icon {
+  width: 72px; height: 72px;
+  background: rgba(22,81,232,0.08);
+  border: 1.5px solid rgba(22,81,232,0.16);
+  border-radius: 20px;
+  display: grid; place-items: center;
+  font-size: 2rem;
+  animation: iconBounce 0.55s cubic-bezier(0.22,1,0.36,1) both;
+}
+
+@keyframes iconBounce {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.1); }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.verify-head { display: flex; flex-direction: column; gap: 0.45rem; }
+.verify-head p { font-size: 0.87rem; color: var(--muted); line-height: 1.65; max-width: 300px; }
+.verify-head p strong { color: var(--ink2); font-weight: 600; }
+
+.verify-steps {
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
   overflow: hidden;
 }
 
-.btn-login::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-  pointer-events: none;
+.vs-step {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 0.82rem 1.2rem;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+}
+.vs-step:last-child { border-bottom: none; }
+
+.vs-num {
+  width: 26px; height: 26px; border-radius: 50%;
+  background: var(--ink); color: #fff;
+  font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
+  display: grid; place-items: center; flex-shrink: 0;
 }
 
-.btn-arrow {
-  opacity: 0.7;
-  transition: transform 0.2s, opacity 0.2s;
+.vs-text { font-size: 0.83rem; color: var(--ink3); font-weight: 500; }
+.vs-text strong { color: var(--ink2); }
+
+.verify-note {
+  font-size: 0.78rem; color: var(--muted); line-height: 1.7;
 }
+.verify-note strong { color: var(--ink3); }
 
-.btn-login:hover {
-  box-shadow: 0 8px 24px rgba(22,81,232,0.45);
-  transform: translateY(-2px);
+.resend-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: 0.78rem; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  text-decoration: underline; padding: 0;
+  transition: color 0.15s;
 }
+.resend-link:hover { color: var(--ink); }
+.resend-link:disabled { opacity: 0.45; cursor: not-allowed; text-decoration: none; }
 
-.btn-login:hover .btn-arrow {
-  transform: translateX(4px);
-  opacity: 1;
+.btn-back {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  padding: 0.62rem 1.3rem;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font-size: 0.84rem; font-weight: 600; color: var(--ink3);
+  background: var(--white); cursor: pointer;
+  transition: all 0.18s;
+  font-family: 'DM Sans', sans-serif;
 }
-
-.btn-login:active { transform: scale(0.98); }
-
-/* ── Login link ── */
-.lc-signup {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 0.82rem;
-  color: var(--muted);
-}
-
-.lc-signup a {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.lc-signup a:hover { text-decoration: underline; }
+.btn-back:hover { border-color: var(--accent); color: var(--accent); background: rgba(22,81,232,0.04); transform: translateX(-2px); }
 
 /* ── Responsive ── */
 @media (max-width: 750px) {
-  .login-shell {
-    grid-template-columns: 1fr;
-    margin: 1rem;
-    border-radius: 20px;
-  }
+  .login-shell { grid-template-columns: 1fr; margin: 1rem; border-radius: 20px; }
   .login-panel-left { display: none; }
   .login-panel-right { padding: 2.5rem 1.5rem; }
 }
 </style>
 
 <script>
-function togglePassword() {
-  const pw = document.getElementById('password');
+/* ── View switcher ── */
+function switchView(view) {
+  const signup  = document.getElementById('view-signup');
+  const pending = document.getElementById('view-pending');
+  if (view === 'pending') {
+    signup.style.display  = 'none';
+    pending.style.display = 'flex';
+    // Restart animation
+    pending.classList.remove('viewIn');
+    void pending.offsetWidth;
+    pending.style.animation = 'none';
+    void pending.offsetWidth;
+    pending.style.animation = '';
+  } else {
+    pending.style.display = 'none';
+    signup.style.display  = 'block';
+  }
+}
+
+/* ── Signup form handler ──
+   Submits via fetch so we stay on the same page.
+   On success → switch to pending view.
+   On error   → show flash message inline.        */
+async function handleSignup(e) {
+  e.preventDefault();
+
+  // Client-side guard: passwords must match
+  const pw      = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm_password').value;
+  if (pw !== confirm) {
+    document.getElementById('match-hint').textContent = '✗ Passwords do not match';
+    document.getElementById('match-hint').style.color = '#ef4444';
+    return false;
+  }
+
+  // Show loading state
+  const btn   = document.getElementById('submit-btn');
+  const label = document.getElementById('btn-label');
+  const arrow = document.getElementById('btn-arrow');
+  btn.disabled  = true;
+  label.textContent = 'Creating account…';
+  arrow.textContent = '⏳';
+
+  const form = document.getElementById('signup-form');
+  const data = new FormData(form);
+
+  try {
+    const res = await fetch('/signup', { method: 'POST', body: data });
+
+    if (res.ok) {
+      // Success — show the email entered and switch view
+      const email = document.getElementById('email').value;
+      document.getElementById('pending-email').textContent = email;
+      switchView('pending');
+    } else {
+      // Server returned an error — parse flash message if JSON,
+      // otherwise show a generic error
+      let msg = 'Something went wrong. Please try again.';
+      try {
+        const json = await res.json();
+        if (json.message) msg = json.message;
+      } catch (_) {}
+      showInlineFlash(msg, 'error');
+      btn.disabled      = false;
+      label.textContent = 'Create Account';
+      arrow.textContent = '→';
+    }
+  } catch (err) {
+    showInlineFlash('Network error. Please check your connection.', 'error');
+    btn.disabled      = false;
+    label.textContent = 'Create Account';
+    arrow.textContent = '→';
+  }
+}
+
+/* Inject a flash message above the form */
+function showInlineFlash(message, category) {
+  // Remove any existing inline flash
+  const existing = document.getElementById('inline-flash');
+  if (existing) existing.remove();
+
+  const div = document.createElement('div');
+  div.id = 'inline-flash';
+  div.className = `flash ${category}`;
+  div.innerHTML = `<span class="flash-icon">${category === 'success' ? '✅' : '⚠️'}</span>${message}`;
+
+  const form = document.getElementById('signup-form');
+  form.parentNode.insertBefore(div, form);
+}
+
+/* ── Resend email ── */
+let resendTimer = null;
+
+async function resendEmail() {
+  const email = document.getElementById('pending-email').textContent;
+  const btn   = document.getElementById('resend-btn');
+  const countdown = document.getElementById('resend-countdown');
+
+  btn.disabled = true;
+
+  try {
+    const data = new FormData();
+    data.append('email', email);
+    const res = await fetch('/resend-verification', { method: 'POST', body: data });
+
+    if (res.ok) {
+      countdown.style.display = 'inline';
+      startResendCountdown(60, btn, countdown);
+    } else {
+      btn.disabled = false;
+      alert('Could not resend. Please try again shortly.');
+    }
+  } catch (_) {
+    btn.disabled = false;
+  }
+}
+
+function startResendCountdown(seconds, btn, el) {
+  let s = seconds;
+  el.textContent = ` · Resend available in ${s}s`;
+  resendTimer = setInterval(() => {
+    s--;
+    el.textContent = ` · Resend available in ${s}s`;
+    if (s <= 0) {
+      clearInterval(resendTimer);
+      btn.disabled    = false;
+      el.style.display = 'none';
+    }
+  }, 1000);
+}
+
+/* ── Field validators (unchanged) ── */
+function togglePassword(fieldId) {
+  const pw = document.getElementById(fieldId);
   pw.type = pw.type === 'password' ? 'text' : 'password';
 }
+
+function validateUsername(input) {
+  const valid = /^[a-zA-Z0-9_]{3,20}$/.test(input.value);
+  input.classList.toggle('input-ok',    valid && input.value.length > 0);
+  input.classList.toggle('input-error', !valid && input.value.length > 0);
+}
+
+function validateEmail(input) {
+  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  input.classList.toggle('input-ok',    valid);
+  input.classList.toggle('input-error', !valid && input.value.length > 0);
+  const hint = document.getElementById('email-hint');
+  hint.textContent = valid
+    ? '✓ Verification link will be sent here'
+    : input.value.length > 0 ? '✗ Enter a valid email address' : 'A verification link will be sent here';
+  hint.style.color = valid ? 'var(--green)' : '';
+}
+
+function checkStrength(val) {
+  const fill  = document.getElementById('strength-fill');
+  const label = document.getElementById('strength-label');
+  const ruleLen   = document.getElementById('rule-len');
+  const ruleUpper = document.getElementById('rule-upper');
+  const ruleNum   = document.getElementById('rule-num');
+  const hasLen   = val.length >= 6;
+  const hasUpper = /[A-Z]/.test(val);
+  const hasNum   = /[0-9]/.test(val);
+  ruleLen.classList.toggle('pass', hasLen);
+  ruleLen.textContent   = (hasLen   ? '✓' : '✗') + ' At least 6 characters';
+  ruleUpper.classList.toggle('pass', hasUpper);
+  ruleUpper.textContent = (hasUpper ? '✓' : '✗') + ' One uppercase letter';
+  ruleNum.classList.toggle('pass', hasNum);
+  ruleNum.textContent   = (hasNum   ? '✓' : '✗') + ' One number';
+  const score = [hasLen, hasUpper, hasNum].filter(Boolean).length;
+  const configs = [
+    { w: '0%',   bg: 'transparent', text: '' },
+    { w: '33%',  bg: '#ef4444',     text: 'Weak' },
+    { w: '66%',  bg: '#f59e0b',     text: 'Fair' },
+    { w: '100%', bg: '#17b26a',     text: 'Strong' },
+  ];
+  const c = val.length === 0 ? configs[0] : configs[score];
+  fill.style.width      = c.w;
+  fill.style.background = c.bg;
+  label.textContent     = c.text;
+  label.style.color     = c.bg;
+}
+
+function checkMatch() {
+  const pw      = document.getElementById('password').value;
+  const confirm = document.getElementById('confirm_password');
+  const hint    = document.getElementById('match-hint');
+  if (confirm.value.length === 0) {
+    hint.textContent = '';
+    confirm.classList.remove('input-ok', 'input-error');
+    return;
+  }
+  const match = pw === confirm.value;
+  hint.textContent = match ? '✓ Passwords match' : '✗ Passwords do not match';
+  hint.style.color = match ? 'var(--green)' : '#ef4444';
+  confirm.classList.toggle('input-ok',    match);
+  confirm.classList.toggle('input-error', !match);
+}
+
+/* ── On load: if server already rendered flashes for a
+   Jinja-driven error (non-JS fallback), keep view-signup visible ── */
+document.addEventListener('DOMContentLoaded', () => {
+  const hasFlash = document.querySelector('.flash');
+  if (hasFlash) switchView('signup');
+});
 </script>
