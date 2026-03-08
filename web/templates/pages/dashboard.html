@@ -30,7 +30,6 @@
       font-family: 'DM Sans', sans-serif;
       color: var(--ink);
       min-height: 100vh;
-      /* subtle dot-grid background */
       background-image: radial-gradient(circle, #c8d6e8 1px, transparent 1px);
       background-size: 28px 28px;
     }
@@ -39,7 +38,8 @@
     .shell {
       max-width: 1160px;
       margin: 0 auto;
-      padding: 2.5rem 1.5rem 4rem;
+      /* ONLY CHANGE: push content right of the 220px sidebar */
+      padding: 2.5rem 1.5rem 4rem calc(220px + 2rem);
     }
 
     /* ─── HEADER ─── */
@@ -279,7 +279,6 @@
       color: var(--muted);
     }
 
-    /* ─── RECENT ACTIVITY ─── */
     /* ─── HOW IT WORKS ─── */
     .steps-list {
       display: flex;
@@ -412,6 +411,7 @@
 
     /* ─── RESPONSIVE ─── */
     @media (max-width: 900px) {
+      .shell { padding-left: 1.5rem; }
       .main-grid { grid-template-columns: 1fr; }
       .card.span-2 { grid-column: span 1; }
       .features-grid { grid-template-columns: repeat(2,1fr); }
