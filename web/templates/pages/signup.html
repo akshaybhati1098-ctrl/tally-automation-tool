@@ -150,6 +150,11 @@
         </div>
       </div>
 
+      <!-- shown if email failed to send at signup time -->
+      <div id="email-send-warning" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:0.75rem 1rem;font-size:0.78rem;color:#92400e;width:100%;text-align:left;">
+        ⚠️ Your account was created but we couldn't send the email right now. Use <strong>resend</strong> below.
+      </div>
+
       <div class="verify-note">
         Link expires in <strong>24 hours</strong>. Didn't get it? Check spam, or
         <button type="button" class="resend-link" id="resend-btn" onclick="resendEmail()">resend the email</button>.
@@ -448,9 +453,9 @@ function switchView(view) {
 }
 
 /* ── Signup form handler ──
-   Submits via fetch so we stay on the same page.
-   On success → switch to pending view.
-   On error   → show flash message inline.        */
+   Submits via fetch. Backend returns JSON always.
+   { status: "ok", email } → switch to pending view
+   { status: "error", message } → show inline flash  */
 async function handleSignup(e) {
   e.preventDefault();
 
@@ -467,36 +472,42 @@ async function handleSignup(e) {
   const btn   = document.getElementById('submit-btn');
   const label = document.getElementById('btn-label');
   const arrow = document.getElementById('btn-arrow');
-  btn.disabled  = true;
+  btn.disabled      = true;
   label.textContent = 'Creating account…';
   arrow.textContent = '⏳';
 
   const form = document.getElementById('signup-form');
   const data = new FormData(form);
 
+  let json;
   try {
     const res = await fetch('/signup', { method: 'POST', body: data });
-
-    if (res.ok) {
-      // Success — show the email entered and switch view
-      const email = document.getElementById('email').value;
-      document.getElementById('pending-email').textContent = email;
-      switchView('pending');
-    } else {
-      // Server returned an error — parse flash message if JSON,
-      // otherwise show a generic error
-      let msg = 'Something went wrong. Please try again.';
-      try {
-        const json = await res.json();
-        if (json.message) msg = json.message;
-      } catch (_) {}
-      showInlineFlash(msg, 'error');
-      btn.disabled      = false;
-      label.textContent = 'Create Account';
-      arrow.textContent = '→';
-    }
+    json = await res.json();   // backend always returns JSON now
   } catch (err) {
     showInlineFlash('Network error. Please check your connection.', 'error');
+    btn.disabled      = false;
+    label.textContent = 'Create Account';
+    arrow.textContent = '→';
+    return;
+  }
+
+  if (json.status === 'ok') {
+    // Account created — show the pending view
+    document.getElementById('pending-email').textContent = json.email;
+
+    if (!json.email_sent) {
+      // Email failed but account was created — still show pending, note the issue
+      document.getElementById('pending-email').textContent = json.email;
+      // Show a soft warning inside pending view
+      const note = document.getElementById('email-send-warning');
+      if (note) note.style.display = 'block';
+    }
+
+    switchView('pending');
+  } else {
+    // Validation or server error — show message, re-enable button
+    const msg = json.message || 'Something went wrong. Please try again.';
+    showInlineFlash(msg, 'error');
     btn.disabled      = false;
     label.textContent = 'Create Account';
     arrow.textContent = '→';

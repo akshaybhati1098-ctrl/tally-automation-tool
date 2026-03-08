@@ -190,34 +190,39 @@ async def signup_post(
     request: Request,
     username: str = Form(...),
     password: str = Form(...),
-    email: str = Form(default="")          # new field from signup.html
+    email: str = Form(default="")
 ):
     username = username.strip()
     email    = email.strip().lower()
 
+    # ── Validation — return JSON errors so fetch() can read them ──
     if not username or not password:
-        return RedirectResponse("/signup?error=1", status_code=302)
-    if get_user(username):
-        return RedirectResponse("/signup?exists=1", status_code=302)
+        return JSONResponse({"status": "error", "message": "Username and password are required."}, status_code=400)
 
-    # Create the user (unverified by default — is_verified = FALSE)
+    if not email:
+        return JSONResponse({"status": "error", "message": "Email address is required."}, status_code=400)
+
+    if get_user(username):
+        return JSONResponse({"status": "error", "message": "Username already taken. Please choose another."}, status_code=400)
+
+    # ── Create user (is_verified = FALSE by default) ───────────────
     create_user(username, password, email)
 
-    # Generate token and send verification email (only if email provided)
-    if email:
-        try:
-            token = generate_token(email)
-            register_and_send(email, token)
-        except Exception as e:
-            print(f"[SIGNUP] Email send failed: {e}")
-            # Account created but email failed — user can resend from pending page
+    # ── Send verification email ────────────────────────────────────
+    email_sent = False
+    try:
+        token = generate_token(email)
+        register_and_send(email, token)
+        email_sent = True
+    except Exception as e:
+        print(f"[SIGNUP] Email send failed: {e}")
+        # Account is created — user can resend from the pending view
 
-    # Render the verify-pending view inside signup.html
-    return templates.TemplateResponse("pages/signup.html", {
-        "request": request,
-        "show_pending": True,       # tells the template to show view-pending
-        "pending_email": email,
-        "flashes": []
+    # ── Always return JSON — the frontend JS handles the view switch ─
+    return JSONResponse({
+        "status": "ok",
+        "email_sent": email_sent,
+        "email": email,
     })
 
 @app.get("/logout")
