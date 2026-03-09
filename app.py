@@ -25,7 +25,7 @@ from psycopg2.extras import RealDictCursor
 
 # Email verification imports
 from itsdangerous import BadSignature, SignatureExpired
-from core.email import generate_token, decode_token, send_verification_email, send_otp_email
+from core.email import generate_token, decode_token, send_verification_email, send_otp_email, send_welcome_email
 
 # Existing services – these now use persistent /data/mapping.json
 from core.excel_service import excel_to_xml
@@ -419,7 +419,6 @@ async def verify_otp_signup(
     delete_pending_user(email)
 
     return JSONResponse({"status": "ok"})
-
 # =========================================================
 # FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
 # =========================================================
