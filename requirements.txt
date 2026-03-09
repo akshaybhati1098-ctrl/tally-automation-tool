@@ -13,3 +13,4 @@ python-dotenv==1.0.0
 bcrypt==4.0.1
 itsdangerous==2.1.2          # required for SessionMiddleware signing
 psycopg2-binary
+resend>=3.0.0

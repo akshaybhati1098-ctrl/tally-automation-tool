@@ -1,22 +1,25 @@
 # core/email.py
 import os
-import smtplib
-import ssl
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
+import resend
 from itsdangerous import URLSafeTimedSerializer
 
 # ── Config ─────────────────────────────────────────────────────
 SECRET_KEY    = os.environ.get("SECRET_KEY", "change-this")
-MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "")
-MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD", "")
-MAIL_FROM     = os.environ.get("MAIL_FROM", MAIL_USERNAME)
-MAIL_SERVER   = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-MAIL_PORT     = int(os.environ.get("MAIL_PORT", "587"))
+RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
+MAIL_FROM     = os.environ.get("MAIL_FROM", "onboarding@resend.dev")  # Resend test sender
 BASE_URL      = os.environ.get("BASE_URL", "http://localhost:8000")
+
+# Initialize Resend
+if RESEND_API_KEY:
+    resend.api_key = RESEND_API_KEY
+else:
+    print("⚠️  RESEND_API_KEY not set. Email sending will fail.")
 
 _serializer = URLSafeTimedSerializer(SECRET_KEY)
 
+# ================================================================
+# TOKEN HELPERS (used for legacy link verification)
+# ================================================================
 def generate_token(email: str) -> str:
     """Generate a signed token for email verification."""
     return _serializer.dumps(email, salt="email-verify")
@@ -25,8 +28,15 @@ def decode_token(token: str, max_age: int = 86400) -> str:
     """Decode a token. Raises SignatureExpired or BadSignature on failure."""
     return _serializer.loads(token, salt="email-verify", max_age=max_age)
 
+# ================================================================
+# EMAIL SENDING FUNCTIONS (Resend API)
+# ================================================================
 def send_verification_email(to_email: str, token: str, code: str = None):
-    """Send a verification email with a link and optional code."""
+    """
+    Send a verification email with a link and optional code.
+    This function is kept for compatibility with the legacy flow,
+    but the OTP flow uses send_otp_email() instead.
+    """
     verify_url = f"{BASE_URL}/verify-email/{token}"
     code_html = ""
     if code:
@@ -76,23 +86,23 @@ def send_verification_email(to_email: str, token: str, code: str = None):
     </div>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "✅ Verify your Tally Tool account"
-    msg["From"]    = MAIL_FROM
-    msg["To"]      = to_email
-    msg.attach(MIMEText(html, "html"))
+    try:
+        params = {
+            "from": MAIL_FROM,
+            "to": [to_email],
+            "subject": "✅ Verify your Tally Tool account",
+            "html": html,
+        }
+        r = resend.Emails.send(params)
+        print(f"✅ Verification email sent via Resend to {to_email}, ID: {r['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send verification email: {e}")
+        return False
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP(MAIL_SERVER, MAIL_PORT) as server:
-        server.ehlo()
-        server.starttls(context=context)
-        server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        server.sendmail(MAIL_FROM, to_email, msg.as_string())
-
-    print(f"✅ Verification email sent → {to_email}")
 
 def send_otp_email(to_email: str, otp: str):
-    """Send a simple OTP email without a link."""
+    """Send a 6‑digit OTP email using Resend API."""
     html = f"""
     <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
       <div style="background:#0d1117;border-radius:16px;padding:2rem;text-align:center;">
@@ -123,17 +133,16 @@ def send_otp_email(to_email: str, otp: str):
     </div>
     """
 
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "🔐 Your Tally Tool OTP Code"
-    msg["From"]    = MAIL_FROM
-    msg["To"]      = to_email
-    msg.attach(MIMEText(html, "html"))
-
-    context = ssl.create_default_context()
-    with smtplib.SMTP(MAIL_SERVER, MAIL_PORT) as server:
-        server.ehlo()
-        server.starttls(context=context)
-        server.login(MAIL_USERNAME, MAIL_PASSWORD)
-        server.sendmail(MAIL_FROM, to_email, msg.as_string())
-
-    print(f"✅ OTP email sent → {to_email}")
+    try:
+        params = {
+            "from": MAIL_FROM,
+            "to": [to_email],
+            "subject": "🔐 Your Tally Tool OTP Code",
+            "html": html,
+        }
+        r = resend.Emails.send(params)
+        print(f"✅ OTP email sent via Resend to {to_email}, ID: {r['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send OTP email: {e}")
+        return False
