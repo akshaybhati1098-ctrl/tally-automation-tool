@@ -3,7 +3,7 @@
 
 <div class="login-shell">
 
-  <!-- Left panel — branding -->
+  <!-- ══ LEFT PANEL ══ -->
   <div class="login-panel-left">
     <div class="lp-brand">
       <div class="lp-logo">🧾</div>
@@ -12,11 +12,9 @@
         <div class="lp-version">by Akshay · v3.3</div>
       </div>
     </div>
-
     <div class="lp-body">
       <h2>Excel to Tally,<br>in seconds.</h2>
       <p>Upload your invoice sheet, map your ledgers once, and push clean XML straight into TallyPrime or ERP9.</p>
-
       <div class="lp-features">
         <div class="lp-feat"><span>⚡</span> 1,000+ invoices per second</div>
         <div class="lp-feat"><span>📊</span> GST-compliant CGST / SGST / IGST</div>
@@ -24,15 +22,16 @@
         <div class="lp-feat"><span>🔢</span> TallyPrime & ERP9 compatible</div>
       </div>
     </div>
-
-    <div class="lp-footer">
-      Trusted by accountants across India
-    </div>
+    <div class="lp-footer">Trusted by accountants across India</div>
   </div>
 
-  <!-- Right panel — form -->
+  <!-- ══ RIGHT PANEL ══ -->
   <div class="login-panel-right">
-    <div class="login-card">
+
+    <!-- ═══════════════════════════════
+         VIEW 1 — LOGIN FORM
+    ════════════════════════════════ -->
+    <div class="login-card" id="view-login">
 
       <div class="lc-header">
         <div class="ch-eyebrow">Welcome back</div>
@@ -40,7 +39,6 @@
         <p class="lc-sub">Enter your credentials to continue</p>
       </div>
 
-      <!-- Flash messages -->
       {% if flashes %}
         {% for flash in flashes %}
           <div class="flash {{ flash.category }}">
@@ -56,19 +54,21 @@
           <label for="username">Username</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
-            <input type="text" id="username" name="username" placeholder="Enter your username" required>
+            <input type="text" id="username" name="username"
+              placeholder="Enter your username" required>
           </div>
         </div>
 
         <div class="form-group">
           <label for="password">
             Password
-            <a href="/forgot-password" class="forgot-link">Forgot password?</a>
+            <button type="button" class="forgot-link" onclick="switchView('forgot')">Forgot password?</button>
           </label>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
-            <input type="password" id="password" name="password" placeholder="Enter your password" required>
-            <button type="button" class="toggle-pw" onclick="togglePassword()" tabindex="-1">👁️</button>
+            <input type="password" id="password" name="password"
+              placeholder="Enter your password" required>
+            <button type="button" class="toggle-pw" onclick="togglePassword('password')" tabindex="-1">👁️</button>
           </div>
         </div>
 
@@ -82,12 +82,113 @@
       <p class="lc-signup">Don't have an account? <a href="/signup">Create one free</a></p>
 
     </div>
-  </div>
 
-</div>
+    <!-- ═══════════════════════════════
+         VIEW 2 — FORGOT PASSWORD
+         Three sub-steps handled in JS:
+           step-choose  → pick reset type
+           step-email   → enter email
+           step-sent    → confirmation
+    ════════════════════════════════ -->
+    <div class="login-card" id="view-forgot" style="display:none;">
+
+      <!-- step: choose reset type -->
+      <div id="step-choose">
+        <div class="lc-header">
+          <div class="ch-eyebrow">Account recovery</div>
+          <h3>What do you need?</h3>
+          <p class="lc-sub">We'll send the details to your registered email</p>
+        </div>
+
+        <div id="choose-flash"></div>
+
+        <div class="recover-options">
+
+          <button type="button" class="recover-card" onclick="selectOption('username')">
+            <div class="recover-icon">👤</div>
+            <div class="recover-body">
+              <div class="recover-title">Forgot username</div>
+              <div class="recover-desc">We'll email you your username</div>
+            </div>
+            <div class="recover-arrow">→</div>
+          </button>
+
+          <button type="button" class="recover-card" onclick="selectOption('password')">
+            <div class="recover-icon">🔑</div>
+            <div class="recover-body">
+              <div class="recover-title">Forgot password</div>
+              <div class="recover-desc">We'll send a password reset link</div>
+            </div>
+            <div class="recover-arrow">→</div>
+          </button>
+
+        </div>
+
+        <button type="button" class="btn-back" onclick="switchView('login')">← Back to Sign In</button>
+      </div>
+
+      <!-- step: enter email -->
+      <div id="step-email" style="display:none;">
+        <div class="lc-header">
+          <div class="ch-eyebrow" id="email-eyebrow">Reset password</div>
+          <h3 id="email-step-title">Enter your email</h3>
+          <p class="lc-sub" id="email-step-sub">We'll send a reset link to your registered email</p>
+        </div>
+
+        <div id="email-flash"></div>
+
+        <div class="lc-form">
+          <div class="form-group">
+            <label for="recovery-email">Email Address</label>
+            <div class="input-wrap">
+              <span class="input-icon">📧</span>
+              <input type="email" id="recovery-email"
+                placeholder="you@example.com"
+                oninput="validateRecoveryEmail(this)">
+            </div>
+            <div class="field-hint" id="recovery-email-hint">Enter the email linked to your account</div>
+          </div>
+
+          <button type="button" class="btn-login" id="send-recovery-btn" onclick="sendRecovery()">
+            <span id="send-recovery-label">Send Email</span>
+            <span class="btn-arrow" id="send-recovery-arrow">→</span>
+          </button>
+        </div>
+
+        <button type="button" class="btn-back" onclick="showStep('choose')" style="margin-top:0.8rem;">← Back</button>
+      </div>
+
+      <!-- step: sent confirmation -->
+      <div id="step-sent" style="display:none; flex-direction:column; align-items:center; gap:1.4rem; text-align:center;">
+
+        <div class="sent-icon">✉️</div>
+
+        <div class="lc-header" style="text-align:center; margin-bottom:0;">
+          <div class="ch-eyebrow">Email sent</div>
+          <h3 id="sent-title">Check your inbox</h3>
+          <p class="lc-sub" id="sent-sub">We've sent the details to your email address.</p>
+        </div>
+
+        <div class="sent-note">
+          Didn't receive it? Check your spam folder, or
+          <button type="button" class="resend-link" id="resend-recovery-btn"
+            onclick="sendRecovery(true)" disabled>send again</button>
+          <span id="resend-recovery-timer"></span>
+        </div>
+
+        <button type="button" class="btn-login" onclick="switchView('login')" style="margin-top:0.4rem;">
+          <span>Back to Sign In</span>
+          <span class="btn-arrow">→</span>
+        </button>
+
+      </div>
+
+    </div><!-- /view-forgot -->
+
+  </div><!-- /login-panel-right -->
+</div><!-- /login-shell -->
 
 <style>
-/* ── Design tokens ── */
 :root {
   --ink:     #0d1117;
   --ink2:    #1c2534;
@@ -111,11 +212,11 @@ body {
   color: var(--ink);
 }
 
-/* ── Two-panel shell ── */
+/* ── Shell ── */
 .login-shell {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 80px); /* account for navbar */
+  min-height: calc(100vh - 80px);
   max-width: 1100px;
   margin: 2rem auto;
   border-radius: 24px;
@@ -133,350 +234,384 @@ body {
 .login-panel-left {
   background: var(--ink);
   padding: 3rem 2.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  position: relative;
-  overflow: hidden;
+  display: flex; flex-direction: column; gap: 2.5rem;
+  position: relative; overflow: hidden;
 }
-
-/* decorative glow */
 .login-panel-left::before {
-  content: '';
-  position: absolute;
-  top: -80px; right: -80px;
-  width: 320px; height: 320px;
-  border-radius: 50%;
+  content: ''; position: absolute; top: -80px; right: -80px;
+  width: 320px; height: 320px; border-radius: 50%;
   background: radial-gradient(circle, rgba(22,81,232,0.35), transparent 70%);
   pointer-events: none;
 }
-
 .login-panel-left::after {
-  content: '';
-  position: absolute;
-  bottom: -60px; left: -60px;
-  width: 240px; height: 240px;
-  border-radius: 50%;
+  content: ''; position: absolute; bottom: -60px; left: -60px;
+  width: 240px; height: 240px; border-radius: 50%;
   background: radial-gradient(circle, rgba(23,178,106,0.18), transparent 70%);
   pointer-events: none;
 }
-
-.lp-brand {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  position: relative;
-  z-index: 1;
-}
-
-.lp-logo {
-  width: 40px; height: 40px;
-  background: rgba(255,255,255,0.1);
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 10px;
-  display: grid; place-items: center;
-  font-size: 1.2rem;
-}
-
-.lp-name {
-  font-family: 'Syne', sans-serif;
-  font-size: 1rem;
-  font-weight: 800;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-.lp-version {
-  font-size: 0.68rem;
-  color: rgba(255,255,255,0.4);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.lp-body {
-  flex: 1;
-  position: relative;
-  z-index: 1;
-}
-
-.lp-body h2 {
-  font-family: 'Syne', sans-serif;
-  font-size: 2rem;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: #fff;
-  line-height: 1.15;
-  margin-bottom: 1rem;
-}
-
-.lp-body p {
-  font-size: 0.88rem;
-  color: rgba(255,255,255,0.5);
-  line-height: 1.7;
-  margin-bottom: 2rem;
-  max-width: 300px;
-}
-
-.lp-features {
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-}
-
-.lp-feat {
-  display: flex;
-  align-items: center;
-  gap: 0.65rem;
-  font-size: 0.82rem;
-  color: rgba(255,255,255,0.7);
-  font-weight: 500;
-}
-
-.lp-feat span {
-  width: 28px; height: 28px;
-  background: rgba(255,255,255,0.07);
-  border-radius: 8px;
-  display: grid; place-items: center;
-  font-size: 0.9rem;
-  flex-shrink: 0;
-}
-
-.lp-footer {
-  font-size: 0.72rem;
-  color: rgba(255,255,255,0.25);
-  letter-spacing: 0.03em;
-  position: relative;
-  z-index: 1;
-}
+.lp-brand { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
+.lp-logo { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; }
+.lp-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
+.lp-version { font-size: 0.68rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.05em; }
+.lp-body { flex: 1; position: relative; z-index: 1; }
+.lp-body h2 { font-family: 'Syne', sans-serif; font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; color: #fff; line-height: 1.15; margin-bottom: 1rem; }
+.lp-body p { font-size: 0.88rem; color: rgba(255,255,255,0.5); line-height: 1.7; margin-bottom: 2rem; max-width: 300px; }
+.lp-features { display: flex; flex-direction: column; gap: 0.65rem; }
+.lp-feat { display: flex; align-items: center; gap: 0.65rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); font-weight: 500; }
+.lp-feat span { width: 28px; height: 28px; background: rgba(255,255,255,0.07); border-radius: 8px; display: grid; place-items: center; font-size: 0.9rem; flex-shrink: 0; }
+.lp-footer { font-size: 0.72rem; color: rgba(255,255,255,0.25); letter-spacing: 0.03em; position: relative; z-index: 1; }
 
 /* ── Right panel ── */
 .login-panel-right {
   background: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  display: flex; align-items: center; justify-content: center;
   padding: 2.5rem 2rem;
 }
 
+/* ── Card ── */
 .login-card {
-  width: 100%;
-  max-width: 380px;
+  width: 100%; max-width: 380px;
+  animation: cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ── Card header ── */
-.lc-header {
-  margin-bottom: 2rem;
-}
+/* ── Header ── */
+.lc-header { margin-bottom: 2rem; }
+.ch-eyebrow { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--accent); margin-bottom: 0.4rem; }
+.lc-header h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.3rem; }
+.lc-sub { font-size: 0.8rem; color: var(--muted); }
 
-.ch-eyebrow {
-  font-size: 0.68rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.09em;
-  color: var(--accent);
-  margin-bottom: 0.4rem;
-}
-
-.lc-header h3 {
-  font-family: 'Syne', sans-serif;
-  font-size: 1.5rem;
-  font-weight: 800;
-  letter-spacing: -0.03em;
-  color: var(--ink);
-  margin-bottom: 0.3rem;
-}
-
-.lc-sub {
-  font-size: 0.8rem;
-  color: var(--muted);
-}
-
-/* ── Flash messages ── */
-.flash {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1rem;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  font-weight: 500;
-  margin-bottom: 1.2rem;
-}
-
-.flash.success {
-  background: rgba(23,178,106,0.1);
-  color: #0e6b41;
-  border: 1px solid rgba(23,178,106,0.2);
-}
-
-.flash.error {
-  background: rgba(220,38,38,0.07);
-  color: #b91c1c;
-  border: 1px solid rgba(220,38,38,0.15);
-}
+/* ── Flash ── */
+.flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.82rem; font-weight: 500; margin-bottom: 1.2rem; }
+.flash.success { background: rgba(23,178,106,0.1); color: #0e6b41; border: 1px solid rgba(23,178,106,0.2); }
+.flash.error { background: rgba(220,38,38,0.07); color: #b91c1c; border: 1px solid rgba(220,38,38,0.15); }
 
 /* ── Form ── */
 .lc-form { display: flex; flex-direction: column; gap: 1.2rem; }
-
 .form-group { display: flex; flex-direction: column; gap: 0.45rem; }
+.form-group label { font-size: 0.78rem; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center; }
 
-.form-group label {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--ink3);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.forgot-link {
-  font-size: 0.72rem;
-  font-weight: 500;
-  color: var(--accent);
-  text-decoration: none;
-  text-transform: none;
-  letter-spacing: 0;
-}
-
-.forgot-link:hover { text-decoration: underline; }
-
-/* Input wrap */
-.input-wrap {
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-
-.input-icon {
-  position: absolute;
-  left: 0.9rem;
-  font-size: 0.95rem;
-  pointer-events: none;
-  z-index: 1;
-}
+.input-wrap { position: relative; display: flex; align-items: center; }
+.input-icon { position: absolute; left: 0.9rem; font-size: 0.95rem; pointer-events: none; z-index: 1; }
 
 .input-wrap input {
   width: 100%;
   padding: 0.75rem 2.8rem 0.75rem 2.5rem;
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.88rem;
-  color: var(--ink);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-
 .input-wrap input::placeholder { color: var(--muted); }
-
 .input-wrap input:hover { border-color: #b8cbe8; }
+.input-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,81,232,0.1); background: var(--white); }
+.input-wrap input.input-ok { border-color: var(--green); box-shadow: 0 0 0 3px rgba(23,178,106,0.1); }
+.input-wrap input.input-error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
 
-.input-wrap input:focus {
-  outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(22,81,232,0.1);
-  background: var(--white);
-}
+.field-hint { font-size: 0.71rem; color: var(--muted); transition: color 0.2s; }
 
-.toggle-pw {
-  position: absolute;
-  right: 0.8rem;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.95rem;
-  opacity: 0.5;
-  transition: opacity 0.15s;
-  padding: 0;
-  line-height: 1;
-}
-
+.toggle-pw { position: absolute; right: 0.8rem; background: none; border: none; cursor: pointer; font-size: 0.95rem; opacity: 0.5; transition: opacity 0.15s; padding: 0; line-height: 1; }
 .toggle-pw:hover { opacity: 1; }
 
-/* ── Login button ── */
+/* ── Buttons ── */
 .btn-login {
-  width: 100%;
-  margin-top: 0.4rem;
-  padding: 0.9rem 1.5rem;
+  width: 100%; margin-top: 0.4rem; padding: 0.9rem 1.5rem;
   background: linear-gradient(135deg, var(--accent), #3b29e8);
-  color: var(--white);
-  border: none;
-  border-radius: 12px;
-  font-family: 'Syne', sans-serif;
-  font-size: 0.95rem;
-  font-weight: 700;
-  letter-spacing: -0.01em;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  transition: all 0.2s;
+  color: var(--white); border: none; border-radius: 12px;
+  font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; transition: all 0.2s;
   box-shadow: 0 4px 16px rgba(22,81,232,0.35);
-  position: relative;
-  overflow: hidden;
+  position: relative; overflow: hidden;
 }
-
-.btn-login::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent);
-  pointer-events: none;
-}
-
-.btn-arrow {
-  opacity: 0.7;
-  transition: transform 0.2s, opacity 0.2s;
-}
-
-.btn-login:hover {
-  box-shadow: 0 8px 24px rgba(22,81,232,0.45);
-  transform: translateY(-2px);
-}
-
-.btn-login:hover .btn-arrow {
-  transform: translateX(4px);
-  opacity: 1;
-}
-
+.btn-login::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent); pointer-events: none; }
+.btn-arrow { opacity: 0.7; transition: transform 0.2s, opacity 0.2s; }
+.btn-login:hover { box-shadow: 0 8px 24px rgba(22,81,232,0.45); transform: translateY(-2px); }
+.btn-login:hover .btn-arrow { transform: translateX(4px); opacity: 1; }
 .btn-login:active { transform: scale(0.98); }
+.btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 
-/* ── Signup link ── */
-.lc-signup {
-  margin-top: 1.5rem;
-  text-align: center;
-  font-size: 0.82rem;
-  color: var(--muted);
+.forgot-link {
+  font-size: 0.72rem; font-weight: 600; color: var(--accent);
+  text-transform: none; letter-spacing: 0;
+  background: none; border: none; cursor: pointer;
+  font-family: 'DM Sans', sans-serif; padding: 0;
+  transition: color 0.15s;
 }
+.forgot-link:hover { text-decoration: underline; }
 
-.lc-signup a {
-  color: var(--accent);
-  font-weight: 600;
-  text-decoration: none;
+.btn-back {
+  display: block; width: 100%; margin-top: 0.8rem; padding: 0.62rem 1.3rem;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font-size: 0.84rem; font-weight: 600; color: var(--ink3);
+  background: var(--white); cursor: pointer; text-align: center;
+  transition: all 0.18s; font-family: 'DM Sans', sans-serif;
 }
+.btn-back:hover { border-color: var(--accent); color: var(--accent); background: rgba(22,81,232,0.04); }
 
+.lc-signup { margin-top: 1.5rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
+.lc-signup a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .lc-signup a:hover { text-decoration: underline; }
+
+/* ═══════════════════════════
+   RECOVERY OPTIONS
+═══════════════════════════ */
+.recover-options {
+  display: flex; flex-direction: column; gap: 0.75rem;
+  margin-bottom: 1.2rem;
+}
+
+.recover-card {
+  display: flex; align-items: center; gap: 1rem;
+  padding: 1rem 1.1rem;
+  background: var(--surface); border: 1.5px solid var(--line);
+  border-radius: 14px; cursor: pointer; text-align: left;
+  transition: all 0.18s; font-family: 'DM Sans', sans-serif;
+  width: 100%;
+}
+.recover-card:hover {
+  border-color: var(--accent);
+  background: rgba(22,81,232,0.04);
+  transform: translateX(3px);
+}
+
+.recover-icon {
+  width: 40px; height: 40px; flex-shrink: 0;
+  background: rgba(22,81,232,0.08); border-radius: 10px;
+  display: grid; place-items: center; font-size: 1.1rem;
+}
+
+.recover-body { flex: 1; }
+.recover-title { font-size: 0.88rem; font-weight: 700; color: var(--ink); margin-bottom: 0.15rem; }
+.recover-desc  { font-size: 0.75rem; color: var(--muted); }
+
+.recover-arrow { font-size: 1rem; color: var(--muted); transition: transform 0.18s, color 0.18s; }
+.recover-card:hover .recover-arrow { transform: translateX(3px); color: var(--accent); }
+
+/* ═══════════════════════════
+   SENT CONFIRMATION
+═══════════════════════════ */
+.sent-icon {
+  width: 68px; height: 68px;
+  background: rgba(23,178,106,0.08);
+  border: 1.5px solid rgba(23,178,106,0.2);
+  border-radius: 18px;
+  display: grid; place-items: center;
+  font-size: 1.9rem;
+  animation: iconPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
+}
+@keyframes iconPop {
+  0%   { transform: scale(0.5); opacity: 0; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.sent-note { font-size: 0.78rem; color: var(--muted); line-height: 1.6; }
+.resend-link {
+  background: none; border: none; cursor: pointer;
+  color: var(--accent); font-size: 0.78rem; font-weight: 600;
+  font-family: 'DM Sans', sans-serif; text-decoration: underline; padding: 0;
+}
+.resend-link:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: none; }
+.resend-link:not(:disabled):hover { color: var(--ink); }
 
 /* ── Responsive ── */
 @media (max-width: 750px) {
-  .login-shell {
-    grid-template-columns: 1fr;
-    margin: 1rem;
-    border-radius: 20px;
-  }
-
+  .login-shell { grid-template-columns: 1fr; margin: 1rem; border-radius: 20px; }
   .login-panel-left { display: none; }
-
   .login-panel-right { padding: 2.5rem 1.5rem; }
 }
 </style>
 
 <script>
-function togglePassword() {
-  const pw = document.getElementById('password');
-  pw.type = pw.type === 'password' ? 'text' : 'password';
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let _recoveryType   = '';    // 'username' or 'password'
+let _resendTimer    = null;
+
+/* ══════════════════════════════════════════
+   VIEW / STEP SWITCHER
+══════════════════════════════════════════ */
+function switchView(view) {
+  const login  = document.getElementById('view-login');
+  const forgot = document.getElementById('view-forgot');
+
+  if (view === 'forgot') {
+    login.style.display  = 'none';
+    forgot.style.display = 'block';
+    forgot.style.animation = 'none';
+    void forgot.offsetWidth;
+    forgot.style.animation = '';
+    showStep('choose');
+  } else {
+    forgot.style.display = 'none';
+    login.style.display  = 'block';
+  }
 }
+
+function showStep(step) {
+  ['choose', 'email', 'sent'].forEach(s => {
+    const el = document.getElementById(`step-${s}`);
+    el.style.display = (s === step)
+      ? (s === 'sent' ? 'flex' : 'block')
+      : 'none';
+  });
+}
+
+/* ══════════════════════════════════════════
+   RECOVERY OPTION SELECTED
+══════════════════════════════════════════ */
+function selectOption(type) {
+  _recoveryType = type;
+  clearFlash('email-flash');
+
+  // update copy for each option
+  if (type === 'username') {
+    document.getElementById('email-eyebrow').textContent    = 'Username reminder';
+    document.getElementById('email-step-title').textContent = 'Enter your email';
+    document.getElementById('email-step-sub').textContent   = "We'll email you the username linked to this address";
+  } else {
+    document.getElementById('email-eyebrow').textContent    = 'Password reset';
+    document.getElementById('email-step-title').textContent = 'Enter your email';
+    document.getElementById('email-step-sub').textContent   = "We'll send a reset link to your registered email";
+  }
+
+  // reset email field
+  const inp = document.getElementById('recovery-email');
+  inp.value = '';
+  inp.classList.remove('input-ok', 'input-error');
+  document.getElementById('recovery-email-hint').textContent = 'Enter the email linked to your account';
+  document.getElementById('recovery-email-hint').style.color = '';
+
+  showStep('email');
+  setTimeout(() => inp.focus(), 80);
+}
+
+/* ══════════════════════════════════════════
+   SEND RECOVERY EMAIL
+   resending = true when called from resend btn
+══════════════════════════════════════════ */
+async function sendRecovery(resending = false) {
+  const email = document.getElementById('recovery-email').value.trim();
+  clearFlash('email-flash');
+
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFlash('email-flash', 'Please enter a valid email address.', 'error');
+    return;
+  }
+
+  const btn   = document.getElementById('send-recovery-btn');
+  const label = document.getElementById('send-recovery-label');
+  const arrow = document.getElementById('send-recovery-arrow');
+  btn.disabled  = true;
+  label.textContent = 'Sending…';
+  arrow.textContent  = '⏳';
+
+  try {
+    const fd = new FormData();
+    fd.append('email', email);
+    
+    // Determine which endpoint to call based on recovery type
+    let endpoint = '';
+    if (_recoveryType === 'username') {
+      endpoint = '/api/forgot-username';
+    } else {
+      endpoint = '/api/forgot-password';
+    }
+
+    const res  = await fetch(endpoint, { method: 'POST', body: fd });
+    const json = await res.json();
+
+    // Always show success — don't reveal if email exists (security)
+    if (!resending) {
+      if (_recoveryType === 'username') {
+        document.getElementById('sent-title').textContent = 'Username sent!';
+        document.getElementById('sent-sub').textContent   =
+          `If ${email} is registered, you'll receive your username shortly.`;
+      } else {
+        document.getElementById('sent-title').textContent = 'Reset link sent!';
+        document.getElementById('sent-sub').textContent   =
+          `If ${email} is registered, you'll receive a reset link shortly.`;
+      }
+      showStep('sent');
+      startResendTimer(60);
+    } else {
+      // resend path — just show flash
+      showFlash('email-flash', 'Email resent! Check your inbox.', 'success');
+      startResendTimer(60);
+    }
+
+  } catch (e) {
+    showFlash('email-flash', 'Network error. Please try again.', 'error');
+  }
+
+  btn.disabled  = false;
+  label.textContent = 'Send Email';
+  arrow.textContent  = '→';
+}
+/* ══════════════════════════════════════════
+   RESEND COUNTDOWN (60s lockout)
+══════════════════════════════════════════ */
+function startResendTimer(seconds) {
+  clearInterval(_resendTimer);
+  const btn = document.getElementById('resend-recovery-btn');
+  const lbl = document.getElementById('resend-recovery-timer');
+  btn.disabled = true;
+  let s = seconds;
+  function tick() {
+    lbl.textContent = ` (${s}s)`;
+    if (s <= 0) {
+      clearInterval(_resendTimer);
+      btn.disabled    = false;
+      lbl.textContent = '';
+    }
+    s--;
+  }
+  tick();
+  _resendTimer = setInterval(tick, 1000);
+}
+
+/* ══════════════════════════════════════════
+   FLASH HELPERS
+══════════════════════════════════════════ */
+function showFlash(id, msg, cat) {
+  document.getElementById(id).innerHTML =
+    `<div class="flash ${cat}"><span class="flash-icon">${cat==='success'?'✅':'⚠️'}</span>${msg}</div>`;
+}
+function clearFlash(id) {
+  document.getElementById(id).innerHTML = '';
+}
+
+/* ══════════════════════════════════════════
+   FIELD HELPERS
+══════════════════════════════════════════ */
+function togglePassword(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+function validateRecoveryEmail(input) {
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  input.classList.toggle('input-ok',    ok);
+  input.classList.toggle('input-error', !ok && input.value.length > 0);
+  const hint = document.getElementById('recovery-email-hint');
+  if (!input.value) {
+    hint.textContent = 'Enter the email linked to your account';
+    hint.style.color = '';
+  } else {
+    hint.textContent = ok ? '✓ Looks good' : '✗ Enter a valid email address';
+    hint.style.color = ok ? 'var(--green)' : '#ef4444';
+  }
+}
+
+/* ══════════════════════════════════════════
+   AUTO-OPEN FORGOT VIEW
+   If URL is /forgot-password, open that view.
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  if (window.location.pathname === '/forgot-password') switchView('forgot');
+});
 </script>
