@@ -595,3 +595,47 @@ def debug_persistence():
     result["old_sqlite_exists"] = os.path.exists("/data/users.db")
     
     return result
+@app.get("/debug/smtp-test")
+async def debug_smtp():
+    import socket
+    import smtplib
+    results = {}
+
+    # Get settings from environment or defaults
+    server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    port = int(os.environ.get("MAIL_PORT", "587"))
+    username = os.environ.get("MAIL_USERNAME", "")
+    password = os.environ.get("MAIL_PASSWORD", "")
+
+    # Test DNS resolution
+    try:
+        ip = socket.gethostbyname(server)
+        results["dns_resolution"] = {"host": server, "ip": ip, "status": "ok"}
+    except Exception as e:
+        results["dns_resolution"] = {"error": str(e), "status": "fail"}
+
+    # Test SMTP connection (without login)
+    try:
+        with smtplib.SMTP(server, port, timeout=10) as smtp:
+            smtp.ehlo()
+            if port == 587:
+                smtp.starttls()
+            smtp.ehlo()
+            results["smtp_connection"] = {"status": "ok", "banner": str(smtp.ehlo())}
+    except Exception as e:
+        results["smtp_connection"] = {"error": str(e), "status": "fail"}
+
+    # If connection works, test login (without sending email)
+    if results.get("smtp_connection", {}).get("status") == "ok" and username and password:
+        try:
+            with smtplib.SMTP(server, port, timeout=10) as smtp:
+                smtp.ehlo()
+                if port == 587:
+                    smtp.starttls()
+                smtp.ehlo()
+                smtp.login(username, password)
+                results["smtp_login"] = {"status": "ok"}
+        except Exception as e:
+            results["smtp_login"] = {"error": str(e), "status": "fail"}
+
+    return results
