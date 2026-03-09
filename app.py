@@ -772,3 +772,11 @@ async def debug_smtp():
             results["smtp_login"] = {"error": str(e), "status": "fail"}
 
     return results
+@app.get("/reset-password")
+async def reset_password_page(request: Request, token: str = None):
+    """Render the login page with the reset token for frontend handling."""
+    # Pass the token to the template so JavaScript can pick it up
+    return templates.TemplateResponse(
+        "pages/login.html",
+        {"request": request, "reset_token": token}
+    )

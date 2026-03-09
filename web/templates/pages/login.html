@@ -85,10 +85,11 @@
 
     <!-- ═══════════════════════════════
          VIEW 2 — FORGOT PASSWORD
-         Three sub-steps handled in JS:
+         Four sub-steps:
            step-choose  → pick reset type
            step-email   → enter email
            step-sent    → confirmation
+           step-reset   → enter new password (when token is present)
     ════════════════════════════════ -->
     <div class="login-card" id="view-forgot" style="display:none;">
 
@@ -181,6 +182,48 @@
           <span class="btn-arrow">→</span>
         </button>
 
+      </div>
+
+      <!-- NEW: step: reset password (appears when token is in URL) -->
+      <div id="step-reset" style="display:none; flex-direction:column; gap:1.2rem;">
+        <div class="lc-header" style="text-align:center;">
+          <div class="ch-eyebrow">Reset password</div>
+          <h3>Create new password</h3>
+          <p class="lc-sub">Enter your new password below.</p>
+        </div>
+
+        <div id="reset-flash"></div>
+
+        <div class="lc-form">
+          <div class="form-group">
+            <label for="reset-password">New Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reset-password" placeholder="Enter new password">
+              <button type="button" class="toggle-pw" onclick="togglePassword('reset-password')" tabindex="-1">👁️</button>
+            </div>
+            <div class="field-hint">Minimum 6 characters</div>
+          </div>
+
+          <div class="form-group">
+            <label for="reset-confirm">Confirm Password</label>
+            <div class="input-wrap">
+              <span class="input-icon">🔐</span>
+              <input type="password" id="reset-confirm" placeholder="Re-enter new password">
+              <button type="button" class="toggle-pw" onclick="togglePassword('reset-confirm')" tabindex="-1">👁️</button>
+            </div>
+            <div class="match-hint" id="reset-match-hint"></div>
+          </div>
+
+          <input type="hidden" id="reset-token" value="">
+
+          <button type="button" class="btn-login" onclick="submitNewPassword()">
+            <span id="reset-btn-label">Update Password</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </div>
+
+        <button type="button" class="btn-back" onclick="switchView('login')">← Back to Sign In</button>
       </div>
 
     </div><!-- /view-forgot -->
@@ -453,11 +496,14 @@ function switchView(view) {
 }
 
 function showStep(step) {
-  ['choose', 'email', 'sent'].forEach(s => {
+  // Include 'reset' in the steps
+  ['choose', 'email', 'sent', 'reset'].forEach(s => {
     const el = document.getElementById(`step-${s}`);
-    el.style.display = (s === step)
-      ? (s === 'sent' ? 'flex' : 'block')
-      : 'none';
+    if (el) {
+      el.style.display = (s === step)
+        ? (s === 'sent' || s === 'reset' ? 'flex' : 'block')
+        : 'none';
+    }
   });
 }
 
@@ -552,6 +598,7 @@ async function sendRecovery(resending = false) {
   label.textContent = 'Send Email';
   arrow.textContent  = '→';
 }
+
 /* ══════════════════════════════════════════
    RESEND COUNTDOWN (60s lockout)
 ══════════════════════════════════════════ */
@@ -608,10 +655,94 @@ function validateRecoveryEmail(input) {
 }
 
 /* ══════════════════════════════════════════
-   AUTO-OPEN FORGOT VIEW
-   If URL is /forgot-password, open that view.
+   NEW: PASSWORD RESET FUNCTIONS
+══════════════════════════════════════════ */
+
+// Check password match on confirm input
+document.addEventListener('DOMContentLoaded', function() {
+  const resetConfirm = document.getElementById('reset-confirm');
+  if (resetConfirm) {
+    resetConfirm.addEventListener('input', function() {
+      const pw = document.getElementById('reset-password').value;
+      const cf = this.value;
+      const hint = document.getElementById('reset-match-hint');
+      if (!cf) {
+        hint.innerHTML = '';
+        return;
+      }
+      if (pw === cf) {
+        hint.innerHTML = '✓ Passwords match';
+        hint.style.color = 'var(--green)';
+      } else {
+        hint.innerHTML = '✗ Passwords do not match';
+        hint.style.color = '#ef4444';
+      }
+    });
+  }
+});
+
+async function submitNewPassword() {
+  const token = document.getElementById('reset-token').value;
+  const password = document.getElementById('reset-password').value;
+  const confirm = document.getElementById('reset-confirm').value;
+  const msgDiv = document.getElementById('reset-flash');
+  const btn = document.getElementById('reset-btn-label');
+
+  if (!token) {
+    msgDiv.innerHTML = '<div class="flash error">⚠️ Invalid reset link.</div>';
+    return;
+  }
+  if (!password || password.length < 6) {
+    msgDiv.innerHTML = '<div class="flash error">⚠️ Password must be at least 6 characters.</div>';
+    return;
+  }
+  if (password !== confirm) {
+    msgDiv.innerHTML = '<div class="flash error">⚠️ Passwords do not match.</div>';
+    return;
+  }
+
+  btn.textContent = 'Updating...';
+
+  const formData = new FormData();
+  formData.append('token', token);
+  formData.append('new_password', password);
+
+  try {
+    const res = await fetch('/api/reset-password', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      msgDiv.innerHTML = '<div class="flash success">✅ Password updated! Redirecting to login...</div>';
+      setTimeout(() => {
+        window.location.href = '/login';
+      }, 2000);
+    } else {
+      msgDiv.innerHTML = `<div class="flash error">⚠️ ${data.message || 'Failed to update password.'}</div>`;
+    }
+  } catch (err) {
+    msgDiv.innerHTML = '<div class="flash error">⚠️ Network error. Please try again.</div>';
+  } finally {
+    btn.textContent = 'Update Password';
+  }
+}
+
+/* ══════════════════════════════════════════
+   AUTO-OPEN FORGOT VIEW AND DETECT RESET TOKEN
 ══════════════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
-  if (window.location.pathname === '/forgot-password') switchView('forgot');
+  // Check URL for token (from reset link)
+  const urlParams = new URLSearchParams(window.location.search);
+  const token = urlParams.get('token');
+  if (token) {
+    document.getElementById('reset-token').value = token;
+    switchView('forgot');
+    showStep('reset');
+  }
+  else if (window.location.pathname === '/forgot-password') {
+    switchView('forgot');
+  }
 });
 </script>

@@ -147,7 +147,7 @@ def send_otp_email(to_email: str, otp: str):
         print(f"❌ Failed to send OTP email: {e}")
         return False
 # ================================================================
-# FORGOT USERNAME/PASSWORD EMAILS (NEW)
+# NEW: FORGOT USERNAME / PASSWORD EMAILS
 # ================================================================
 def send_username_reminder_email(to_email: str, username: str):
     """Send username reminder email."""
@@ -173,7 +173,7 @@ def send_username_reminder_email(to_email: str, username: str):
       </p>
     </div>
     """
-    
+
     try:
         params = {
             "from": MAIL_FROM,
@@ -187,6 +187,7 @@ def send_username_reminder_email(to_email: str, username: str):
     except Exception as e:
         print(f"❌ Failed to send username reminder: {e}")
         return False
+
 
 def send_password_reset_email(to_email: str, reset_link: str):
     """Send password reset link."""
@@ -221,7 +222,7 @@ def send_password_reset_email(to_email: str, reset_link: str):
       </p>
     </div>
     """
-    
+
     try:
         params = {
             "from": MAIL_FROM,
