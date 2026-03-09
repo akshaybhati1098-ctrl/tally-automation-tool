@@ -98,6 +98,18 @@ def init_user_db():
         )
     """)
 
+    # Add reset token columns to users table if they don't exist
+    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+    columns = [col[0] for col in cur.fetchall()]
+
+    if 'reset_token' not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN reset_token TEXT")
+        print("Added reset_token column to users table")
+
+    if 'reset_expiry' not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN reset_expiry TIMESTAMP")
+        print("Added reset_expiry column to users table")
+
     conn.commit()
     cur.close()
     conn.close()
@@ -156,6 +168,61 @@ def create_user_legacy(username: str, password: str):
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
+
+# =========================================================
+# PASSWORD RESET HELPERS (NEW)
+# =========================================================
+def set_user_reset_token(email: str, token: str, expiry: datetime):
+    """Store reset token and expiry for user."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET reset_token = %s, reset_expiry = %s WHERE email = %s",
+        (token, expiry, email)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"✅ Reset token set for {email}")
+
+def get_user_by_reset_token(token: str):
+    """Get user by valid reset token."""
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute(
+        "SELECT * FROM users WHERE reset_token = %s AND reset_expiry > NOW()",
+        (token,)
+    )
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    return user
+
+def clear_reset_token(email: str):
+    """Clear reset token after use."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET reset_token = NULL, reset_expiry = NULL WHERE email = %s",
+        (email,)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def update_user_password(email: str, new_password: str):
+    """Update user's password (hashed)."""
+    hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE users SET password_hash = %s WHERE email = %s",
+        (hashed, email)
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"✅ Password updated for {email}")
 
 # =========================================================
 # PENDING USER HELPERS (OTP)
@@ -264,7 +331,7 @@ async def api_me(request: Request):
     return {"authenticated": bool(user), "username": user}
 
 # =========================================================
-# NEW OTP ENDPOINTS (for email verification signup)
+# OTP ENDPOINTS (for email verification signup)
 # =========================================================
 @app.post("/api/send-otp")
 async def send_otp(email: str = Form(...), username: str = Form(...)):
@@ -351,6 +418,71 @@ async def verify_otp_signup(
     # Delete pending record
     delete_pending_user(email)
 
+    return JSONResponse({"status": "ok"})
+
+# =========================================================
+# FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
+# =========================================================
+
+@app.post("/api/forgot-username")
+async def forgot_username(email: str = Form(...)):
+    """Send username to user's email."""
+    email = email.strip().lower()
+    user = get_user_by_email(email)
+    if not user:
+        # Return success even if email not found (security)
+        return JSONResponse({"status": "ok"})
+    
+    try:
+        # Import the email function
+        from core.email import send_username_reminder_email
+        send_username_reminder_email(email, user["username"])
+    except Exception as e:
+        print(f"Failed to send username reminder: {e}")
+        return JSONResponse({"status": "error", "message": "Failed to send email."}, status_code=500)
+    
+    return JSONResponse({"status": "ok"})
+
+@app.post("/api/forgot-password")
+async def forgot_password(email: str = Form(...)):
+    """Send password reset link to user's email."""
+    email = email.strip().lower()
+    user = get_user_by_email(email)
+    if not user:
+        return JSONResponse({"status": "ok"})  # Security: don't reveal existence
+    
+    # Generate reset token (valid for 1 hour)
+    from core.email import generate_token
+    reset_token = generate_token(email)
+    expiry = datetime.now() + timedelta(hours=1)
+    
+    set_user_reset_token(email, reset_token, expiry)
+    
+    BASE_URL = os.environ.get("BASE_URL", "https://tally-automation-tool.onrender.com")
+    reset_link = f"{BASE_URL}/reset-password?token={reset_token}"
+    
+    try:
+        from core.email import send_password_reset_email
+        send_password_reset_email(email, reset_link)
+    except Exception as e:
+        print(f"Failed to send password reset email: {e}")
+        return JSONResponse({"status": "error", "message": "Failed to send email."}, status_code=500)
+    
+    return JSONResponse({"status": "ok"})
+
+@app.post("/api/reset-password")
+async def reset_password(token: str = Form(...), new_password: str = Form(...)):
+    """Reset password using valid token."""
+    if len(new_password) < 6:
+        return JSONResponse({"status": "error", "message": "Password must be at least 6 characters."}, status_code=400)
+    
+    user = get_user_by_reset_token(token)
+    if not user:
+        return JSONResponse({"status": "error", "message": "Invalid or expired token."}, status_code=400)
+    
+    update_user_password(user["email"], new_password)
+    clear_reset_token(user["email"])
+    
     return JSONResponse({"status": "ok"})
 
 # =========================================================
@@ -595,6 +727,7 @@ def debug_persistence():
     result["old_sqlite_exists"] = os.path.exists("/data/users.db")
     
     return result
+
 @app.get("/debug/smtp-test")
 async def debug_smtp():
     import socket

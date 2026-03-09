@@ -146,3 +146,92 @@ def send_otp_email(to_email: str, otp: str):
     except Exception as e:
         print(f"❌ Failed to send OTP email: {e}")
         return False
+# ================================================================
+# FORGOT USERNAME/PASSWORD EMAILS (NEW)
+# ================================================================
+def send_username_reminder_email(to_email: str, username: str):
+    """Send username reminder email."""
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
+      <div style="background:#0d1117;border-radius:16px;padding:2rem;text-align:center;">
+        <span style="font-size:2rem;">🧾</span>
+        <h2 style="color:#fff;font-size:1.3rem;margin:0.75rem 0 0.3rem;">
+          Your Tally Tool Username
+        </h2>
+      </div>
+      <div style="text-align:center;margin:2rem 0;">
+        <p style="color:#4a5568;font-size:1rem;">Your username is:</p>
+        <div style="font-family:monospace;font-size:1.5rem;font-weight:700;
+                    background:#f5f8fc;padding:1rem;border-radius:8px;
+                    border:1px solid #dce5f0;color:#0d1117;">
+          {username}
+        </div>
+      </div>
+      <hr style="border:none;border-top:1px solid #dce5f0;margin:1.5rem 0;">
+      <p style="color:#b0bec8;font-size:0.7rem;text-align:center;">
+        Tally Tool by Akshay · v3.3
+      </p>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": MAIL_FROM,
+            "to": [to_email],
+            "subject": "Your Tally Tool Username",
+            "html": html,
+        }
+        email = resend.Emails.send(params)
+        print(f"✅ Username reminder sent to {to_email}, ID: {email['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send username reminder: {e}")
+        return False
+
+def send_password_reset_email(to_email: str, reset_link: str):
+    """Send password reset link."""
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
+      <div style="background:#0d1117;border-radius:16px;padding:2rem;text-align:center;">
+        <span style="font-size:2rem;">🧾</span>
+        <h2 style="color:#fff;font-size:1.3rem;margin:0.75rem 0 0.3rem;">
+          Reset Your Password
+        </h2>
+        <p style="color:rgba(255,255,255,0.5);font-size:0.88rem;">
+          Click the button to set a new password
+        </p>
+      </div>
+
+      <a href="{reset_link}"
+         style="display:block;background:linear-gradient(135deg,#1651e8,#3b29e8);
+                color:#fff;text-align:center;padding:0.9rem 1.5rem;
+                border-radius:12px;text-decoration:none;font-weight:700;
+                font-size:0.95rem;margin:1.5rem 0;">
+        🔐 Reset Password
+      </a>
+
+      <p style="color:#7a8fa8;font-size:0.78rem;text-align:center;line-height:1.6;">
+        This link expires in <strong>1 hour</strong>.<br>
+        If you didn't request this, you can safely ignore this email.
+      </p>
+
+      <hr style="border:none;border-top:1px solid #dce5f0;margin:1.5rem 0;">
+      <p style="color:#b0bec8;font-size:0.7rem;text-align:center;">
+        Tally Tool by Akshay · v3.3
+      </p>
+    </div>
+    """
+    
+    try:
+        params = {
+            "from": MAIL_FROM,
+            "to": [to_email],
+            "subject": "Reset your Tally Tool password",
+            "html": html,
+        }
+        email = resend.Emails.send(params)
+        print(f"✅ Password reset email sent to {to_email}, ID: {email['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send password reset email: {e}")
+        return False
