@@ -415,3 +415,54 @@ def send_password_reset_email(to_email: str, reset_link: str):
     except Exception as e:
         print(f"❌ Failed to send password reset email: {e}")
         return False
+def send_welcome_email(to_email: str, username: str):
+    """Send a welcome email after successful account creation."""
+    login_url = f"{BASE_URL}/login"
+    html = f"""
+    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
+      <div style="background:#0d1117;border-radius:16px;padding:2rem;text-align:center;">
+        <span style="font-size:2rem;">🧾</span>
+        <h2 style="color:#fff;font-size:1.3rem;margin:0.75rem 0 0.3rem;">
+          Welcome to Tally Tool!
+        </h2>
+        <p style="color:rgba(255,255,255,0.5);font-size:0.88rem;">
+          Your account has been created successfully.
+        </p>
+      </div>
+      <div style="text-align:center;margin:2rem 0;">
+        <p style="color:#4a5568;font-size:1rem;">Your username is:</p>
+        <div style="font-family:monospace;font-size:1.5rem;font-weight:700;
+                    background:#f5f8fc;padding:1rem;border-radius:8px;
+                    border:1px solid #dce5f0;color:#0d1117;">
+          {username}
+        </div>
+        <p style="color:#7a8fa8;font-size:0.9rem;margin-top:1.5rem;">
+          You can now log in using your username and password.
+        </p>
+      </div>
+      <a href="{login_url}"
+         style="display:block;background:linear-gradient(135deg,#1651e8,#3b29e8);
+                color:#fff;text-align:center;padding:0.9rem 1.5rem;
+                border-radius:12px;text-decoration:none;font-weight:700;
+                font-size:0.95rem;margin:1.5rem 0;">
+        Go to Login →
+      </a>
+      <hr style="border:none;border-top:1px solid #dce5f0;margin:1.5rem 0;">
+      <p style="color:#b0bec8;font-size:0.7rem;text-align:center;">
+        Tally Tool by Akshay · v3.3
+      </p>
+    </div>
+    """
+    try:
+        params = {
+            "from": MAIL_FROM,
+            "to": [to_email],
+            "subject": "🎉 Welcome to Tally Tool!",
+            "html": html,
+        }
+        email = resend.Emails.send(params)
+        print(f"✅ Welcome email sent to {to_email}, ID: {email['id']}")
+        return True
+    except Exception as e:
+        print(f"❌ Failed to send welcome email: {e}")
+        return False
