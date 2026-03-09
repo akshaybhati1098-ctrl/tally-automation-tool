@@ -1,10 +1,9 @@
 import os
 import io
 import logging
-import sqlite3
 import bcrypt
-import psycopg2 
-from psycopg2.extras import RealDictCursor 
+import secrets
+from datetime import datetime, timedelta
 os.makedirs("/data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
@@ -20,6 +19,14 @@ import pandas as pd
 from openpyxl import Workbook
 from openpyxl.styles import Font
 
+# PostgreSQL
+import psycopg2
+from psycopg2.extras import RealDictCursor
+
+# Email verification imports
+from itsdangerous import BadSignature, SignatureExpired
+from core.email import generate_token, decode_token, send_verification_email, send_otp_email
+
 # Existing services – these now use persistent /data/mapping.json
 from core.excel_service import excel_to_xml
 from core.mapping import (
@@ -30,17 +37,6 @@ from core.mapping import (
     save_company_mapping
 )
 from core.process_service import image_to_excel
-
-# =========================================================
-# ✅ ADDITION 1 OF 4 — import the email verification router
-# =========================================================
-from core.email_verification import (
-    router as verify_router,
-    migrate_users_table,
-    generate_token,
-    register_and_send,
-    check_verified,
-)
 
 # =========================================================
 # APP
@@ -65,11 +61,6 @@ app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
 # =========================================================
-# ✅ ADDITION 2 OF 4 — register the verification routes
-# =========================================================
-app.include_router(verify_router)
-
-# =========================================================
 # USER DB (PostgreSQL) – persistent across rebuilds
 # =========================================================
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -80,29 +71,43 @@ def get_db_connection():
     return psycopg2.connect(DATABASE_URL)
 
 def init_user_db():
-    """Create users table if it doesn't exist."""
+    """Create users and pending_users tables if they don't exist."""
     conn = get_db_connection()
     cur = conn.cursor()
+
+    # Users table (final) with email and verification fields
     cur.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id SERIAL PRIMARY KEY,
             username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
+            email TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            is_verified INTEGER DEFAULT 1,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+
+    # Pending registrations (temporary) – stores OTP before final signup
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS pending_users (
+            email TEXT PRIMARY KEY,
+            username TEXT NOT NULL,
+            otp_code TEXT NOT NULL,
+            otp_expiry TIMESTAMP NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+
     conn.commit()
     cur.close()
     conn.close()
-    print("✅ User database table initialized in PostgreSQL")
+    print("✅ User database tables initialized in PostgreSQL")
 
-# Initialize the table on startup
 init_user_db()
 
 # =========================================================
-# ✅ ADDITION 3 OF 4 — run the column migration on startup
+# USER HELPERS (existing + new)
 # =========================================================
-migrate_users_table()
-
 def get_user(username: str):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -112,25 +117,83 @@ def get_user(username: str):
     conn.close()
     return user
 
-def create_user(username: str, password: str, email: str = ""):
-    # ✅ ADDITION 4 OF 4 — also stores email when creating a user
+def get_user_by_email(email: str):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM users WHERE email = %s", (email,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    return user
+
+def create_user(username: str, email: str, password: str):
+    """Create a new user with email (used by OTP flow)."""
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
     conn = get_db_connection()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO users (username, password_hash, email) VALUES (%s, %s, %s)",
-        (username, hashed, email)
+        "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+        (username, email, hashed)
     )
     conn.commit()
     cur.close()
     conn.close()
-    print(f"✅ User '{username}' created in PostgreSQL")
+    print(f"✅ User '{username}' created in PostgreSQL with email {email}")
+
+# Legacy function (username only) – kept for backward compatibility if needed
+def create_user_legacy(username: str, password: str):
+    hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute(
+        "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
+        (username, f"{username}@temp.local", hashed)  # placeholder email
+    )
+    conn.commit()
+    cur.close()
+    conn.close()
+    print(f"✅ User '{username}' created in PostgreSQL (legacy, with placeholder email)")
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
 # =========================================================
-# AUTH HELPERS (FIXED – DEFINED BEFORE ROUTES THAT USE THEM)
+# PENDING USER HELPERS (OTP)
+# =========================================================
+def save_pending_user(email: str, username: str, otp: str, expiry: datetime):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO pending_users (email, username, otp_code, otp_expiry)
+        VALUES (%s, %s, %s, %s)
+        ON CONFLICT (email) DO UPDATE SET
+            username = EXCLUDED.username,
+            otp_code = EXCLUDED.otp_code,
+            otp_expiry = EXCLUDED.otp_expiry
+    """, (email, username, otp, expiry))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+def get_pending_user(email: str):
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute("SELECT * FROM pending_users WHERE email = %s", (email,))
+    user = cur.fetchone()
+    cur.close()
+    conn.close()
+    return user
+
+def delete_pending_user(email: str):
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("DELETE FROM pending_users WHERE email = %s", (email,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+# =========================================================
+# AUTH HELPERS
 # =========================================================
 def get_current_user(request: Request) -> Optional[str]:
     return request.session.get("username")
@@ -167,16 +230,6 @@ async def login_post(
     username = username.strip()
     user = get_user(username)
     if user and verify_password(password, user["password_hash"]):
-        # Block login if email is not yet verified
-        if not check_verified(user):
-            return templates.TemplateResponse("pages/signup.html", {
-                "request": request,
-                "flashes": [{
-                    "category": "error",
-                    "message": "Please verify your email before logging in. "
-                               "Check your inbox or use the resend option."
-                }]
-            })
         request.session["username"] = username
         return RedirectResponse("/", status_code=302)
     return RedirectResponse("/login?error=1", status_code=302)
@@ -185,45 +238,20 @@ async def login_post(
 async def signup_page(request: Request):
     return templates.TemplateResponse("pages/signup.html", {"request": request})
 
+# Legacy signup endpoint (username/password only) – kept for backward compatibility
 @app.post("/signup")
 async def signup_post(
     request: Request,
     username: str = Form(...),
-    password: str = Form(...),
-    email: str = Form(default="")
+    password: str = Form(...)
 ):
     username = username.strip()
-    email    = email.strip().lower()
-
-    # ── Validation — return JSON errors so fetch() can read them ──
     if not username or not password:
-        return JSONResponse({"status": "error", "message": "Username and password are required."}, status_code=400)
-
-    if not email:
-        return JSONResponse({"status": "error", "message": "Email address is required."}, status_code=400)
-
+        return RedirectResponse("/signup?error=1", status_code=302)
     if get_user(username):
-        return JSONResponse({"status": "error", "message": "Username already taken. Please choose another."}, status_code=400)
-
-    # ── Create user (is_verified = FALSE by default) ───────────────
-    create_user(username, password, email)
-
-    # ── Send verification email ────────────────────────────────────
-    email_sent = False
-    try:
-        token = generate_token(email)
-        register_and_send(email, token)
-        email_sent = True
-    except Exception as e:
-        print(f"[SIGNUP] Email send failed: {e}")
-        # Account is created — user can resend from the pending view
-
-    # ── Always return JSON — the frontend JS handles the view switch ─
-    return JSONResponse({
-        "status": "ok",
-        "email_sent": email_sent,
-        "email": email,
-    })
+        return RedirectResponse("/signup?exists=1", status_code=302)
+    create_user_legacy(username, password)
+    return RedirectResponse("/login?created=1", status_code=302)
 
 @app.get("/logout")
 async def logout(request: Request):
@@ -234,6 +262,137 @@ async def logout(request: Request):
 async def api_me(request: Request):
     user = get_current_user(request)
     return {"authenticated": bool(user), "username": user}
+
+# =========================================================
+# NEW OTP ENDPOINTS (for email verification signup)
+# =========================================================
+@app.post("/api/send-otp")
+async def send_otp(email: str = Form(...), username: str = Form(...)):
+    """Generate and email a 6-digit OTP for signup."""
+    email = email.strip().lower()
+    username = username.strip()
+
+    # Basic validation
+    if not email or not username:
+        return JSONResponse({"status": "error", "message": "Email and username required."}, status_code=400)
+
+    # Check if email already registered
+    if get_user_by_email(email):
+        return JSONResponse({"status": "error", "message": "Email already registered."}, status_code=400)
+
+    # Check if username already exists
+    if get_user(username):
+        return JSONResponse({"status": "error", "message": "Username already taken."}, status_code=400)
+
+    # Overwrite any existing pending record for this email
+    if get_pending_user(email):
+        delete_pending_user(email)
+
+    # Generate 6-digit OTP
+    otp = f"{secrets.randbelow(1000000):06d}"
+    expiry = datetime.now() + timedelta(minutes=10)  # OTP valid for 10 minutes
+
+    # Store pending record
+    save_pending_user(email, username, otp, expiry)
+
+    # Send OTP email
+    try:
+        send_otp_email(email, otp)
+    except Exception as e:
+        print(f"OTP email failed: {e}")
+        delete_pending_user(email)
+        return JSONResponse({"status": "error", "message": "Failed to send OTP email. Please check your email address or try again later."}, status_code=500)
+
+    return JSONResponse({"status": "ok"})
+
+@app.post("/api/verify-otp-signup")
+async def verify_otp_signup(
+    email: str = Form(...),
+    username: str = Form(...),
+    password: str = Form(...),
+    otp: str = Form(...)
+):
+    """Verify OTP and create the user account."""
+    email = email.strip().lower()
+    username = username.strip()
+
+    # Get pending user
+    pending = get_pending_user(email)
+    if not pending:
+        return JSONResponse({"status": "error", "message": "No pending registration found. Please start over."}, status_code=400)
+
+    # Check username matches
+    if pending["username"] != username:
+        return JSONResponse({"status": "error", "message": "Username mismatch. Please start over."}, status_code=400)
+
+    # Check OTP
+    if pending["otp_code"] != otp:
+        return JSONResponse({"status": "error", "message": "Invalid OTP."}, status_code=400)
+
+    # Check expiry
+    expiry = pending["otp_expiry"]
+    if isinstance(expiry, str):
+        expiry = datetime.fromisoformat(expiry)
+    if datetime.now() > expiry:
+        delete_pending_user(email)
+        return JSONResponse({"status": "error", "message": "OTP expired. Please request a new one."}, status_code=400)
+
+    # Final checks: ensure email and username still not taken
+    if get_user_by_email(email):
+        delete_pending_user(email)
+        return JSONResponse({"status": "error", "message": "Email already registered."}, status_code=400)
+    if get_user(username):
+        delete_pending_user(email)
+        return JSONResponse({"status": "error", "message": "Username already taken."}, status_code=400)
+
+    # Create the user
+    create_user(username, email, password)
+
+    # Delete pending record
+    delete_pending_user(email)
+
+    return JSONResponse({"status": "ok"})
+
+# =========================================================
+# LEGACY EMAIL VERIFICATION ROUTES (if you still need them)
+# =========================================================
+@app.get("/verify-email/{token}")
+async def verify_email_route(request: Request, token: str):
+    try:
+        email = decode_token(token)
+    except SignatureExpired:
+        return templates.TemplateResponse("pages/signup.html", {
+            "request": request,
+            "flashes": [{"category": "error", "message": "Verification link expired. Please sign up again."}]
+        })
+    except BadSignature:
+        return templates.TemplateResponse("pages/signup.html", {
+            "request": request,
+            "flashes": [{"category": "error", "message": "Invalid verification link."}]
+        })
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE users SET is_verified = 1 WHERE email = %s", (email,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return RedirectResponse("/login?verified=1", status_code=302)
+
+@app.post("/resend-verification")
+async def resend_verification_route(email: str = Form(...)):
+    user = get_user_by_email(email)
+    if not user or user["is_verified"] == 1:
+        return JSONResponse({"status": "ok"})   # silently ignore
+
+    token = generate_token(email)
+    try:
+        send_verification_email(email, token)
+    except Exception:
+        return JSONResponse({"status": "error"}, status_code=500)
+
+    return JSONResponse({"status": "ok"})
 
 # =========================================================
 # MAPPING APIs (PERSISTENT – CORRECT VERSION)
@@ -414,19 +573,15 @@ def debug_persistence():
             users = [row[0] for row in cur.fetchall()]
             result["sample_users"] = users
         
-        # Check mapping table  
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'company_mapping')")
-        mapping_table_exists = cur.fetchone()[0]
-        result["mapping_table_exists"] = mapping_table_exists
+        # Check pending_users table
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pending_users')")
+        pending_exists = cur.fetchone()[0]
+        result["pending_users_table_exists"] = pending_exists
         
-        if mapping_table_exists:
-            cur.execute("SELECT COUNT(*) FROM company_mapping")
-            company_count = cur.fetchone()[0]
-            result["company_count"] = company_count
-            
-            cur.execute("SELECT company FROM company_mapping LIMIT 5")
-            companies = [row[0] for row in cur.fetchall()]
-            result["sample_companies"] = companies
+        if pending_exists:
+            cur.execute("SELECT COUNT(*) FROM pending_users")
+            pending_count = cur.fetchone()[0]
+            result["pending_count"] = pending_count
         
         cur.close()
         conn.close()
@@ -436,7 +591,7 @@ def debug_persistence():
         result["database_connected"] = False
         result["database_error"] = str(e)
     
-    # Check if old SQLite file exists
+    # Check if old SQLite file exists (for reference)
     result["old_sqlite_exists"] = os.path.exists("/data/users.db")
     
     return result

@@ -3,7 +3,7 @@
 
 <div class="login-shell">
 
-  <!-- ══ LEFT PANEL — stays the same for both views ══ -->
+  <!-- ══ LEFT PANEL ══ -->
   <div class="login-panel-left">
     <div class="lp-brand">
       <div class="lp-logo">🧾</div>
@@ -12,7 +12,6 @@
         <div class="lp-version">by Akshay · v3.3</div>
       </div>
     </div>
-
     <div class="lp-body">
       <h2>Join hundreds of accountants.</h2>
       <p>Create your free account and start converting Excel invoices to Tally XML in seconds — no setup required.</p>
@@ -23,22 +22,21 @@
         <div class="lp-feat"><span>🔢</span> TallyPrime & ERP9 compatible</div>
       </div>
     </div>
-
     <div class="lp-footer">Free to use · No credit card required</div>
   </div>
 
-  <!-- ══ RIGHT PANEL — two views inside ══ -->
+  <!-- ══ RIGHT PANEL ══ -->
   <div class="login-panel-right">
 
-    <!-- ─────────────────────────────────────
-         VIEW 1: SIGNUP FORM
-    ───────────────────────────────────────── -->
+    <!-- ═══════════════════════════════════
+         VIEW 1 — SIGNUP FORM
+    ════════════════════════════════════ -->
     <div class="login-card" id="view-signup">
 
       <div class="lc-header">
         <div class="ch-eyebrow">Get started free</div>
         <h3>Create your account</h3>
-        <p class="lc-sub">We'll send a verification link to your email</p>
+        <p class="lc-sub">Fill in the details below to sign up</p>
       </div>
 
       {% if flashes %}
@@ -50,40 +48,44 @@
         {% endfor %}
       {% endif %}
 
-      <form method="post" action="/signup" class="lc-form" id="signup-form" onsubmit="return handleSignup(event)">
+      <div id="signup-flash"></div>
 
+      <div class="lc-form">
+
+        <!-- Username -->
         <div class="form-group">
           <label for="username">Username</label>
           <div class="input-wrap">
             <span class="input-icon">👤</span>
             <input type="text" id="username" name="username"
               placeholder="Choose a username"
-              required minlength="3" maxlength="20"
+              minlength="3" maxlength="20"
               pattern="[a-zA-Z0-9_]+"
               oninput="validateUsername(this)">
           </div>
           <div class="field-hint">3–20 characters, letters, numbers or underscores only</div>
         </div>
 
+        <!-- Email -->
         <div class="form-group">
           <label for="email">Email Address</label>
           <div class="input-wrap">
             <span class="input-icon">📧</span>
             <input type="email" id="email" name="email"
               placeholder="you@example.com"
-              required
               oninput="validateEmail(this)">
           </div>
-          <div class="field-hint" id="email-hint">A verification link will be sent here</div>
+          <div class="field-hint" id="email-hint">An OTP will be sent here to verify</div>
         </div>
 
+        <!-- Password -->
         <div class="form-group">
           <label for="password">Password</label>
           <div class="input-wrap">
             <span class="input-icon">🔒</span>
             <input type="password" id="password" name="password"
               placeholder="Create a password"
-              required minlength="6"
+              minlength="6"
               oninput="checkStrength(this.value); checkMatch()">
             <button type="button" class="toggle-pw" onclick="togglePassword('password')" tabindex="-1">👁️</button>
           </div>
@@ -98,70 +100,97 @@
           </div>
         </div>
 
+        <!-- Confirm Password -->
         <div class="form-group">
           <label for="confirm_password">Confirm Password</label>
           <div class="input-wrap">
             <span class="input-icon">🔐</span>
-            <input type="password" id="confirm_password" name="confirm_password"
+            <input type="password" id="confirm_password"
               placeholder="Re-enter your password"
-              required
               oninput="checkMatch()">
             <button type="button" class="toggle-pw" onclick="togglePassword('confirm_password')" tabindex="-1">👁️</button>
           </div>
           <div class="match-hint" id="match-hint"></div>
         </div>
 
-        <button type="submit" class="btn-login" id="submit-btn">
+        <!-- Math CAPTCHA -->
+        <div class="form-group">
+          <label>Security Check</label>
+          <div class="captcha-box">
+            <div class="captcha-question">
+              <span class="captcha-num" id="captcha-n1"></span>
+              <span class="captcha-op"  id="captcha-op"></span>
+              <span class="captcha-num" id="captcha-n2"></span>
+              <span class="captcha-eq">=</span>
+              <span class="captcha-q">?</span>
+            </div>
+            <button type="button" class="captcha-refresh" onclick="newCaptcha()" title="New question">🔄</button>
+          </div>
+          <div class="input-wrap" style="margin-top:0.5rem;">
+            <span class="input-icon">🔢</span>
+            <input type="number" id="captcha-answer"
+              placeholder="Your answer"
+              autocomplete="off"
+              oninput="checkCaptcha(this)">
+          </div>
+          <div class="match-hint" id="captcha-hint"></div>
+        </div>
+
+        <button type="button" class="btn-login" id="submit-btn" onclick="handleSignup()">
           <span id="btn-label">Create Account</span>
           <span class="btn-arrow" id="btn-arrow">→</span>
         </button>
 
-      </form>
+      </div>
 
       <p class="lc-signup">Already have an account? <a href="/login">Log in</a></p>
     </div>
 
-    <!-- ─────────────────────────────────────
-         VIEW 2: VERIFY PENDING
-         Hidden until signup succeeds
-    ───────────────────────────────────────── -->
-    <div class="login-card" id="view-pending" style="display:none;">
+    <!-- ═══════════════════════════════════
+         VIEW 2 — OTP VERIFICATION
+         Slides in after form is submitted
+    ════════════════════════════════════ -->
+    <div class="login-card" id="view-otp" style="display:none;">
 
-      <div class="verify-icon">📬</div>
+      <div class="otp-icon">📨</div>
 
-      <div class="verify-head">
-        <div class="ch-eyebrow">Almost there</div>
-        <h3>Check your inbox</h3>
-        <p>We've sent a verification link to <strong id="pending-email">—</strong>. Click the link in that email to activate your account.</p>
+      <div class="lc-header" style="text-align:center;">
+        <div class="ch-eyebrow">Almost done</div>
+        <h3>Check your email</h3>
+        <p class="lc-sub">We sent a 6-digit code to<br><strong id="otp-email-display"></strong></p>
       </div>
 
-      <div class="verify-steps">
-        <div class="vs-step">
-          <div class="vs-num">1</div>
-          <div class="vs-text">Open your email app</div>
-        </div>
-        <div class="vs-step">
-          <div class="vs-num">2</div>
-          <div class="vs-text">Find the email from <strong>Tally Tool</strong></div>
-        </div>
-        <div class="vs-step">
-          <div class="vs-num">3</div>
-          <div class="vs-text">Click <strong>Verify my email</strong> in the email</div>
-        </div>
+      <div id="otp-flash"></div>
+
+      <!-- 6 individual digit boxes -->
+      <div class="otp-boxes" id="otp-boxes">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
+        <input class="otp-digit" type="text" maxlength="1" inputmode="numeric" pattern="[0-9]">
       </div>
 
-      <!-- shown if email failed to send at signup time -->
-      <div id="email-send-warning" style="display:none;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:0.75rem 1rem;font-size:0.78rem;color:#92400e;width:100%;text-align:left;">
-        ⚠️ Your account was created but we couldn't send the email right now. Use <strong>resend</strong> below.
+      <!-- Countdown timer -->
+      <div class="otp-timer">
+        Code expires in <span id="otp-countdown" class="otp-countdown-num">10:00</span>
       </div>
 
-      <div class="verify-note">
-        Link expires in <strong>24 hours</strong>. Didn't get it? Check spam, or
-        <button type="button" class="resend-link" id="resend-btn" onclick="resendEmail()">resend the email</button>.
-        <span id="resend-countdown" style="display:none;font-size:0.72rem;color:var(--muted);"></span>
+      <button type="button" class="btn-login" id="verify-btn" onclick="verifyOTP()">
+        <span id="verify-label">Verify & Create Account</span>
+        <span class="btn-arrow">✓</span>
+      </button>
+
+      <div class="otp-resend">
+        Didn't receive it?
+        <button type="button" class="resend-link" id="resend-btn" onclick="resendOTP()" disabled>
+          Resend code
+        </button>
+        <span id="resend-timer"></span>
       </div>
 
-      <button class="btn-back" onclick="switchView('signup')">← Back to Sign Up</button>
+      <button type="button" class="btn-back" onclick="switchView('signup')">← Edit details</button>
 
     </div>
 
@@ -192,7 +221,6 @@ body {
   color: var(--ink);
 }
 
-/* ── Shell ── */
 .login-shell {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -214,29 +242,21 @@ body {
 .login-panel-left {
   background: var(--ink);
   padding: 3rem 2.8rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2.5rem;
-  position: relative;
-  overflow: hidden;
+  display: flex; flex-direction: column; gap: 2.5rem;
+  position: relative; overflow: hidden;
 }
-
 .login-panel-left::before {
-  content: '';
-  position: absolute; top: -80px; right: -80px;
+  content: ''; position: absolute; top: -80px; right: -80px;
   width: 320px; height: 320px; border-radius: 50%;
   background: radial-gradient(circle, rgba(22,81,232,0.35), transparent 70%);
   pointer-events: none;
 }
-
 .login-panel-left::after {
-  content: '';
-  position: absolute; bottom: -60px; left: -60px;
+  content: ''; position: absolute; bottom: -60px; left: -60px;
   width: 240px; height: 240px; border-radius: 50%;
   background: radial-gradient(circle, rgba(23,178,106,0.18), transparent 70%);
   pointer-events: none;
 }
-
 .lp-brand { display: flex; align-items: center; gap: 0.75rem; position: relative; z-index: 1; }
 .lp-logo { width: 40px; height: 40px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; display: grid; place-items: center; font-size: 1.2rem; }
 .lp-name { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 800; color: #fff; letter-spacing: -0.02em; }
@@ -252,36 +272,33 @@ body {
 /* ── Right panel ── */
 .login-panel-right {
   background: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 2rem 2rem;
-  overflow-y: auto;
-  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  padding: 2rem; overflow-y: auto;
 }
 
-/* ── Card (shared by both views) ── */
+/* ── Card (shared) ── */
 .login-card {
-  width: 100%;
-  max-width: 380px;
-  animation: viewIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+  width: 100%; max-width: 380px;
+  animation: cardIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
 }
-
-@keyframes viewIn {
-  from { opacity: 0; transform: translateY(14px); }
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(12px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
-/* ════════ VIEW 1: SIGNUP ════════ */
-.lc-header { margin-bottom: 1.6rem; }
+/* ── Header ── */
+.lc-header { margin-bottom: 1.4rem; }
 .ch-eyebrow { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.09em; color: var(--accent); margin-bottom: 0.4rem; }
-.lc-header h3, .verify-head h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.3rem; }
-.lc-sub { font-size: 0.8rem; color: var(--muted); }
+.lc-header h3 { font-family: 'Syne', sans-serif; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.03em; color: var(--ink); margin-bottom: 0.3rem; }
+.lc-sub { font-size: 0.8rem; color: var(--muted); line-height: 1.5; }
+.lc-sub strong { color: var(--ink2); font-weight: 600; }
 
+/* ── Flash ── */
 .flash { display: flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.82rem; font-weight: 500; margin-bottom: 1.2rem; }
 .flash.success { background: rgba(23,178,106,0.1); color: #0e6b41; border: 1px solid rgba(23,178,106,0.2); }
 .flash.error { background: rgba(220,38,38,0.07); color: #b91c1c; border: 1px solid rgba(220,38,38,0.15); }
 
+/* ── Form ── */
 .lc-form { display: flex; flex-direction: column; gap: 1rem; }
 .form-group { display: flex; flex-direction: column; gap: 0.4rem; }
 .form-group label { font-size: 0.78rem; font-weight: 600; color: var(--ink3); text-transform: uppercase; letter-spacing: 0.05em; }
@@ -292,14 +309,10 @@ body {
 .input-wrap input {
   width: 100%;
   padding: 0.72rem 2.8rem 0.72rem 2.5rem;
-  background: var(--surface);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  font-family: 'DM Sans', sans-serif;
-  font-size: 0.88rem; color: var(--ink);
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem; color: var(--ink);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-
 .input-wrap input::placeholder { color: var(--muted); }
 .input-wrap input:hover { border-color: #b8cbe8; }
 .input-wrap input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,81,232,0.1); background: var(--white); }
@@ -310,18 +323,31 @@ body {
 .toggle-pw:hover { opacity: 1; }
 
 .field-hint { font-size: 0.71rem; color: var(--muted); transition: color 0.2s; }
+.match-hint { font-size: 0.72rem; font-weight: 600; min-height: 1rem; transition: color 0.2s; }
 
 .strength-wrap { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.3rem; }
 .strength-bar { flex: 1; height: 4px; background: var(--line); border-radius: 100px; overflow: hidden; }
-.strength-fill { height: 100%; width: 0%; border-radius: 100px; transition: width 0.3s ease, background 0.3s ease; }
+.strength-fill { height: 100%; width: 0%; border-radius: 100px; transition: width 0.3s, background 0.3s; }
 .strength-label { font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; min-width: 44px; text-align: right; }
 
 .pw-rules { display: flex; flex-direction: column; gap: 0.2rem; margin-top: 0.25rem; }
 .pw-rule { font-size: 0.71rem; color: var(--muted); transition: color 0.2s; }
 .pw-rule.pass { color: var(--green); }
 
-.match-hint { font-size: 0.72rem; font-weight: 600; min-height: 1rem; transition: color 0.2s; }
+/* ── CAPTCHA ── */
+.captcha-box {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--surface); border: 1.5px solid var(--line); border-radius: 12px;
+  padding: 0.8rem 1rem;
+}
+.captcha-question { display: flex; align-items: center; gap: 0.5rem; font-family: 'Syne', sans-serif; font-size: 1.15rem; font-weight: 700; color: var(--ink); }
+.captcha-num { color: var(--accent); }
+.captcha-op  { color: var(--ink3); }
+.captcha-eq  { color: var(--muted); font-size: 1rem; }
+.captcha-refresh { background: none; border: none; cursor: pointer; font-size: 1rem; opacity: 0.45; transition: opacity 0.15s, transform 0.3s; padding: 0.2rem; line-height: 1; }
+.captcha-refresh:hover { opacity: 1; transform: rotate(180deg); }
 
+/* ── Buttons ── */
 .btn-login {
   width: 100%; margin-top: 0.4rem; padding: 0.9rem 1.5rem;
   background: linear-gradient(135deg, var(--accent), #3b29e8);
@@ -335,313 +361,463 @@ body {
 .btn-login::before { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.1), transparent); pointer-events: none; }
 .btn-arrow { opacity: 0.7; transition: transform 0.2s, opacity 0.2s; }
 .btn-login:hover { box-shadow: 0 8px 24px rgba(22,81,232,0.45); transform: translateY(-2px); }
-.btn-login:hover .btn-arrow { transform: translateX(4px); opacity: 1; }
+.btn-login:hover .btn-arrow { transform: translateX(3px); opacity: 1; }
 .btn-login:active { transform: scale(0.98); }
-.btn-login:disabled { opacity: 0.55; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-login:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+.btn-back {
+  display: block; width: 100%; margin-top: 0.75rem; padding: 0.62rem 1.3rem;
+  border: 1.5px solid var(--line); border-radius: 10px;
+  font-size: 0.84rem; font-weight: 600; color: var(--ink3);
+  background: var(--white); cursor: pointer; text-align: center;
+  transition: all 0.18s; font-family: 'DM Sans', sans-serif;
+}
+.btn-back:hover { border-color: var(--accent); color: var(--accent); background: rgba(22,81,232,0.04); }
 
 .lc-signup { margin-top: 1.4rem; text-align: center; font-size: 0.82rem; color: var(--muted); }
 .lc-signup a { color: var(--accent); font-weight: 600; text-decoration: none; }
 .lc-signup a:hover { text-decoration: underline; }
 
-/* ════════ VIEW 2: VERIFY PENDING ════════ */
-#view-pending {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 1.6rem;
-  text-align: center;
-}
+/* ═══════════════════════════
+   OTP VIEW STYLES
+═══════════════════════════ */
+#view-otp { display: flex; flex-direction: column; align-items: center; gap: 1.2rem; }
 
-.verify-icon {
-  width: 72px; height: 72px;
+.otp-icon {
+  width: 68px; height: 68px;
   background: rgba(22,81,232,0.08);
-  border: 1.5px solid rgba(22,81,232,0.16);
-  border-radius: 20px;
+  border: 1.5px solid rgba(22,81,232,0.15);
+  border-radius: 18px;
   display: grid; place-items: center;
-  font-size: 2rem;
-  animation: iconBounce 0.55s cubic-bezier(0.22,1,0.36,1) both;
+  font-size: 1.9rem;
+  animation: iconPop 0.5s cubic-bezier(0.22,1,0.36,1) both;
 }
-
-@keyframes iconBounce {
+@keyframes iconPop {
   0%   { transform: scale(0.5); opacity: 0; }
-  70%  { transform: scale(1.1); }
-  100% { transform: scale(1);   opacity: 1; }
+  70%  { transform: scale(1.08); }
+  100% { transform: scale(1); opacity: 1; }
 }
 
-.verify-head { display: flex; flex-direction: column; gap: 0.45rem; }
-.verify-head p { font-size: 0.87rem; color: var(--muted); line-height: 1.65; max-width: 300px; }
-.verify-head p strong { color: var(--ink2); font-weight: 600; }
-
-.verify-steps {
+/* 6-digit OTP boxes */
+.otp-boxes {
+  display: flex; gap: 0.5rem; justify-content: center;
   width: 100%;
+}
+
+.otp-digit {
+  width: 48px; height: 56px;
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
   background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  overflow: hidden;
+  font-family: 'Syne', sans-serif;
+  font-size: 1.4rem; font-weight: 700;
+  text-align: center; color: var(--ink);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+  /* hide number spinner */
+  -moz-appearance: textfield;
+}
+.otp-digit::-webkit-outer-spin-button,
+.otp-digit::-webkit-inner-spin-button { -webkit-appearance: none; }
+.otp-digit:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(22,81,232,0.12); background: var(--white); }
+.otp-digit.filled { border-color: var(--accent); background: rgba(22,81,232,0.04); }
+.otp-digit.error  { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); animation: shake 0.35s ease; }
+@keyframes shake {
+  0%,100% { transform: translateX(0); }
+  25%     { transform: translateX(-4px); }
+  75%     { transform: translateX(4px); }
 }
 
-.vs-step {
-  display: flex; align-items: center; gap: 1rem;
-  padding: 0.82rem 1.2rem;
-  border-bottom: 1px solid var(--line);
-  text-align: left;
-}
-.vs-step:last-child { border-bottom: none; }
+/* countdown */
+.otp-timer { font-size: 0.78rem; color: var(--muted); text-align: center; }
+.otp-countdown-num { font-weight: 700; color: var(--ink3); font-variant-numeric: tabular-nums; }
+.otp-countdown-num.expiring { color: #ef4444; }
 
-.vs-num {
-  width: 26px; height: 26px; border-radius: 50%;
-  background: var(--ink); color: #fff;
-  font-family: 'Syne', sans-serif; font-size: 0.72rem; font-weight: 700;
-  display: grid; place-items: center; flex-shrink: 0;
-}
-
-.vs-text { font-size: 0.83rem; color: var(--ink3); font-weight: 500; }
-.vs-text strong { color: var(--ink2); }
-
-.verify-note {
-  font-size: 0.78rem; color: var(--muted); line-height: 1.7;
-}
-.verify-note strong { color: var(--ink3); }
-
-.resend-link {
-  background: none; border: none; cursor: pointer;
-  color: var(--accent); font-size: 0.78rem; font-weight: 600;
-  font-family: 'DM Sans', sans-serif;
-  text-decoration: underline; padding: 0;
-  transition: color 0.15s;
-}
+/* resend */
+.otp-resend { font-size: 0.78rem; color: var(--muted); text-align: center; }
+.resend-link { background: none; border: none; cursor: pointer; color: var(--accent); font-size: 0.78rem; font-weight: 600; font-family: 'DM Sans', sans-serif; text-decoration: underline; padding: 0; transition: color 0.15s; }
 .resend-link:hover { color: var(--ink); }
-.resend-link:disabled { opacity: 0.45; cursor: not-allowed; text-decoration: none; }
+.resend-link:disabled { opacity: 0.4; cursor: not-allowed; text-decoration: none; }
 
-.btn-back {
-  display: inline-flex; align-items: center; gap: 0.4rem;
-  padding: 0.62rem 1.3rem;
-  border: 1.5px solid var(--line); border-radius: 10px;
-  font-size: 0.84rem; font-weight: 600; color: var(--ink3);
-  background: var(--white); cursor: pointer;
-  transition: all 0.18s;
-  font-family: 'DM Sans', sans-serif;
-}
-.btn-back:hover { border-color: var(--accent); color: var(--accent); background: rgba(22,81,232,0.04); transform: translateX(-2px); }
-
-/* ── Responsive ── */
 @media (max-width: 750px) {
   .login-shell { grid-template-columns: 1fr; margin: 1rem; border-radius: 20px; }
   .login-panel-left { display: none; }
   .login-panel-right { padding: 2.5rem 1.5rem; }
+  .otp-digit { width: 42px; height: 50px; font-size: 1.2rem; }
 }
 </style>
 
 <script>
-/* ── View switcher ── */
+/* ═══════════════════════════════════════════════════
+   STATE
+═══════════════════════════════════════════════════ */
+let _captchaAnswer  = 0;
+let _otpCountdown   = null;
+let _resendCountdown = null;
+let _formData       = {};   // stores form values while OTP view is shown
+
+/* ═══════════════════════════════════════════════════
+   VIEW SWITCHER
+═══════════════════════════════════════════════════ */
 function switchView(view) {
-  const signup  = document.getElementById('view-signup');
-  const pending = document.getElementById('view-pending');
-  if (view === 'pending') {
-    signup.style.display  = 'none';
-    pending.style.display = 'flex';
-    // Restart animation
-    pending.classList.remove('viewIn');
-    void pending.offsetWidth;
-    pending.style.animation = 'none';
-    void pending.offsetWidth;
-    pending.style.animation = '';
+  const s = document.getElementById('view-signup');
+  const o = document.getElementById('view-otp');
+  if (view === 'otp') {
+    s.style.display = 'none';
+    o.style.display = 'flex';
+    o.style.animation = 'none';
+    void o.offsetWidth;
+    o.style.animation = '';
+    // focus first box
+    setTimeout(() => document.querySelectorAll('.otp-digit')[0].focus(), 100);
   } else {
-    pending.style.display = 'none';
-    signup.style.display  = 'block';
+    o.style.display = 'none';
+    s.style.display = 'block';
   }
 }
 
-/* ── Signup form handler ──
-   Submits via fetch. Backend returns JSON always.
-   { status: "ok", email } → switch to pending view
-   { status: "error", message } → show inline flash  */
-async function handleSignup(e) {
-  e.preventDefault();
+/* ═══════════════════════════════════════════════════
+   FLASH HELPERS
+═══════════════════════════════════════════════════ */
+function showFlash(containerId, message, category) {
+  const el = document.getElementById(containerId);
+  el.innerHTML = `<div class="flash ${category}">
+    <span class="flash-icon">${category === 'success' ? '✅' : '⚠️'}</span>
+    ${message}
+  </div>`;
+}
+function clearFlash(containerId) {
+  document.getElementById(containerId).innerHTML = '';
+}
 
-  // Client-side guard: passwords must match
-  const pw      = document.getElementById('password').value;
-  const confirm = document.getElementById('confirm_password').value;
-  if (pw !== confirm) {
-    document.getElementById('match-hint').textContent = '✗ Passwords do not match';
-    document.getElementById('match-hint').style.color = '#ef4444';
-    return false;
+/* ═══════════════════════════════════════════════════
+   STEP 1 — HANDLE SIGNUP FORM
+   Validates locally, then POSTs to /api/send-otp.
+   On success → switches to OTP view.
+═══════════════════════════════════════════════════ */
+async function handleSignup() {
+  clearFlash('signup-flash');
+
+  const username = document.getElementById('username').value.trim();
+  const email    = document.getElementById('email').value.trim();
+  const password = document.getElementById('password').value;
+  const confirm  = document.getElementById('confirm_password').value;
+
+  // ── client-side validation ──
+  if (!username || !/^[a-zA-Z0-9_]{3,20}$/.test(username)) {
+    showFlash('signup-flash', 'Username must be 3–20 characters (letters, numbers, underscores).', 'error'); return;
+  }
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    showFlash('signup-flash', 'Please enter a valid email address.', 'error'); return;
+  }
+  if (password.length < 6) {
+    showFlash('signup-flash', 'Password must be at least 6 characters.', 'error'); return;
+  }
+  if (password !== confirm) {
+    showFlash('signup-flash', 'Passwords do not match.', 'error'); return;
+  }
+  const captchaGiven = parseInt(document.getElementById('captcha-answer').value, 10);
+  if (isNaN(captchaGiven) || captchaGiven !== _captchaAnswer) {
+    showFlash('signup-flash', 'Please solve the security check correctly.', 'error'); return;
   }
 
-  // Show loading state
-  const btn   = document.getElementById('submit-btn');
-  const label = document.getElementById('btn-label');
-  const arrow = document.getElementById('btn-arrow');
-  btn.disabled      = true;
-  label.textContent = 'Creating account…';
-  arrow.textContent = '⏳';
+  // ── loading state ──
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  document.getElementById('btn-label').textContent = 'Sending OTP…';
+  document.getElementById('btn-arrow').textContent  = '⏳';
 
-  const form = document.getElementById('signup-form');
-  const data = new FormData(form);
+  // ── store form data for final submission ──
+  _formData = { username, email, password };
 
-  let json;
+  // ── send OTP ──
   try {
-    const res = await fetch('/signup', { method: 'POST', body: data });
-    json = await res.json();   // backend always returns JSON now
-  } catch (err) {
-    showInlineFlash('Network error. Please check your connection.', 'error');
-    btn.disabled      = false;
-    label.textContent = 'Create Account';
-    arrow.textContent = '→';
-    return;
-  }
+    const fd = new FormData();
+    fd.append('email', email);
+    fd.append('username', username);
+    const res  = await fetch('/api/send-otp', { method: 'POST', body: fd });
+    const json = await res.json();
 
-  if (json.status === 'ok') {
-    // Account created — show the pending view
-    document.getElementById('pending-email').textContent = json.email;
-
-    if (!json.email_sent) {
-      // Email failed but account was created — still show pending, note the issue
-      document.getElementById('pending-email').textContent = json.email;
-      // Show a soft warning inside pending view
-      const note = document.getElementById('email-send-warning');
-      if (note) note.style.display = 'block';
+    if (json.status === 'ok') {
+      document.getElementById('otp-email-display').textContent = email;
+      switchView('otp');
+      startOTPCountdown(600);   // 10 minutes
+      startResendTimer(60);
+    } else {
+      showFlash('signup-flash', json.message || 'Failed to send OTP. Please try again.', 'error');
     }
+  } catch (e) {
+    showFlash('signup-flash', 'Network error. Please check your connection.', 'error');
+  }
 
-    switchView('pending');
-  } else {
-    // Validation or server error — show message, re-enable button
-    const msg = json.message || 'Something went wrong. Please try again.';
-    showInlineFlash(msg, 'error');
-    btn.disabled      = false;
-    label.textContent = 'Create Account';
-    arrow.textContent = '→';
+  btn.disabled = false;
+  document.getElementById('btn-label').textContent = 'Create Account';
+  document.getElementById('btn-arrow').textContent  = '→';
+}
+
+/* ═══════════════════════════════════════════════════
+   STEP 2 — VERIFY OTP & CREATE ACCOUNT
+═══════════════════════════════════════════════════ */
+async function verifyOTP() {
+  clearFlash('otp-flash');
+
+  const digits = [...document.querySelectorAll('.otp-digit')];
+  const otp    = digits.map(d => d.value).join('');
+
+  if (otp.length < 6) {
+    showFlash('otp-flash', 'Please enter all 6 digits.', 'error');
+    shakeBoxes(); return;
+  }
+
+  const btn = document.getElementById('verify-btn');
+  btn.disabled = true;
+  document.getElementById('verify-label').textContent = 'Verifying…';
+
+  try {
+    const fd = new FormData();
+    fd.append('email',    _formData.email);
+    fd.append('username', _formData.username);
+    fd.append('password', _formData.password);
+    fd.append('otp',      otp);
+
+    const res  = await fetch('/api/verify-otp-signup', { method: 'POST', body: fd });
+    const json = await res.json();
+
+    if (json.status === 'ok') {
+      clearInterval(_otpCountdown);
+      showFlash('otp-flash', '✅ Account created! Redirecting…', 'success');
+      setTimeout(() => window.location.href = '/login?created=1', 1200);
+    } else {
+      showFlash('otp-flash', json.message || 'Incorrect OTP. Please try again.', 'error');
+      shakeBoxes();
+      btn.disabled = false;
+      document.getElementById('verify-label').textContent = 'Verify & Create Account';
+    }
+  } catch (e) {
+    showFlash('otp-flash', 'Network error.', 'error');
+    btn.disabled = false;
+    document.getElementById('verify-label').textContent = 'Verify & Create Account';
   }
 }
 
-/* Inject a flash message above the form */
-function showInlineFlash(message, category) {
-  // Remove any existing inline flash
-  const existing = document.getElementById('inline-flash');
-  if (existing) existing.remove();
-
-  const div = document.createElement('div');
-  div.id = 'inline-flash';
-  div.className = `flash ${category}`;
-  div.innerHTML = `<span class="flash-icon">${category === 'success' ? '✅' : '⚠️'}</span>${message}`;
-
-  const form = document.getElementById('signup-form');
-  form.parentNode.insertBefore(div, form);
+/* ── shake all OTP boxes on wrong code ── */
+function shakeBoxes() {
+  document.querySelectorAll('.otp-digit').forEach(d => {
+    d.classList.remove('error');
+    void d.offsetWidth;
+    d.classList.add('error');
+  });
 }
 
-/* ── Resend email ── */
-let resendTimer = null;
-
-async function resendEmail() {
-  const email = document.getElementById('pending-email').textContent;
-  const btn   = document.getElementById('resend-btn');
-  const countdown = document.getElementById('resend-countdown');
-
+/* ═══════════════════════════════════════════════════
+   RESEND OTP
+═══════════════════════════════════════════════════ */
+async function resendOTP() {
+  clearFlash('otp-flash');
+  const btn = document.getElementById('resend-btn');
   btn.disabled = true;
 
   try {
-    const data = new FormData();
-    data.append('email', email);
-    const res = await fetch('/resend-verification', { method: 'POST', body: data });
-
-    if (res.ok) {
-      countdown.style.display = 'inline';
-      startResendCountdown(60, btn, countdown);
+    const fd = new FormData();
+    fd.append('email',    _formData.email);
+    fd.append('username', _formData.username);
+    const res  = await fetch('/api/send-otp', { method: 'POST', body: fd });
+    const json = await res.json();
+    if (json.status === 'ok') {
+      showFlash('otp-flash', 'New OTP sent to your email.', 'success');
+      startOTPCountdown(600);
+      startResendTimer(60);
+      // clear boxes
+      document.querySelectorAll('.otp-digit').forEach(d => { d.value = ''; d.classList.remove('filled','error'); });
+      document.querySelectorAll('.otp-digit')[0].focus();
     } else {
+      showFlash('otp-flash', json.message || 'Could not resend. Try again.', 'error');
       btn.disabled = false;
-      alert('Could not resend. Please try again shortly.');
     }
-  } catch (_) {
+  } catch (e) {
+    showFlash('otp-flash', 'Network error.', 'error');
     btn.disabled = false;
   }
 }
 
-function startResendCountdown(seconds, btn, el) {
+/* ═══════════════════════════════════════════════════
+   COUNTDOWN TIMERS
+═══════════════════════════════════════════════════ */
+function startOTPCountdown(seconds) {
+  clearInterval(_otpCountdown);
+  const el = document.getElementById('otp-countdown');
   let s = seconds;
-  el.textContent = ` · Resend available in ${s}s`;
-  resendTimer = setInterval(() => {
+  function tick() {
+    const m = String(Math.floor(s / 60)).padStart(2, '0');
+    const sec = String(s % 60).padStart(2, '0');
+    el.textContent = `${m}:${sec}`;
+    el.classList.toggle('expiring', s <= 60);
+    if (s <= 0) { clearInterval(_otpCountdown); el.textContent = 'Expired'; }
     s--;
-    el.textContent = ` · Resend available in ${s}s`;
-    if (s <= 0) {
-      clearInterval(resendTimer);
-      btn.disabled    = false;
-      el.style.display = 'none';
-    }
-  }, 1000);
+  }
+  tick();
+  _otpCountdown = setInterval(tick, 1000);
 }
 
-/* ── Field validators (unchanged) ── */
-function togglePassword(fieldId) {
-  const pw = document.getElementById(fieldId);
-  pw.type = pw.type === 'password' ? 'text' : 'password';
+function startResendTimer(seconds) {
+  clearInterval(_resendCountdown);
+  const btn = document.getElementById('resend-btn');
+  const lbl = document.getElementById('resend-timer');
+  btn.disabled = true;
+  let s = seconds;
+  function tick() {
+    lbl.textContent = ` (${s}s)`;
+    if (s <= 0) {
+      clearInterval(_resendCountdown);
+      btn.disabled = false;
+      lbl.textContent = '';
+    }
+    s--;
+  }
+  tick();
+  _resendCountdown = setInterval(tick, 1000);
+}
+
+/* ═══════════════════════════════════════════════════
+   OTP BOX KEYBOARD NAVIGATION
+   — type a digit → auto-advance to next box
+   — backspace    → go back to previous box
+   — paste        → distribute digits across boxes
+═══════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  const boxes = document.querySelectorAll('.otp-digit');
+
+  boxes.forEach((box, i) => {
+    box.addEventListener('keydown', e => {
+      if (e.key === 'Backspace') {
+        if (box.value) {
+          box.value = '';
+          box.classList.remove('filled');
+        } else if (i > 0) {
+          boxes[i - 1].focus();
+        }
+        e.preventDefault();
+      }
+    });
+
+    box.addEventListener('input', e => {
+      // only allow digits
+      box.value = box.value.replace(/\D/g, '').slice(-1);
+      if (box.value) {
+        box.classList.add('filled');
+        if (i < boxes.length - 1) boxes[i + 1].focus();
+      } else {
+        box.classList.remove('filled');
+      }
+    });
+
+    box.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '');
+      [...text].slice(0, 6).forEach((ch, j) => {
+        if (boxes[i + j]) {
+          boxes[i + j].value = ch;
+          boxes[i + j].classList.add('filled');
+        }
+      });
+      const next = Math.min(i + text.length, 5);
+      boxes[next].focus();
+    });
+  });
+
+  newCaptcha();
+});
+
+/* ═══════════════════════════════════════════════════
+   MATH CAPTCHA
+═══════════════════════════════════════════════════ */
+const _ops = ['+', '-', '×'];
+
+function newCaptcha() {
+  const op = _ops[Math.floor(Math.random() * _ops.length)];
+  let n1, n2, answer;
+  if (op === '+') {
+    n1 = Math.floor(Math.random() * 15) + 1;
+    n2 = Math.floor(Math.random() * 15) + 1;
+    answer = n1 + n2;
+  } else if (op === '-') {
+    n1 = Math.floor(Math.random() * 15) + 5;
+    n2 = Math.floor(Math.random() * n1) + 1;
+    answer = n1 - n2;
+  } else {
+    n1 = Math.floor(Math.random() * 9) + 2;
+    n2 = Math.floor(Math.random() * 9) + 2;
+    answer = n1 * n2;
+  }
+  _captchaAnswer = answer;
+  document.getElementById('captcha-n1').textContent = n1;
+  document.getElementById('captcha-op').textContent = op;
+  document.getElementById('captcha-n2').textContent = n2;
+  const inp = document.getElementById('captcha-answer');
+  inp.value = '';
+  inp.classList.remove('input-ok', 'input-error');
+  document.getElementById('captcha-hint').textContent = '';
+}
+
+function checkCaptcha(input) {
+  const hint    = document.getElementById('captcha-hint');
+  if (!input.value) { input.classList.remove('input-ok','input-error'); hint.textContent=''; return; }
+  const correct = parseInt(input.value, 10) === _captchaAnswer;
+  input.classList.toggle('input-ok',    correct);
+  input.classList.toggle('input-error', !correct);
+  hint.textContent = correct ? '✓ Correct' : '✗ Wrong answer';
+  hint.style.color = correct ? 'var(--green)' : '#ef4444';
+}
+
+/* ═══════════════════════════════════════════════════
+   FIELD VALIDATORS
+═══════════════════════════════════════════════════ */
+function togglePassword(id) {
+  const el = document.getElementById(id);
+  el.type = el.type === 'password' ? 'text' : 'password';
 }
 
 function validateUsername(input) {
-  const valid = /^[a-zA-Z0-9_]{3,20}$/.test(input.value);
-  input.classList.toggle('input-ok',    valid && input.value.length > 0);
-  input.classList.toggle('input-error', !valid && input.value.length > 0);
+  const ok = /^[a-zA-Z0-9_]{3,20}$/.test(input.value);
+  input.classList.toggle('input-ok',    ok && input.value.length > 0);
+  input.classList.toggle('input-error', !ok && input.value.length > 0);
 }
 
 function validateEmail(input) {
-  const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
-  input.classList.toggle('input-ok',    valid);
-  input.classList.toggle('input-error', !valid && input.value.length > 0);
+  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+  input.classList.toggle('input-ok',    ok);
+  input.classList.toggle('input-error', !ok && input.value.length > 0);
   const hint = document.getElementById('email-hint');
-  hint.textContent = valid
-    ? '✓ Verification link will be sent here'
-    : input.value.length > 0 ? '✗ Enter a valid email address' : 'A verification link will be sent here';
-  hint.style.color = valid ? 'var(--green)' : '';
+  if (!input.value) { hint.textContent = 'An OTP will be sent here to verify'; hint.style.color = ''; }
+  else { hint.textContent = ok ? '✓ Looks good' : '✗ Enter a valid email address'; hint.style.color = ok ? 'var(--green)' : '#ef4444'; }
 }
 
 function checkStrength(val) {
-  const fill  = document.getElementById('strength-fill');
-  const label = document.getElementById('strength-label');
-  const ruleLen   = document.getElementById('rule-len');
-  const ruleUpper = document.getElementById('rule-upper');
-  const ruleNum   = document.getElementById('rule-num');
-  const hasLen   = val.length >= 6;
-  const hasUpper = /[A-Z]/.test(val);
-  const hasNum   = /[0-9]/.test(val);
-  ruleLen.classList.toggle('pass', hasLen);
-  ruleLen.textContent   = (hasLen   ? '✓' : '✗') + ' At least 6 characters';
-  ruleUpper.classList.toggle('pass', hasUpper);
-  ruleUpper.textContent = (hasUpper ? '✓' : '✗') + ' One uppercase letter';
-  ruleNum.classList.toggle('pass', hasNum);
-  ruleNum.textContent   = (hasNum   ? '✓' : '✗') + ' One number';
-  const score = [hasLen, hasUpper, hasNum].filter(Boolean).length;
-  const configs = [
-    { w: '0%',   bg: 'transparent', text: '' },
-    { w: '33%',  bg: '#ef4444',     text: 'Weak' },
-    { w: '66%',  bg: '#f59e0b',     text: 'Fair' },
-    { w: '100%', bg: '#17b26a',     text: 'Strong' },
-  ];
-  const c = val.length === 0 ? configs[0] : configs[score];
-  fill.style.width      = c.w;
-  fill.style.background = c.bg;
-  label.textContent     = c.text;
-  label.style.color     = c.bg;
+  const fill = document.getElementById('strength-fill');
+  const lbl  = document.getElementById('strength-label');
+  const hasLen = val.length >= 6, hasUp = /[A-Z]/.test(val), hasNum = /[0-9]/.test(val);
+  document.getElementById('rule-len').classList.toggle('pass', hasLen);
+  document.getElementById('rule-len').textContent = (hasLen?'✓':'✗') + ' At least 6 characters';
+  document.getElementById('rule-upper').classList.toggle('pass', hasUp);
+  document.getElementById('rule-upper').textContent = (hasUp?'✓':'✗') + ' One uppercase letter';
+  document.getElementById('rule-num').classList.toggle('pass', hasNum);
+  document.getElementById('rule-num').textContent = (hasNum?'✓':'✗') + ' One number';
+  const score = [hasLen, hasUp, hasNum].filter(Boolean).length;
+  const cfg = [{w:'0%',bg:'transparent',t:''},{w:'33%',bg:'#ef4444',t:'Weak'},{w:'66%',bg:'#f59e0b',t:'Fair'},{w:'100%',bg:'#17b26a',t:'Strong'}];
+  const c = val.length === 0 ? cfg[0] : cfg[score];
+  fill.style.width = c.w; fill.style.background = c.bg;
+  lbl.textContent = c.t; lbl.style.color = c.bg;
 }
 
 function checkMatch() {
-  const pw      = document.getElementById('password').value;
-  const confirm = document.getElementById('confirm_password');
-  const hint    = document.getElementById('match-hint');
-  if (confirm.value.length === 0) {
-    hint.textContent = '';
-    confirm.classList.remove('input-ok', 'input-error');
-    return;
-  }
-  const match = pw === confirm.value;
-  hint.textContent = match ? '✓ Passwords match' : '✗ Passwords do not match';
-  hint.style.color = match ? 'var(--green)' : '#ef4444';
-  confirm.classList.toggle('input-ok',    match);
-  confirm.classList.toggle('input-error', !match);
+  const pw = document.getElementById('password').value;
+  const cf = document.getElementById('confirm_password');
+  const hint = document.getElementById('match-hint');
+  if (!cf.value) { hint.textContent=''; cf.classList.remove('input-ok','input-error'); return; }
+  const ok = pw === cf.value;
+  hint.textContent = ok ? '✓ Passwords match' : '✗ Passwords do not match';
+  hint.style.color = ok ? 'var(--green)' : '#ef4444';
+  cf.classList.toggle('input-ok',    ok);
+  cf.classList.toggle('input-error', !ok);
 }
-
-/* ── On load: if server already rendered flashes for a
-   Jinja-driven error (non-JS fallback), keep view-signup visible ── */
-document.addEventListener('DOMContentLoaded', () => {
-  const hasFlash = document.querySelector('.flash');
-  if (hasFlash) switchView('signup');
-});
 </script>
