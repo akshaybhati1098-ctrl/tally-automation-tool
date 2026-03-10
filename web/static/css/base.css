@@ -620,3 +620,140 @@ input:focus, select:focus, textarea:focus {
 .dark-theme ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-primary);
 }
+/* ===== DARK THEME OVERRIDE ===== */
+/* Forces dark background on all major containers with proper contrast */
+
+/* Body and main shells */
+body, .login-shell, .dashboard-shell, .app-shell {
+  background-color: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+
+/* Left panel (if separate) – ensure dark */
+.login-panel-left,
+.dashboard-sidebar,
+.sidebar {
+  background-color: #0d1117 !important;
+  color: #ffffff !important;
+}
+
+/* Right panel / content areas – keep light if that's the design,
+   but if you want full dark, uncomment next lines */
+/*
+.login-panel-right,
+.main-content,
+.content-area {
+  background-color: #161b22 !important;
+  color: #e6edf3 !important;
+}
+*/
+
+/* Cards, forms, inputs – adjust for dark background */
+.login-card, .card, .panel, .form-container {
+  background-color: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+
+/* Inputs and text fields */
+input, textarea, select, .input-wrap input {
+  background-color: #0d1117 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+input::placeholder, textarea::placeholder {
+  color: #8b949e !important;
+  opacity: 1 !important;
+}
+
+/* Buttons – primary */
+.btn-login, .btn-primary, button[type="submit"] {
+  background: linear-gradient(135deg, #1651e8, #3b29e8) !important;
+  color: white !important;
+  border: none !important;
+}
+.btn-login:hover, .btn-primary:hover {
+  filter: brightness(1.1) !important;
+}
+
+/* Secondary buttons */
+.btn-back, .btn-secondary {
+  background-color: #21262d !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+.btn-back:hover, .btn-secondary:hover {
+  background-color: #30363d !important;
+}
+
+/* Links */
+a, .link {
+  color: #58a6ff !important;
+}
+a:hover {
+  color: #79c0ff !important;
+}
+
+/* Text colors for headings, paragraphs, etc. */
+h1, h2, h3, h4, h5, h6, .lp-body h2, .lc-header h3, .ch-eyebrow {
+  color: inherit !important;
+}
+.lp-body p, .lc-sub, .field-hint, .muted-text {
+  color: #8b949e !important;
+}
+
+/* Flashes / alerts */
+.flash.success {
+  background: rgba(35, 134, 54, 0.2) !important;
+  border-color: #238636 !important;
+  color: #7ee29e !important;
+}
+.flash.error {
+  background: rgba(248, 81, 73, 0.2) !important;
+  border-color: #f85149 !important;
+  color: #ffa198 !important;
+}
+
+/* Modals, popups, dropdowns */
+.modal-content, .dropdown-menu, .popover {
+  background-color: #161b22 !important;
+  border-color: #30363d !important;
+  color: #e6edf3 !important;
+}
+.modal-header, .modal-footer {
+  border-color: #30363d !important;
+}
+.close-modal {
+  color: #8b949e !important;
+}
+.close-modal:hover {
+  color: #e6edf3 !important;
+}
+
+/* Table styles (if any) */
+table, .table {
+  background-color: #0d1117 !important;
+  color: #e6edf3 !important;
+}
+th, td {
+  border-color: #30363d !important;
+}
+th {
+  background-color: #161b22 !important;
+}
+
+/* Scrollbar (optional) */
+::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+::-webkit-scrollbar-track {
+  background: #0d1117 !important;
+}
+::-webkit-scrollbar-thumb {
+  background: #30363d !important;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3d444d !important;
+}
