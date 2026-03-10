@@ -1,0 +1,386 @@
+/* ============================================================
+   DARK THEME OVERRIDE - ULTIMATE VERSION
+   Place this file AFTER all other CSS files in your HTML
+   ============================================================ */
+
+/* Force dark background on EVERYTHING initially */
+html, body, div, section, main, article, aside, header, footer, nav {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+}
+
+/* Main application shells */
+.login-shell,
+.dashboard-shell,
+.app-shell,
+.main-container,
+.content-wrapper,
+.container-fluid,
+.container {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+}
+
+/* Left panel - ensure dark */
+.login-panel-left,
+.sidebar,
+.left-panel,
+.panel-left,
+.side-menu {
+    background-color: #0d1117 !important;
+    color: #ffffff !important;
+}
+
+/* Right panel/content area - dark or semi-dark */
+.login-panel-right,
+.main-content,
+.content-area,
+.right-panel,
+.panel-right,
+.dashboard-content {
+    background-color: #161b22 !important;
+    color: #e6edf3 !important;
+}
+
+/* Cards and containers */
+.login-card,
+.card,
+.panel,
+.container-box,
+.widget,
+.box,
+.form-container,
+.modal-content,
+.dropdown-menu,
+.popover,
+.tooltip-inner {
+    background-color: #161b22 !important;
+    border: 1px solid #30363d !important;
+    color: #e6edf3 !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+}
+
+/* Card headers and footers */
+.card-header,
+.card-footer,
+.modal-header,
+.modal-footer,
+.panel-heading,
+.panel-footer,
+.box-header,
+.box-footer {
+    background-color: #21262d !important;
+    border-color: #30363d !important;
+    color: #e6edf3 !important;
+}
+
+/* Headings */
+h1, h2, h3, h4, h5, h6,
+.lp-body h2,
+.lc-header h3,
+.ch-eyebrow,
+.card-title,
+.modal-title,
+.panel-title,
+.box-title {
+    color: #ffffff !important;
+}
+
+/* Paragraphs and text */
+p, span, div, li, .text, .content,
+.lp-body p,
+.lc-sub,
+.field-hint,
+.muted-text,
+.text-muted,
+.help-block {
+    color: #8b949e !important;
+}
+
+/* Strong, bold, emphasis */
+strong, b, em, i, .strong, .bold {
+    color: #e6edf3 !important;
+}
+
+/* LINKS */
+a, .link, .nav-link, .dropdown-item {
+    color: #58a6ff !important;
+    text-decoration: none !important;
+}
+a:hover, .link:hover, .nav-link:hover, .dropdown-item:hover {
+    color: #79c0ff !important;
+    text-decoration: underline !important;
+}
+
+/* BUTTONS - Primary */
+.btn-login,
+.btn-primary,
+button[type="submit"],
+.primary-btn,
+.btn-submit {
+    background: linear-gradient(135deg, #1651e8, #3b29e8) !important;
+    color: #ffffff !important;
+    border: none !important;
+    box-shadow: 0 4px 12px rgba(22,81,232,0.3) !important;
+}
+.btn-login:hover,
+.btn-primary:hover,
+button[type="submit"]:hover,
+.primary-btn:hover,
+.btn-submit:hover {
+    filter: brightness(1.1) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 16px rgba(22,81,232,0.4) !important;
+}
+
+/* BUTTONS - Secondary */
+.btn-back,
+.btn-secondary,
+.btn-default,
+.secondary-btn {
+    background-color: #21262d !important;
+    color: #e6edf3 !important;
+    border: 1px solid #30363d !important;
+}
+.btn-back:hover,
+.btn-secondary:hover,
+.btn-default:hover,
+.secondary-btn:hover {
+    background-color: #30363d !important;
+    border-color: #3d444d !important;
+}
+
+/* BUTTONS - Danger/Delete */
+.btn-danger,
+.delete-btn {
+    background-color: #da3633 !important;
+    color: #ffffff !important;
+    border: none !important;
+}
+.btn-danger:hover,
+.delete-btn:hover {
+    background-color: #f85149 !important;
+}
+
+/* FORMS */
+form, .form, .lc-form {
+    background-color: transparent !important;
+}
+
+/* INPUTS */
+input, textarea, select,
+.input-wrap input,
+.form-control,
+.input-field {
+    background-color: #0d1117 !important;
+    border: 1.5px solid #30363d !important;
+    color: #e6edf3 !important;
+    border-radius: 8px !important;
+    padding: 0.75rem !important;
+}
+input:focus, textarea:focus, select:focus,
+.input-wrap input:focus,
+.form-control:focus,
+.input-field:focus {
+    border-color: #1651e8 !important;
+    box-shadow: 0 0 0 3px rgba(22,81,232,0.2) !important;
+    outline: none !important;
+}
+
+/* Placeholders */
+input::placeholder, textarea::placeholder,
+.input-wrap input::placeholder,
+.form-control::placeholder {
+    color: #6e7681 !important;
+    opacity: 1 !important;
+}
+
+/* Input icons */
+.input-icon {
+    color: #8b949e !important;
+}
+
+/* Toggle password button */
+.toggle-pw {
+    color: #8b949e !important;
+    background: transparent !important;
+    border: none !important;
+}
+.toggle-pw:hover {
+    color: #e6edf3 !important;
+}
+
+/* Input validation states */
+.input-ok {
+    border-color: #238636 !important;
+}
+.input-error {
+    border-color: #f85149 !important;
+}
+
+/* FLASH MESSAGES / ALERTS */
+.flash, .alert {
+    border-radius: 8px !important;
+    padding: 0.75rem 1rem !important;
+    margin-bottom: 1rem !important;
+}
+.flash.success, .alert-success {
+    background: rgba(35, 134, 54, 0.2) !important;
+    border: 1px solid #238636 !important;
+    color: #7ee29e !important;
+}
+.flash.error, .alert-danger, .alert-error {
+    background: rgba(248, 81, 73, 0.2) !important;
+    border: 1px solid #f85149 !important;
+    color: #ffa198 !important;
+}
+.flash.warning, .alert-warning {
+    background: rgba(242, 177, 51, 0.2) !important;
+    border: 1px solid #f2b133 !important;
+    color: #f2b133 !important;
+}
+.flash.info, .alert-info {
+    background: rgba(22, 81, 232, 0.2) !important;
+    border: 1px solid #1651e8 !important;
+    color: #79c0ff !important;
+}
+
+/* TABLES */
+table, .table {
+    background-color: #0d1117 !important;
+    color: #e6edf3 !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+}
+th, td {
+    padding: 0.75rem !important;
+    border: 1px solid #30363d !important;
+}
+th {
+    background-color: #161b22 !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+}
+tr:hover {
+    background-color: #1c2128 !important;
+}
+
+/* RECOVERY OPTIONS / FORGOT PASSWORD */
+.recover-card {
+    background-color: #0d1117 !important;
+    border: 1.5px solid #30363d !important;
+    color: #e6edf3 !important;
+}
+.recover-card:hover {
+    background-color: #161b22 !important;
+    border-color: #1651e8 !important;
+}
+.recover-icon {
+    background: rgba(22,81,232,0.2) !important;
+    color: #58a6ff !important;
+}
+.recover-title {
+    color: #ffffff !important;
+}
+.recover-desc {
+    color: #8b949e !important;
+}
+.recover-arrow {
+    color: #8b949e !important;
+}
+
+/* OTP BOXES */
+.otp-digit {
+    background-color: #0d1117 !important;
+    border: 1.5px solid #30363d !important;
+    color: #e6edf3 !important;
+}
+.otp-digit:focus {
+    border-color: #1651e8 !important;
+    background-color: #161b22 !important;
+}
+.otp-digit.filled {
+    border-color: #1651e8 !important;
+    background-color: rgba(22,81,232,0.1) !important;
+}
+
+/* SENT CONFIRMATION */
+.sent-icon {
+    background: rgba(35, 134, 54, 0.2) !important;
+    border-color: #238636 !important;
+    color: #7ee29e !important;
+}
+
+/* COUNTDOWN TIMER */
+.otp-countdown-num {
+    color: #e6edf3 !important;
+}
+.otp-countdown-num.expiring {
+    color: #f85149 !important;
+}
+
+/* RESEND LINK */
+.resend-link {
+    color: #58a6ff !important;
+}
+.resend-link:hover {
+    color: #79c0ff !important;
+}
+.resend-link:disabled {
+    color: #6e7681 !important;
+}
+
+/* MODAL CLOSE BUTTON */
+.close-modal {
+    color: #8b949e !important;
+}
+.close-modal:hover {
+    color: #e6edf3 !important;
+}
+
+/* FOOTER */
+.lp-footer, .footer, .app-footer {
+    color: #6e7681 !important;
+}
+
+/* LEFT PANEL BRANDING */
+.lp-logo {
+    background: rgba(255,255,255,0.1) !important;
+    border-color: rgba(255,255,255,0.15) !important;
+}
+.lp-name {
+    color: #ffffff !important;
+}
+.lp-version {
+    color: rgba(255,255,255,0.4) !important;
+}
+
+/* LEFT PANEL FEATURES */
+.lp-feat {
+    color: rgba(255,255,255,0.7) !important;
+}
+.lp-feat span {
+    background: rgba(255,255,255,0.07) !important;
+}
+
+/* SCROLLBAR (optional - webkit only) */
+::-webkit-scrollbar {
+    width: 12px !important;
+    height: 12px !important;
+}
+::-webkit-scrollbar-track {
+    background: #0d1117 !important;
+}
+::-webkit-scrollbar-thumb {
+    background: #30363d !important;
+    border-radius: 6px !important;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #3d444d !important;
+}
+
+/* Ensure any remaining light elements are caught */
+[class*="light"], [class*="white"], [class*="bg-"], 
+[style*="background"]:not([style*="background: #0d1117"]):not([style*="background:#0d1117"]) {
+    background-color: #0d1117 !important;
+}
