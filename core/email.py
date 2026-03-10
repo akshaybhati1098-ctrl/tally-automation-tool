@@ -102,13 +102,16 @@ def send_verification_email(to_email: str, token: str, code: str = None):
 
 
 def send_otp_email(to_email: str, otp: str):
-    """Send a 6‑digit OTP email using Resend API."""
-    # Split OTP into individual digits for separate styled boxes
-    digit_boxes = "".join([
-        f'<span style="display:inline-block;width:44px;height:54px;line-height:54px;'
-        f'text-align:center;font-family:monospace;font-size:1.7rem;font-weight:900;'
+    """Send a 6-digit OTP email using Resend API."""
+    # FIX: one <td> per digit inside a single <table> row
+    # guarantees all 6 boxes stay on ONE line in every email client
+    digit_cells = "".join([
+        f'<td style="padding:0 4px;">'
+        f'<div style="width:44px;height:54px;line-height:54px;text-align:center;'
+        f'font-family:Courier New,monospace;font-size:1.7rem;font-weight:900;'
         f'color:#0d1117;background:#ffffff;border:2px solid #dce5f0;'
-        f'border-radius:10px;margin:0 3px;">{d}</span>'
+        f'border-radius:10px;">{d}</div>'
+        f'</td>'
         for d in str(otp)
     ])
 
@@ -144,14 +147,17 @@ def send_otp_email(to_email: str, otp: str):
           your email address and create your account.
         </p>
 
-        <!-- OTP digit boxes -->
+        <!-- OTP digit boxes — table layout forces single row -->
         <div style="background:#f5f8fc;border:1.5px solid #dce5f0;border-radius:16px;
                     padding:1.6rem 1rem;text-align:center;margin-bottom:1.4rem;">
           <p style="color:#7a8fa8;font-size:0.75rem;text-transform:uppercase;
                      letter-spacing:0.08em;font-weight:700;margin:0 0 1rem;">
             Your one-time code
           </p>
-          <div style="letter-spacing:0;">{digit_boxes}</div>
+          <table role="presentation" cellpadding="0" cellspacing="0"
+                 style="margin:0 auto;border-collapse:separate;border-spacing:0;">
+            <tr>{digit_cells}</tr>
+          </table>
           <div style="margin-top:1.1rem;display:inline-block;
                       background:rgba(22,81,232,0.07);border-radius:20px;
                       padding:0.3rem 0.9rem;">
@@ -210,12 +216,14 @@ def send_otp_email(to_email: str, otp: str):
 # ================================================================
 def send_username_reminder_email(to_email: str, username: str):
     """Send username reminder email."""
-    # Render username characters as styled letter-boxes
-    letter_boxes = "".join([
-        f'<span style="display:inline-block;padding:0.3rem 0.55rem;'
-        f'font-family:monospace;font-size:1.3rem;font-weight:800;'
-        f'color:#0d1117;background:#ffffff;border:2px solid #dce5f0;'
-        f'border-radius:8px;margin:0 2px;">{c}</span>'
+    # FIX: one <td> per character in a single <table> row
+    # guarantees the username stays on ONE line in every email client
+    letter_cells = "".join([
+        f'<td style="padding:0 2px;">'
+        f'<div style="padding:0.3rem 0.55rem;font-family:Courier New,monospace;'
+        f'font-size:1.3rem;font-weight:800;color:#0d1117;background:#ffffff;'
+        f'border:2px solid #dce5f0;border-radius:8px;white-space:nowrap;">{c}</div>'
+        f'</td>'
         for c in str(username)
     ])
 
@@ -251,14 +259,17 @@ def send_username_reminder_email(to_email: str, username: str):
           Use it to sign in below.
         </p>
 
-        <!-- Username display -->
+        <!-- Username display — table layout forces single row -->
         <div style="background:#f5f8fc;border:1.5px solid #dce5f0;border-radius:16px;
                     padding:1.6rem 1rem;text-align:center;margin-bottom:1.4rem;">
           <p style="color:#7a8fa8;font-size:0.75rem;text-transform:uppercase;
                      letter-spacing:0.08em;font-weight:700;margin:0 0 1rem;">
             Your username
           </p>
-          <div style="letter-spacing:0;word-break:break-all;">{letter_boxes}</div>
+          <table role="presentation" cellpadding="0" cellspacing="0"
+                 style="margin:0 auto;border-collapse:separate;border-spacing:0;">
+            <tr>{letter_cells}</tr>
+          </table>
         </div>
 
         <!-- CTA -->
@@ -415,16 +426,20 @@ def send_password_reset_email(to_email: str, reset_link: str):
     except Exception as e:
         print(f"❌ Failed to send password reset email: {e}")
         return False
+
+
 def send_welcome_email(to_email: str, username: str):
     """Send a welcome email after successful account creation."""
     login_url = f"{BASE_URL}/login"
 
-    # Render username as individual letter-boxes (consistent with send_username_reminder_email)
-    letter_boxes = "".join([
-        f'<span style="display:inline-block;padding:0.3rem 0.55rem;'
-        f'font-family:monospace;font-size:1.3rem;font-weight:800;'
-        f'color:#0d1117;background:#ffffff;border:2px solid #dce5f0;'
-        f'border-radius:8px;margin:0 2px;">{c}</span>'
+    # FIX: one <td> per character in a single <table> row
+    # guarantees the username stays on ONE line in every email client
+    letter_cells = "".join([
+        f'<td style="padding:0 2px;">'
+        f'<div style="padding:0.3rem 0.55rem;font-family:Courier New,monospace;'
+        f'font-size:1.3rem;font-weight:800;color:#0d1117;background:#ffffff;'
+        f'border:2px solid #dce5f0;border-radius:8px;white-space:nowrap;">{c}</div>'
+        f'</td>'
         for c in str(username)
     ])
 
@@ -469,17 +484,18 @@ def send_welcome_email(to_email: str, username: str):
           Start converting Excel invoices to Tally XML in seconds — no setup required.
         </p>
 
-        <!-- Username card -->
+        <!-- Username card — table layout forces single row -->
         <div style="background:#f5f8fc;border:1.5px solid #dce5f0;border-radius:16px;
                     padding:1.5rem 1rem;text-align:center;margin-bottom:1.4rem;">
           <p style="color:#7a8fa8;font-size:0.75rem;text-transform:uppercase;
                      letter-spacing:0.08em;font-weight:700;margin:0 0 0.9rem;">
             Your username — save this
           </p>
-          <div style="letter-spacing:0;word-break:break-all;margin-bottom:0.75rem;">
-            {letter_boxes}
-          </div>
-          <p style="color:#7a8fa8;font-size:0.73rem;margin:0;line-height:1.5;">
+          <table role="presentation" cellpadding="0" cellspacing="0"
+                 style="margin:0 auto;border-collapse:separate;border-spacing:0;">
+            <tr>{letter_cells}</tr>
+          </table>
+          <p style="color:#7a8fa8;font-size:0.73rem;margin:0.75rem 0 0;line-height:1.5;">
             Use this with your password to sign in.
           </p>
         </div>
@@ -570,3 +586,4 @@ def send_welcome_email(to_email: str, username: str):
     except Exception as e:
         print(f"❌ Failed to send welcome email: {e}")
         return False
+done

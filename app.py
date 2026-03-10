@@ -371,7 +371,6 @@ async def send_otp(email: str = Form(...), username: str = Form(...)):
         return JSONResponse({"status": "error", "message": "Failed to send OTP email. Please check your email address or try again later."}, status_code=500)
 
     return JSONResponse({"status": "ok"})
-
 @app.post("/api/verify-otp-signup")
 async def verify_otp_signup(
     email: str = Form(...),
@@ -415,16 +414,20 @@ async def verify_otp_signup(
     # Create the user
     create_user(username, email, password)
 
+    # Send welcome email with debug prints
+    print(f"📧 About to send welcome email to {email}")
+    try:
+        send_welcome_email(email, username)
+        print("✅ Welcome email function executed")
+    except Exception as e:
+        print(f"❌ Welcome email failed: {e}")
+        # Account is already created, so we don't return error to user
+
     # Delete pending record
     delete_pending_user(email)
 
     return JSONResponse({"status": "ok"})
-print(f"📧 About to send welcome email to {email}")
-try:
-    send_welcome_email(email, username)
-    print("✅ Welcome email function executed")
-except Exception as e:
-    print(f"❌ Welcome email failed: {e}")
+
 # =========================================================
 # FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
 # =========================================================
