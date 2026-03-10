@@ -419,6 +419,12 @@ async def verify_otp_signup(
     delete_pending_user(email)
 
     return JSONResponse({"status": "ok"})
+print(f"📧 About to send welcome email to {email}")
+try:
+    send_welcome_email(email, username)
+    print("✅ Welcome email function executed")
+except Exception as e:
+    print(f"❌ Welcome email failed: {e}")
 # =========================================================
 # FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
 # =========================================================
