@@ -418,41 +418,145 @@ def send_password_reset_email(to_email: str, reset_link: str):
 def send_welcome_email(to_email: str, username: str):
     """Send a welcome email after successful account creation."""
     login_url = f"{BASE_URL}/login"
+
+    # Render username as individual letter-boxes (consistent with send_username_reminder_email)
+    letter_boxes = "".join([
+        f'<span style="display:inline-block;padding:0.3rem 0.55rem;'
+        f'font-family:monospace;font-size:1.3rem;font-weight:800;'
+        f'color:#0d1117;background:#ffffff;border:2px solid #dce5f0;'
+        f'border-radius:8px;margin:0 2px;">{c}</span>'
+        for c in str(username)
+    ])
+
     html = f"""
-    <div style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:2rem;">
-      <div style="background:#0d1117;border-radius:16px;padding:2rem;text-align:center;">
-        <span style="font-size:2rem;">🧾</span>
-        <h2 style="color:#fff;font-size:1.3rem;margin:0.75rem 0 0.3rem;">
+    <!DOCTYPE html>
+    <html lang="en">
+    <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+    <body style="margin:0;padding:0;background:#f5f8fc;">
+    <div style="font-family:Arial,sans-serif;max-width:520px;margin:2rem auto;
+                background:#ffffff;border-radius:20px;overflow:hidden;
+                box-shadow:0 4px 24px rgba(0,20,60,0.10);">
+
+      <!-- Header with celebration gradient -->
+      <div style="background:linear-gradient(135deg,#0d1117 60%,#1c2534);
+                  padding:2.2rem 2rem 1.8rem;text-align:center;position:relative;">
+        <div style="display:inline-block;background:rgba(255,255,255,0.08);
+                    border:1px solid rgba(255,255,255,0.14);border-radius:14px;
+                    padding:0.5rem 0.8rem;font-size:1.6rem;margin-bottom:1rem;">🎉</div>
+        <h1 style="color:#ffffff;font-size:1.3rem;font-weight:800;
+                   margin:0 0 0.35rem;letter-spacing:-0.02em;">
           Welcome to Tally Tool!
-        </h2>
-        <p style="color:rgba(255,255,255,0.5);font-size:0.88rem;">
-          Your account has been created successfully.
+        </h1>
+        <p style="color:rgba(255,255,255,0.45);font-size:0.82rem;margin:0;">
+          Your account is ready · v3.3
         </p>
       </div>
-      <div style="text-align:center;margin:2rem 0;">
-        <p style="color:#4a5568;font-size:1rem;">Your username is:</p>
-        <div style="font-family:monospace;font-size:1.5rem;font-weight:700;
-                    background:#f5f8fc;padding:1rem;border-radius:8px;
-                    border:1px solid #dce5f0;color:#0d1117;">
-          {username}
+
+      <!-- Green success banner -->
+      <div style="background:linear-gradient(135deg,#17b26a,#0e9456);
+                  padding:0.85rem 2rem;text-align:center;">
+        <p style="color:#ffffff;font-size:0.82rem;font-weight:700;margin:0;
+                   letter-spacing:0.01em;">
+          ✅ Account created successfully
+        </p>
+      </div>
+
+      <!-- Body -->
+      <div style="padding:2rem 2rem 1.5rem;">
+
+        <p style="color:#354460;font-size:0.9rem;line-height:1.6;margin:0 0 1.6rem;">
+          Hi <strong style="color:#0d1117;">{username}</strong>! You're all set.
+          Start converting Excel invoices to Tally XML in seconds — no setup required.
+        </p>
+
+        <!-- Username card -->
+        <div style="background:#f5f8fc;border:1.5px solid #dce5f0;border-radius:16px;
+                    padding:1.5rem 1rem;text-align:center;margin-bottom:1.4rem;">
+          <p style="color:#7a8fa8;font-size:0.75rem;text-transform:uppercase;
+                     letter-spacing:0.08em;font-weight:700;margin:0 0 0.9rem;">
+            Your username — save this
+          </p>
+          <div style="letter-spacing:0;word-break:break-all;margin-bottom:0.75rem;">
+            {letter_boxes}
+          </div>
+          <p style="color:#7a8fa8;font-size:0.73rem;margin:0;line-height:1.5;">
+            Use this with your password to sign in.
+          </p>
         </div>
-        <p style="color:#7a8fa8;font-size:0.9rem;margin-top:1.5rem;">
-          You can now log in using your username and password.
+
+        <!-- Feature highlights -->
+        <div style="margin-bottom:1.4rem;">
+          <p style="color:#7a8fa8;font-size:0.75rem;text-transform:uppercase;
+                     letter-spacing:0.08em;font-weight:700;margin:0 0 0.75rem;">
+            What you can do now
+          </p>
+          <table style="width:100%;border-collapse:collapse;">
+            <tr>
+              <td style="padding:0.55rem 0;vertical-align:top;width:32px;">
+                <span style="display:inline-block;width:28px;height:28px;
+                             background:rgba(22,81,232,0.08);border-radius:8px;
+                             text-align:center;line-height:28px;font-size:0.85rem;">⚡</span>
+              </td>
+              <td style="padding:0.55rem 0 0.55rem 0.6rem;vertical-align:middle;">
+                <span style="color:#0d1117;font-size:0.84rem;font-weight:600;">Convert invoices instantly</span><br>
+                <span style="color:#7a8fa8;font-size:0.75rem;">Upload Excel → get Tally XML in seconds</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0;vertical-align:top;width:32px;">
+                <span style="display:inline-block;width:28px;height:28px;
+                             background:rgba(22,81,232,0.08);border-radius:8px;
+                             text-align:center;line-height:28px;font-size:0.85rem;">🔧</span>
+              </td>
+              <td style="padding:0.55rem 0 0.55rem 0.6rem;vertical-align:middle;">
+                <span style="color:#0d1117;font-size:0.84rem;font-weight:600;">Save ledger mappings</span><br>
+                <span style="color:#7a8fa8;font-size:0.75rem;">Map once, reuse forever across sessions</span>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:0.55rem 0;vertical-align:top;width:32px;">
+                <span style="display:inline-block;width:28px;height:28px;
+                             background:rgba(22,81,232,0.08);border-radius:8px;
+                             text-align:center;line-height:28px;font-size:0.85rem;">📊</span>
+              </td>
+              <td style="padding:0.55rem 0 0.55rem 0.6rem;vertical-align:middle;">
+                <span style="color:#0d1117;font-size:0.84rem;font-weight:600;">GST-compliant output</span><br>
+                <span style="color:#7a8fa8;font-size:0.75rem;">CGST / SGST / IGST · TallyPrime & ERP9</span>
+              </td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- CTA -->
+        <a href="{login_url}"
+           style="display:block;background:linear-gradient(135deg,#1651e8,#3b29e8);
+                  color:#ffffff;text-align:center;padding:1rem 1.5rem;
+                  border-radius:12px;text-decoration:none;font-weight:700;
+                  font-size:0.95rem;margin-bottom:1.4rem;
+                  box-shadow:0 4px 14px rgba(22,81,232,0.35);">
+          Go to Sign In →
+        </a>
+
+        <p style="color:#7a8fa8;font-size:0.76rem;text-align:center;
+                   line-height:1.6;margin:0;">
+          If you didn't create this account, please contact us immediately.
         </p>
       </div>
-      <a href="{login_url}"
-         style="display:block;background:linear-gradient(135deg,#1651e8,#3b29e8);
-                color:#fff;text-align:center;padding:0.9rem 1.5rem;
-                border-radius:12px;text-decoration:none;font-weight:700;
-                font-size:0.95rem;margin:1.5rem 0;">
-        Go to Login →
-      </a>
-      <hr style="border:none;border-top:1px solid #dce5f0;margin:1.5rem 0;">
-      <p style="color:#b0bec8;font-size:0.7rem;text-align:center;">
-        Tally Tool by Akshay · v3.3
-      </p>
+
+      <!-- Footer -->
+      <div style="background:#f5f8fc;border-top:1px solid #dce5f0;
+                  padding:1rem 2rem;text-align:center;">
+        <p style="color:#b0bec8;font-size:0.68rem;margin:0;">
+          Tally Tool by Akshay · v3.3 &nbsp;·&nbsp;
+          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.in</a>
+        </p>
+      </div>
+
     </div>
+    </body>
+    </html>
     """
+
     try:
         params = {
             "from": MAIL_FROM,

@@ -779,3 +779,29 @@ async def reset_password_page(request: Request, token: str = None):
         "pages/login.html",
         {"request": request, "reset_token": token}
     )
+@app.get("/debug/delete-all-users")
+async def delete_all_users():
+    """Temporary endpoint to clear all users (REMOVE AFTER USE)"""
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        # Delete all users
+        cur.execute("DELETE FROM users;")
+        users_deleted = cur.rowcount
+        
+        # Also clear pending users
+        cur.execute("DELETE FROM pending_users;")
+        pending_deleted = cur.rowcount
+        
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            "status": "success", 
+            "users_deleted": users_deleted,
+            "pending_deleted": pending_deleted
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
