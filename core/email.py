@@ -103,8 +103,6 @@ def send_verification_email(to_email: str, token: str, code: str = None):
 
 def send_otp_email(to_email: str, otp: str):
     """Send a 6-digit OTP email using Resend API."""
-    # FIX: one <td> per digit inside a single <table> row
-    # guarantees all 6 boxes stay on ONE line in every email client
     digit_cells = "".join([
         f'<td style="padding:0 4px;">'
         f'<div style="width:44px;height:54px;line-height:54px;text-align:center;'
@@ -216,8 +214,6 @@ def send_otp_email(to_email: str, otp: str):
 # ================================================================
 def send_username_reminder_email(to_email: str, username: str):
     """Send username reminder email."""
-    # FIX: one <td> per character in a single <table> row
-    # guarantees the username stays on ONE line in every email client
     letter_cells = "".join([
         f'<td style="padding:0 2px;">'
         f'<div style="padding:0.3rem 0.55rem;font-family:Courier New,monospace;'
@@ -432,8 +428,6 @@ def send_welcome_email(to_email: str, username: str):
     """Send a welcome email after successful account creation."""
     login_url = f"{BASE_URL}/login"
 
-    # FIX: one <td> per character in a single <table> row
-    # guarantees the username stays on ONE line in every email client
     letter_cells = "".join([
         f'<td style="padding:0 2px;">'
         f'<div style="padding:0.3rem 0.55rem;font-family:Courier New,monospace;'
@@ -586,4 +580,3 @@ def send_welcome_email(to_email: str, username: str):
     except Exception as e:
         print(f"❌ Failed to send welcome email: {e}")
         return False
-done
