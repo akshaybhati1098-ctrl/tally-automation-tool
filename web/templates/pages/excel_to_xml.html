@@ -13,7 +13,7 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         /* ════════════════════════════════════════
-           Design Tokens — Light
+           Design Tokens
         ════════════════════════════════════════ */
         :root {
             --ink:        #0a0f1e;
@@ -35,33 +35,6 @@
             --shadow-sm:  0 1px 3px rgba(10,15,30,0.06), 0 4px 12px rgba(10,15,30,0.06);
             --shadow-md:  0 2px 8px rgba(10,15,30,0.06), 0 16px 32px rgba(10,15,30,0.10);
             --shadow-lg:  0 4px 16px rgba(10,15,30,0.08), 0 32px 64px rgba(10,15,30,0.14);
-            --bg-page:    #e8eef8;
-        }
-
-        /* ════════════════════════════════════════
-           Dark Theme Tokens
-        ════════════════════════════════════════ */
-        [data-theme="dark"] {
-            --ink:        #f0f4ff;
-            --ink2:       #d8e0f5;
-            --ink3:       #9baacf;
-            --muted:      #5c6f96;
-            --line:       #1e2a45;
-            --line2:      #243050;
-            --surface:    #111827;
-            --surface2:   #0f1520;
-            --white:      #151f35;
-            --accent:     #4d7aff;
-            --accent2:    #6655ff;
-            --accent-soft: rgba(77,122,255,0.12);
-            --green:      #12c875;
-            --green2:     #0fa060;
-            --green-soft: rgba(18,200,117,0.1);
-            --red:        #f87171;
-            --shadow-sm:  0 1px 3px rgba(0,0,0,0.3), 0 4px 12px rgba(0,0,0,0.25);
-            --shadow-md:  0 2px 8px rgba(0,0,0,0.3), 0 16px 32px rgba(0,0,0,0.35);
-            --shadow-lg:  0 4px 16px rgba(0,0,0,0.4), 0 32px 64px rgba(0,0,0,0.5);
-            --bg-page:    #080d1a;
         }
 
         /* ════════════════════════════════════════
@@ -71,24 +44,13 @@
             font-family: 'DM Sans', sans-serif;
             color: var(--ink);
             min-height: 100vh;
-            background: var(--bg-page);
+            background: #e8eef8;
             background-image:
                 radial-gradient(ellipse 80% 60% at 15% -5%,  rgba(22,73,224,0.13) 0%, transparent 55%),
                 radial-gradient(ellipse 60% 50% at 85% 105%, rgba(15,169,102,0.11) 0%, transparent 50%),
                 radial-gradient(ellipse 40% 30% at 50% 50%,  rgba(51,36,216,0.05) 0%, transparent 70%);
             padding: 3rem 2rem 5rem;
             font-size: 16px;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            transition: background 0.3s ease, color 0.3s ease;
-        }
-
-        [data-theme="dark"] body {
-            background-image:
-                radial-gradient(ellipse 80% 60% at 15% -5%,  rgba(77,122,255,0.18) 0%, transparent 55%),
-                radial-gradient(ellipse 60% 50% at 85% 105%, rgba(18,200,117,0.12) 0%, transparent 50%),
-                radial-gradient(ellipse 40% 30% at 50% 50%,  rgba(100,80,255,0.08) 0%, transparent 70%);
         }
 
         /* Subtle dot-grid */
@@ -102,47 +64,21 @@
             z-index: 0;
         }
 
-        [data-theme="dark"] body::before {
-            background-image: radial-gradient(circle, rgba(77,122,255,0.12) 1px, transparent 1px);
-        }
-
-        /* ════════════════════════════════════════
-           Theme Toggle Button
-        ════════════════════════════════════════ */
-        .theme-toggle {
-            position: fixed;
-            top: 1.2rem;
-            right: 1.4rem;
-            z-index: 1000;
-            width: 48px;
-            height: 48px;
-            border-radius: 14px;
-            background: var(--white);
-            border: 1.5px solid var(--line);
-            box-shadow: var(--shadow-sm);
-            cursor: pointer;
-            display: grid;
-            place-items: center;
-            font-size: 1.2rem;
-            transition: all 0.25s cubic-bezier(0.22,1,0.36,1);
-            color: var(--ink2);
-        }
-
-        .theme-toggle:hover {
-            transform: scale(1.08) rotate(-8deg);
-            border-color: var(--accent);
-            box-shadow: 0 4px 16px rgba(22,73,224,0.2);
-        }
-
         /* ════════════════════════════════════════
            Wrapper
         ════════════════════════════════════════ */
         .converter-wrap {
             position: relative;
             z-index: 1;
-            width: 100%;
             max-width: 780px;
+            /* Sidebar is ~210px wide; shift left by half to visually centre
+               in the content area, not the full viewport */
             margin: 0 auto;
+            margin-left: max(2rem, calc(50vw - 390px - 105px));
+        }
+
+        @media (max-width: 900px) {
+            .converter-wrap { margin-left: auto; }
         }
 
         /* ── Page header ── */
@@ -166,11 +102,6 @@
             letter-spacing: 0.09em;
             text-transform: uppercase;
             margin-bottom: 0.85rem;
-        }
-
-        [data-theme="dark"] .page-header .badge {
-            background: rgba(77,122,255,0.15);
-            border-color: rgba(77,122,255,0.3);
         }
 
         .page-header h1 {
@@ -201,7 +132,7 @@
         ════════════════════════════════════════ */
         .card {
             background: var(--white);
-            border: 1px solid var(--line);
+            border: 1px solid rgba(255,255,255,0.9);
             border-radius: 28px;
             padding: 2.6rem 3rem;
             box-shadow: var(--shadow-md);
@@ -209,13 +140,6 @@
             animation: fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both;
             position: relative;
             overflow: hidden;
-            transition: background 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        [data-theme="dark"] .card {
-            background: #0e1628;
-            border-color: #1e2d4a;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.4), 0 16px 40px rgba(0,0,0,0.5);
         }
 
         .card:nth-child(2) { animation-delay: 0.1s; }
@@ -228,10 +152,6 @@
             top: 0; left: 0; right: 0;
             height: 1px;
             background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.8) 50%, transparent 100%);
-        }
-
-        [data-theme="dark"] .card::before {
-            background: linear-gradient(90deg, transparent 0%, rgba(77,122,255,0.2) 50%, transparent 100%);
         }
 
         @keyframes fadeUp {
@@ -260,11 +180,6 @@
             flex-shrink: 0;
             box-shadow: 0 6px 16px rgba(10,15,30,0.25);
             transition: transform 0.25s, box-shadow 0.25s;
-        }
-
-        [data-theme="dark"] .ch-icon {
-            background: linear-gradient(135deg, #1a2848, #0f1828);
-            box-shadow: 0 6px 20px rgba(0,0,0,0.5), 0 0 0 1px rgba(77,122,255,0.2);
         }
 
         .ch-icon:hover {
@@ -326,20 +241,11 @@
             overflow: hidden;
         }
 
-        [data-theme="dark"] .upload-zone {
-            border-color: #243050;
-            background: #0a1020;
-        }
-
         .upload-zone:hover {
             border-color: var(--accent);
             background: var(--accent-soft);
             box-shadow: 0 0 0 5px rgba(22,73,224,0.07);
             transform: translateY(-2px);
-        }
-
-        [data-theme="dark"] .upload-zone:hover {
-            box-shadow: 0 0 0 5px rgba(77,122,255,0.12);
         }
 
         .upload-zone.drag-over {
@@ -386,22 +292,11 @@
             transition: all 0.3s cubic-bezier(0.22,1,0.36,1);
         }
 
-        [data-theme="dark"] .upload-icon-box {
-            background: #111d33;
-            border-color: #1e2d4a;
-        }
-
         .upload-zone:hover .upload-icon-box {
             border-color: rgba(22,73,224,0.3);
             background: rgba(22,73,224,0.05);
             transform: translateY(-4px) scale(1.06);
             box-shadow: 0 8px 24px rgba(22,73,224,0.18);
-        }
-
-        [data-theme="dark"] .upload-zone:hover .upload-icon-box {
-            border-color: rgba(77,122,255,0.4);
-            background: rgba(77,122,255,0.1);
-            box-shadow: 0 8px 24px rgba(77,122,255,0.2);
         }
 
         .upload-zone.has-file .upload-icon-box {
@@ -436,12 +331,6 @@
             background: var(--white);
             transition: all 0.2s;
             box-shadow: var(--shadow-sm);
-        }
-
-        [data-theme="dark"] .upload-cta {
-            background: #111d33;
-            border-color: #243050;
-            color: var(--ink3);
         }
 
         .upload-zone:hover .upload-cta {
@@ -488,25 +377,10 @@
             box-sizing: border-box;
         }
 
-        [data-theme="dark"] .form-select {
-            background: #0a1020;
-            border-color: #1e2d4a;
-            color: var(--ink2);
-        }
-
-        [data-theme="dark"] .form-select option {
-            background: #0e1628;
-            color: var(--ink2);
-        }
-
         .form-select:hover:not(:disabled) {
             border-color: var(--accent);
             background: var(--white);
             box-shadow: 0 0 0 4px var(--accent-soft);
-        }
-
-        [data-theme="dark"] .form-select:hover:not(:disabled) {
-            background: #111d33;
         }
 
         .form-select:focus {
@@ -514,11 +388,6 @@
             border-color: var(--accent);
             background: var(--white);
             box-shadow: 0 0 0 4px rgba(22,73,224,0.1);
-        }
-
-        [data-theme="dark"] .form-select:focus {
-            background: #111d33;
-            box-shadow: 0 0 0 4px rgba(77,122,255,0.15);
         }
 
         .form-select:disabled {
@@ -531,11 +400,6 @@
         #sheetSelect:not(:disabled) {
             border-color: rgba(22,73,224,0.28);
             background: rgba(22,73,224,0.025);
-        }
-
-        [data-theme="dark"] #sheetSelect:not(:disabled) {
-            border-color: rgba(77,122,255,0.3);
-            background: rgba(77,122,255,0.05);
         }
 
         #companySelect:not([value=""]) {
@@ -569,10 +433,6 @@
             white-space: nowrap;
         }
 
-        [data-theme="dark"] .form-divider::after {
-            background: #0e1628;
-        }
-
         /* ════════════════════════════════════════
            Loading indicator
         ════════════════════════════════════════ */
@@ -597,11 +457,6 @@
             gap: 4px;
         }
 
-        [data-theme="dark"] .voucher-type-group {
-            background: #0a1020;
-            border-color: #1e2d4a;
-        }
-
         .voucher-type-group input[type="radio"] { display: none; }
 
         .voucher-type-btn {
@@ -624,20 +479,12 @@
 
         .voucher-type-btn:hover { color: var(--ink2); background: rgba(0,0,0,0.03); }
 
-        [data-theme="dark"] .voucher-type-btn:hover { background: rgba(255,255,255,0.04); }
-
         input[type="radio"]:checked + .voucher-type-btn {
             background: var(--ink);
             color: var(--white);
             font-weight: 600;
             box-shadow: 0 4px 14px rgba(10,15,30,0.24);
             transform: scale(1.01);
-        }
-
-        [data-theme="dark"] input[type="radio"]:checked + .voucher-type-btn {
-            background: linear-gradient(135deg, #1e3060, #162550);
-            color: #e0ebff;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.5), 0 0 0 1px rgba(77,122,255,0.3);
         }
 
         /* ════════════════════════════════════════
@@ -665,11 +512,6 @@
             white-space: nowrap;
             position: relative;
             overflow: hidden;
-        }
-
-        [data-theme="dark"] .btn-primary {
-            color: #fff;
-            box-shadow: 0 5px 24px rgba(77,122,255,0.45), 0 0 0 1px rgba(77,122,255,0.2);
         }
 
         .btn-primary::before {
@@ -703,10 +545,6 @@
             transform: translateY(-2px);
         }
 
-        [data-theme="dark"] .btn-primary:hover:not(:disabled) {
-            box-shadow: 0 10px 36px rgba(77,122,255,0.6), 0 0 0 1px rgba(77,122,255,0.3);
-        }
-
         .btn-primary:active:not(:disabled) {
             transform: scale(0.98);
             box-shadow: 0 3px 12px rgba(22,73,224,0.3);
@@ -718,11 +556,6 @@
             cursor: not-allowed;
             box-shadow: none;
             transform: none;
-        }
-
-        [data-theme="dark"] .btn-primary:disabled {
-            background: #141f35;
-            color: #3a4d70;
         }
 
         .btn-primary.converting {
@@ -764,10 +597,6 @@
             box-shadow: 0 0 10px rgba(22,73,224,0.5);
         }
 
-        [data-theme="dark"] .progress-bar {
-            box-shadow: 0 0 14px rgba(77,122,255,0.7);
-        }
-
         /* ════════════════════════════════════════
            Messages
         ════════════════════════════════════════ */
@@ -788,22 +617,11 @@
             border: 1px solid rgba(15,169,102,0.25);
         }
 
-        [data-theme="dark"] .message.success {
-            background: rgba(18,200,117,0.08);
-            color: #12c875;
-            border-color: rgba(18,200,117,0.2);
-        }
-
         .message.error {
             display: block;
             background: rgba(220,38,38,0.07);
             color: var(--red);
             border: 1px solid rgba(220,38,38,0.18);
-        }
-
-        [data-theme="dark"] .message.error {
-            background: rgba(248,113,113,0.08);
-            border-color: rgba(248,113,113,0.2);
         }
 
         /* ════════════════════════════════════════
@@ -820,11 +638,6 @@
             justify-content: space-between;
             gap: 1rem;
             animation: popIn 0.45s cubic-bezier(0.22,1,0.36,1) both;
-        }
-
-        [data-theme="dark"] .download-success {
-            background: linear-gradient(135deg, rgba(18,200,117,0.08), rgba(18,200,117,0.03));
-            border-color: rgba(18,200,117,0.25);
         }
 
         @keyframes popIn {
@@ -860,8 +673,6 @@
             color: #0a7845;
             margin-bottom: 0.18rem;
         }
-
-        [data-theme="dark"] .ds-title { color: #12c875; }
 
         .ds-filename {
             font-size: 0.86rem;
@@ -967,22 +778,11 @@
             cursor: default;
         }
 
-        [data-theme="dark"] .tpl-feat {
-            background: #0a1020;
-            border-color: #1e2d4a;
-        }
-
         .tpl-feat:hover {
             border-color: rgba(22,73,224,0.22);
             background: var(--white);
             box-shadow: var(--shadow-sm);
             transform: translateY(-4px);
-        }
-
-        [data-theme="dark"] .tpl-feat:hover {
-            background: #111d33;
-            border-color: rgba(77,122,255,0.3);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         }
 
         .tpl-feat-icon-wrap { font-size: 2.4rem; line-height: 1; }
@@ -994,11 +794,6 @@
             border-radius: 14px;
             padding: 1.1rem 1.2rem;
             margin-bottom: 1rem;
-        }
-
-        [data-theme="dark"] .tpl-cols-section {
-            background: #0a1020;
-            border-color: #1e2d4a;
         }
 
         .tpl-cols-label {
@@ -1030,22 +825,12 @@
             transition: all 0.15s;
         }
 
-        [data-theme="dark"] .tpl-col {
-            background: #111d33;
-            border-color: #1e2d4a;
-        }
-
         .tpl-col:hover { border-color: var(--line2); color: var(--ink2); }
 
         .tpl-col-tax {
             background: rgba(22,73,224,0.05);
             border-color: rgba(22,73,224,0.18);
             color: var(--accent);
-        }
-
-        [data-theme="dark"] .tpl-col-tax {
-            background: rgba(77,122,255,0.08);
-            border-color: rgba(77,122,255,0.25);
         }
 
         .tpl-note {
@@ -1092,10 +877,6 @@
             white-space: nowrap;
         }
 
-        [data-theme="dark"] .tpl-inline-dl-btn {
-            box-shadow: 0 3px 14px rgba(18,200,117,0.35);
-        }
-
         .tpl-inline-dl-btn:hover { background: var(--green2); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(15,169,102,0.38); }
         .tpl-inline-dl-btn:active { transform: scale(0.97); }
 
@@ -1116,11 +897,6 @@
             transition: all 0.2s;
         }
 
-        [data-theme="dark"] .tpl-preview-btn {
-            background: #0a1020;
-            border-color: #1e2d4a;
-        }
-
         .tpl-preview-btn:hover {
             background: var(--white);
             border-color: var(--accent);
@@ -1128,19 +904,10 @@
             transform: translateY(-1px);
         }
 
-        [data-theme="dark"] .tpl-preview-btn:hover {
-            background: #111d33;
-        }
-
         .tpl-preview-btn.active {
             background: var(--accent-soft);
             border-color: rgba(22,73,224,0.28);
             color: var(--accent);
-        }
-
-        [data-theme="dark"] .tpl-preview-btn.active {
-            background: rgba(77,122,255,0.12);
-            border-color: rgba(77,122,255,0.3);
         }
 
         /* ════════════════════════════════════════
@@ -1151,11 +918,6 @@
             border: 1.5px solid var(--line);
             border-radius: 15px;
             overflow: hidden;
-        }
-
-        [data-theme="dark"] .tpl-preview-wrap {
-            background: #0a1020;
-            border-color: #1e2d4a;
         }
 
         .tpl-preview-label {
@@ -1169,10 +931,6 @@
             background: var(--white);
         }
 
-        [data-theme="dark"] .tpl-preview-label {
-            background: #0e1628;
-        }
-
         .tpl-table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
         .tpl-table {
@@ -1183,14 +941,7 @@
             white-space: nowrap;
         }
 
-        .tpl-table thead tr {
-            background: var(--white);
-            border-bottom: 1.5px solid var(--line);
-        }
-
-        [data-theme="dark"] .tpl-table thead tr {
-            background: #0e1628;
-        }
+        .tpl-table thead tr { background: var(--white); border-bottom: 1.5px solid var(--line); }
 
         .tpl-table th {
             padding: 0.6rem 0.9rem;
@@ -1204,19 +955,13 @@
 
         .tpl-table th.col-tax { color: var(--accent); background: rgba(22,73,224,0.04); }
 
-        [data-theme="dark"] .tpl-table th.col-tax { background: rgba(77,122,255,0.06); }
-
         .tpl-table tbody tr {
             border-bottom: 1px solid var(--surface2);
             transition: background 0.12s;
         }
 
-        [data-theme="dark"] .tpl-table tbody tr { border-bottom-color: #141f35; }
-
         .tpl-table tbody tr:last-child { border-bottom: none; }
         .tpl-table tbody tr:hover { background: rgba(22,73,224,0.03); }
-
-        [data-theme="dark"] .tpl-table tbody tr:hover { background: rgba(77,122,255,0.05); }
 
         .tpl-table td { padding: 0.65rem 0.9rem; color: var(--ink2); font-size: 0.78rem; }
 
@@ -1226,8 +971,6 @@
             font-family: 'Courier New', monospace;
             font-size: 0.74rem;
         }
-
-        [data-theme="dark"] .tpl-table td.col-tax { background: rgba(77,122,255,0.04); }
 
         .tpl-table td.col-empty { color: var(--line2); text-align: center; }
 
@@ -1249,10 +992,6 @@
     </style>
 </head>
 <body>
-
-<!-- Theme Toggle -->
-<button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">🌙</button>
-
 <div class="converter-wrap">
 
     <!-- Page Header -->
@@ -1430,6 +1169,8 @@
          ═══════════════════════════════════════ -->
     <script>
         (function() {
+            // Alert to indicate script start (optional)
+            alert('Converter script started');
 
             // DOM elements
             const fileInput = document.getElementById('fileInput');
@@ -1804,34 +1545,6 @@
 
             const tplDownloadBtn2 = document.getElementById('tplDownloadBtn2');
             if (tplDownloadBtn2) tplDownloadBtn2.addEventListener('click', downloadTemplate);
-        })();
-    </script>
-
-    <!-- Theme toggle script (UI only) -->
-    <script>
-        (function() {
-            const btn = document.getElementById('themeToggle');
-            const html = document.documentElement;
-
-            // Check saved preference
-            const saved = localStorage.getItem('theme') || 'light';
-            if (saved === 'dark') {
-                html.setAttribute('data-theme', 'dark');
-                btn.textContent = '☀️';
-            }
-
-            btn.addEventListener('click', function() {
-                const isDark = html.getAttribute('data-theme') === 'dark';
-                if (isDark) {
-                    html.removeAttribute('data-theme');
-                    btn.textContent = '🌙';
-                    localStorage.setItem('theme', 'light');
-                } else {
-                    html.setAttribute('data-theme', 'dark');
-                    btn.textContent = '☀️';
-                    localStorage.setItem('theme', 'dark');
-                }
-            });
         })();
     </script>
 </div>
