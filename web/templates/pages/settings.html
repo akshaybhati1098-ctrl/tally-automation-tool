@@ -1,3 +1,4 @@
+<div class="settings-wrap">
 <div class="card">
     <div class="card-header">
         <h3>⚙️ Settings</h3>
@@ -24,6 +25,7 @@
         <span class="btn-icon">💾</span> Save Settings
     </button>
     <div id="settingsMessage" class="message" style="margin-top: 1rem;"></div>
+</div>
 </div>
 <style>
 /* Settings card specific refinements – uses existing dashboard form styles */
@@ -94,23 +96,21 @@
 .btn .btn-icon {
     margin-right: 0.3rem;
 }
-/* ── Centering fix — aligns card with converter/mapping pages ── */
-.card {
+/* ── Centering fix — scoped to settings-wrap only, no other pages affected ── */
+.settings-wrap {
     max-width: 780px;
     margin: 0 auto;
     margin-left: max(2rem, calc(50vw - 390px - 105px));
 }
 @media (max-width: 900px) {
-    .card { margin-left: auto; }
+    .settings-wrap { margin-left: auto; }
 }
 </style>
 <script>
-// Example script to demonstrate save functionality (optional)
 document.getElementById('saveSettingsBtn')?.addEventListener('click', function() {
     const theme = document.getElementById('themeSelect').value;
     const vtype = document.getElementById('defaultVtype').value;
     const sheet = document.getElementById('defaultSheet').value;
-    // Simulate save
     const msgDiv = document.getElementById('settingsMessage');
     msgDiv.className = 'message success';
     msgDiv.textContent = `✅ Settings saved! Theme: ${theme}, Voucher: ${vtype}, Sheet: ${sheet}`;
