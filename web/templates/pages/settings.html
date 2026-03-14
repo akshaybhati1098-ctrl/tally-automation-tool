@@ -2,7 +2,6 @@
     <div class="card-header">
         <h3>⚙️ Settings</h3>
     </div>
-
     <div class="form-group">
         <label><span class="label-icon">🎨</span> Theme</label>
         <select id="themeSelect" class="form-select">
@@ -10,7 +9,6 @@
             <option value="dark">Dark</option>
         </select>
     </div>
-
     <div class="form-group">
         <label><span class="label-icon">📝</span> Default Voucher Type</label>
         <select id="defaultVtype" class="form-select">
@@ -18,26 +16,21 @@
             <option value="purchase">Purchase</option>
         </select>
     </div>
-
     <div class="form-group">
         <label><span class="label-icon">📄</span> Default Sheet Name</label>
         <input type="text" id="defaultSheet" value="Sheet1" class="form-input">
     </div>
-
     <button class="btn btn-primary" id="saveSettingsBtn">
         <span class="btn-icon">💾</span> Save Settings
     </button>
-
     <div id="settingsMessage" class="message" style="margin-top: 1rem;"></div>
 </div>
-
 <style>
 /* Settings card specific refinements – uses existing dashboard form styles */
 .label-icon {
     margin-right: 0.3rem;
     font-size: 1.1rem;
 }
-
 .form-input {
     width: 100%;
     padding: 0.8rem 1rem;
@@ -48,18 +41,15 @@
     color: #1e2b4f;
     transition: all 0.2s;
 }
-
 .form-input:hover {
     border-color: #b0c4de;
     background: white;
 }
-
 .form-input:focus {
     outline: none;
     border-color: #2a3f6e;
     box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
 }
-
 /* Reuse form-select from converter card */
 .form-select {
     width: 100%;
@@ -72,18 +62,15 @@
     transition: all 0.2s;
     cursor: pointer;
 }
-
 .form-select:hover {
     border-color: #b0c4de;
     background: white;
 }
-
 .form-select:focus {
     outline: none;
     border-color: #2a3f6e;
     box-shadow: 0 0 0 3px rgba(42, 63, 110, 0.1);
 }
-
 /* Message styling (consistent with converter) */
 .message {
     padding: 0.8rem 1rem;
@@ -91,34 +78,38 @@
     font-size: 0.9rem;
     display: none;
 }
-
 .message.success {
     display: block;
     background: #e1f7e3;
     color: #1e5f2e;
     border: 1px solid #a5d6a7;
 }
-
 .message.error {
     display: block;
     background: #ffe9e9;
     color: #b00020;
     border: 1px solid #ffb3b3;
 }
-
 /* Adjust button icon alignment */
 .btn .btn-icon {
     margin-right: 0.3rem;
 }
+/* ── Centering fix — aligns card with converter/mapping pages ── */
+.card {
+    max-width: 780px;
+    margin: 0 auto;
+    margin-left: max(2rem, calc(50vw - 390px - 105px));
+}
+@media (max-width: 900px) {
+    .card { margin-left: auto; }
+}
 </style>
-
 <script>
 // Example script to demonstrate save functionality (optional)
 document.getElementById('saveSettingsBtn')?.addEventListener('click', function() {
     const theme = document.getElementById('themeSelect').value;
     const vtype = document.getElementById('defaultVtype').value;
     const sheet = document.getElementById('defaultSheet').value;
-
     // Simulate save
     const msgDiv = document.getElementById('settingsMessage');
     msgDiv.className = 'message success';
