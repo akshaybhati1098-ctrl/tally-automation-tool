@@ -6,7 +6,7 @@ from itsdangerous import URLSafeTimedSerializer
 # ── Config ─────────────────────────────────────────────────────
 SECRET_KEY    = os.environ.get("SECRET_KEY", "change-this")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-MAIL_FROM = os.environ.get("MAIL_FROM", "TallyTool <otp@tallytool.online>")  # Resend test sender
+MAIL_FROM = os.environ.get("MAIL_FROM", "TallyTool OTP <otp@tallytool.online>")  # Resend test sender
 BASE_URL = os.environ.get("BASE_URL", "https://tallytool.online")
 
 # Initialize Resend
