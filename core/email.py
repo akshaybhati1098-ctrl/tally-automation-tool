@@ -6,14 +6,15 @@ from itsdangerous import URLSafeTimedSerializer
 # ── Config ─────────────────────────────────────────────────────
 SECRET_KEY    = os.environ.get("SECRET_KEY", "change-this")
 RESEND_API_KEY = os.environ.get("RESEND_API_KEY", "")
-MAIL_FROM     = os.environ.get("MAIL_FROM", "onboarding@resend.dev")  # Resend test sender
-BASE_URL      = os.environ.get("BASE_URL", "http://localhost:8000")
+MAIL_FROM = os.environ.get("MAIL_FROM", "TallyTool <otp@tallytool.online>")  # Resend test sender
+BASE_URL = os.environ.get("BASE_URL", "https://tallytool.online")
 
 # Initialize Resend
-if RESEND_API_KEY:
-    resend.api_key = RESEND_API_KEY
-else:
-    print("⚠️  RESEND_API_KEY not set. Email sending will fail.")
+# Initialize Resend
+if not RESEND_API_KEY:
+    raise RuntimeError("RESEND_API_KEY environment variable not set")
+
+resend.api_key = RESEND_API_KEY
 
 _serializer = URLSafeTimedSerializer(SECRET_KEY)
 
@@ -185,7 +186,7 @@ def send_otp_email(to_email: str, otp: str):
                   padding:1rem 2rem;text-align:center;">
         <p style="color:#b0bec8;font-size:0.68rem;margin:0;">
           Tally Tool by Akshay · v3.3 &nbsp;·&nbsp;
-          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.in</a>
+          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.online</a>
         </p>
       </div>
 
@@ -288,7 +289,7 @@ def send_username_reminder_email(to_email: str, username: str):
                   padding:1rem 2rem;text-align:center;">
         <p style="color:#b0bec8;font-size:0.68rem;margin:0;">
           Tally Tool by Akshay · v3.3 &nbsp;·&nbsp;
-          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.in</a>
+          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.online</a>
         </p>
       </div>
 
@@ -400,7 +401,7 @@ def send_password_reset_email(to_email: str, reset_link: str):
                   padding:1rem 2rem;text-align:center;">
         <p style="color:#b0bec8;font-size:0.68rem;margin:0;">
           Tally Tool by Akshay · v3.3 &nbsp;·&nbsp;
-          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.in</a>
+          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.online</a>
         </p>
       </div>
 
@@ -558,7 +559,7 @@ def send_welcome_email(to_email: str, username: str):
                   padding:1rem 2rem;text-align:center;">
         <p style="color:#b0bec8;font-size:0.68rem;margin:0;">
           Tally Tool by Akshay · v3.3 &nbsp;·&nbsp;
-          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.in</a>
+          <a href="{BASE_URL}" style="color:#1651e8;text-decoration:none;">tallytool.online</a>
         </p>
       </div>
 

@@ -13,6 +13,7 @@ from fastapi.responses import Response, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 
 import openpyxl
 import pandas as pd
@@ -46,12 +47,24 @@ app = FastAPI(title="Tally Automation Tool")
 # =========================================================
 # SESSION (HF SAFE)
 # =========================================================
-SECRET_KEY = os.environ.get("SECRET_KEY", "change-this")
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable not set")
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     same_site="none",
     https_only=True
+)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://tallytool.online",
+        "https://www.tallytool.online"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # =========================================================
@@ -466,7 +479,7 @@ async def forgot_password(email: str = Form(...)):
     
     set_user_reset_token(email, reset_token, expiry)
     
-    BASE_URL = os.environ.get("BASE_URL", "https://tally-automation-tool.onrender.com")
+    BASE_URL = os.environ.get("BASE_URL", "https://tallytool.online")
     reset_link = f"{BASE_URL}/reset-password?token={reset_token}"
     
     try:
