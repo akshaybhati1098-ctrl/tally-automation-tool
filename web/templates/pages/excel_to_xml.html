@@ -71,8 +71,6 @@
             position: relative;
             z-index: 1;
             max-width: 780px;
-            /* Sidebar is ~210px wide; shift left by half to visually centre
-               in the content area, not the full viewport */
             margin: 0 auto;
             margin-left: max(2rem, calc(50vw - 390px - 105px));
         }
@@ -145,7 +143,6 @@
         .card:nth-child(2) { animation-delay: 0.1s; }
         .card:nth-child(3) { animation-delay: 0.2s; }
 
-        /* Subtle card shimmer */
         .card::before {
             content: '';
             position: absolute;
@@ -844,7 +841,6 @@
 
         .tpl-note::before { content: 'ℹ️'; font-size: 0.78rem; }
 
-        /* Hidden elements — preserved for JS */
         .guidance-content { padding: 0.2rem 0; }
         .tpl-section-label, .tpl-features, .btn-success { display: none; }
         .btn-icon { font-size: 1rem; }
@@ -880,7 +876,6 @@
         .tpl-inline-dl-btn:hover { background: var(--green2); transform: translateY(-1px); box-shadow: 0 5px 14px rgba(15,169,102,0.38); }
         .tpl-inline-dl-btn:active { transform: scale(0.97); }
 
-        /* Preview button */
         .tpl-preview-btn {
             display: inline-flex;
             align-items: center;
@@ -977,6 +972,211 @@
         .tpl-table td:first-child { font-weight: 600; color: var(--muted); font-size: 0.72rem; }
 
         /* ════════════════════════════════════════
+           ERROR POPUP NOTIFICATION  ← NEW
+        ════════════════════════════════════════ */
+        .error-popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 15, 30, 0.45);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            z-index: 9998;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            animation: overlayIn 0.22s ease both;
+        }
+
+        @keyframes overlayIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+        }
+
+        .error-popup-overlay.hiding {
+            animation: overlayOut 0.22s ease both;
+        }
+
+        @keyframes overlayOut {
+            from { opacity: 1; }
+            to   { opacity: 0; }
+        }
+
+        .error-popup {
+            background: var(--white);
+            border-radius: 24px;
+            padding: 2.2rem 2.4rem 2rem;
+            max-width: 420px;
+            width: 100%;
+            box-shadow:
+                0 4px 24px rgba(220,38,38,0.12),
+                0 24px 64px rgba(10,15,30,0.22);
+            border: 1.5px solid rgba(220,38,38,0.15);
+            position: relative;
+            animation: popupIn 0.35s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        @keyframes popupIn {
+            0%   { opacity: 0; transform: scale(0.88) translateY(16px); }
+            65%  { transform: scale(1.02) translateY(-3px); }
+            100% { opacity: 1; transform: none; }
+        }
+
+        .error-popup-overlay.hiding .error-popup {
+            animation: popupOut 0.22s ease both;
+        }
+
+        @keyframes popupOut {
+            from { opacity: 1; transform: scale(1); }
+            to   { opacity: 0; transform: scale(0.92) translateY(10px); }
+        }
+
+        .ep-icon-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .ep-icon {
+            width: 52px; height: 52px;
+            background: rgba(220,38,38,0.09);
+            border: 1.5px solid rgba(220,38,38,0.22);
+            border-radius: 15px;
+            display: grid; place-items: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            animation: shakeIcon 0.5s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+        }
+
+        @keyframes shakeIcon {
+            0%   { transform: rotate(0); }
+            20%  { transform: rotate(-8deg) scale(1.1); }
+            40%  { transform: rotate(7deg); }
+            60%  { transform: rotate(-5deg); }
+            80%  { transform: rotate(3deg); }
+            100% { transform: rotate(0) scale(1); }
+        }
+
+        .ep-title-block {}
+        .ep-eyebrow {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--red);
+            margin-bottom: 0.2rem;
+        }
+
+        .ep-title {
+            font-family: 'Syne', sans-serif;
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--ink);
+            letter-spacing: -0.02em;
+        }
+
+        .ep-divider {
+            height: 1px;
+            background: linear-gradient(90deg, rgba(220,38,38,0.15), var(--line), transparent);
+            margin: 1.1rem 0;
+        }
+
+        .ep-message {
+            font-size: 0.9rem;
+            color: var(--ink3);
+            line-height: 1.6;
+            background: rgba(220,38,38,0.04);
+            border: 1px solid rgba(220,38,38,0.1);
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+            font-family: 'DM Sans', sans-serif;
+            word-break: break-word;
+            margin-bottom: 1.5rem;
+        }
+
+        .ep-message strong {
+            display: block;
+            color: var(--red);
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.07em;
+            margin-bottom: 0.4rem;
+        }
+
+        .ep-actions {
+            display: flex;
+            gap: 0.7rem;
+        }
+
+        .ep-btn-retry {
+            flex: 1;
+            padding: 0.95rem 1.5rem;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: var(--white);
+            border: none;
+            border-radius: 13px;
+            font-family: 'Syne', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            box-shadow: 0 4px 16px rgba(22,73,224,0.36);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.45rem;
+        }
+
+        .ep-btn-retry:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(22,73,224,0.48);
+        }
+
+        .ep-btn-retry:active { transform: scale(0.97); }
+
+        .ep-btn-dismiss {
+            padding: 0.95rem 1.2rem;
+            background: var(--surface);
+            color: var(--muted);
+            border: 1.5px solid var(--line);
+            border-radius: 13px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .ep-btn-dismiss:hover {
+            background: var(--white);
+            border-color: var(--line2);
+            color: var(--ink2);
+        }
+
+        /* close X */
+        .ep-close {
+            position: absolute;
+            top: 1.1rem; right: 1.1rem;
+            width: 30px; height: 30px;
+            background: var(--surface);
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            color: var(--muted);
+            cursor: pointer;
+            display: grid; place-items: center;
+            transition: all 0.15s;
+            line-height: 1;
+        }
+
+        .ep-close:hover { background: rgba(220,38,38,0.08); color: var(--red); }
+
+        /* ════════════════════════════════════════
            Responsive
         ════════════════════════════════════════ */
         @media (max-width: 700px) {
@@ -988,6 +1188,8 @@
             .download-success { flex-direction: column; align-items: flex-start; }
             .ds-right { align-items: flex-start; width: 100%; }
             .ds-btn { width: 100%; justify-content: center; }
+            .error-popup { padding: 1.6rem 1.4rem 1.5rem; }
+            .ep-actions { flex-direction: column; }
         }
     </style>
 </head>
@@ -1165,28 +1367,105 @@
     </div>
 
     <!-- ═══════════════════════════════════════
-         JS — conversion via backend API (UNTOUCHED)
+         JS
          ═══════════════════════════════════════ -->
     <script>
         (function() {
-            // Alert to indicate script start (optional)
-            alert('Converter script started');
-
             // DOM elements
-            const fileInput = document.getElementById('fileInput');
-            const sheetSelect = document.getElementById('sheetSelect');
-            const sheetLoading = document.getElementById('sheetLoading');
+            const fileInput     = document.getElementById('fileInput');
+            const sheetSelect   = document.getElementById('sheetSelect');
+            const sheetLoading  = document.getElementById('sheetLoading');
             const companySelect = document.getElementById('companySelect');
-            const submitBtn = document.getElementById('submitBtn');
-            const form = document.getElementById('convertForm');
-            const progress = document.getElementById('progress');
-            const progressBar = document.getElementById('progressBar');
-            const messageDiv = document.getElementById('message');
+            const submitBtn     = document.getElementById('submitBtn');
+            const form          = document.getElementById('convertForm');
+            const progress      = document.getElementById('progress');
+            const progressBar   = document.getElementById('progressBar');
+            const messageDiv    = document.getElementById('message');
 
-            // Global state for mapping
+            // Global state
             let currentMapping = null;
 
-            // --- Load companies from API (same as mapping editor) ---
+            // ══════════════════════════════════════
+            //  ERROR POPUP  — NEW
+            // ══════════════════════════════════════
+            function showErrorPopup(errorMessage) {
+                // Remove any existing popup first
+                const existing = document.getElementById('errorPopupOverlay');
+                if (existing) existing.remove();
+
+                const overlay = document.createElement('div');
+                overlay.className = 'error-popup-overlay';
+                overlay.id = 'errorPopupOverlay';
+
+                overlay.innerHTML = `
+                    <div class="error-popup" role="alertdialog" aria-modal="true" aria-labelledby="epTitle">
+                        <button class="ep-close" id="epClose" aria-label="Close">✕</button>
+                        <div class="ep-icon-row">
+                            <div class="ep-icon">❌</div>
+                            <div class="ep-title-block">
+                                <div class="ep-eyebrow">Conversion Failed</div>
+                                <div class="ep-title" id="epTitle">Something went wrong</div>
+                            </div>
+                        </div>
+                        <div class="ep-divider"></div>
+                        <div class="ep-message">
+                            <strong>Error Details</strong>
+                            ${escapeHtml(errorMessage)}
+                        </div>
+                        <div class="ep-actions">
+                            <button class="ep-btn-retry" id="epRetry">
+                                <span>🔄</span> Try Again
+                            </button>
+                            <button class="ep-btn-dismiss" id="epDismiss">Dismiss</button>
+                        </div>
+                    </div>
+                `;
+
+                document.body.appendChild(overlay);
+
+                function closePopup() {
+                    overlay.classList.add('hiding');
+                    overlay.addEventListener('animationend', () => overlay.remove(), { once: true });
+                }
+
+                // "Try Again" — close popup + reset button so user can resubmit
+                document.getElementById('epRetry').addEventListener('click', function() {
+                    closePopup();
+                    resetBtn();           // ← resets converting state
+                    submitBtn.disabled = false;
+                    submitBtn.classList.remove('converting');
+                    submitBtn.style.pointerEvents = '';
+                });
+
+                // Dismiss — just close
+                document.getElementById('epDismiss').addEventListener('click', closePopup);
+                document.getElementById('epClose').addEventListener('click', closePopup);
+
+                // Click outside to close
+                overlay.addEventListener('click', function(e) {
+                    if (e.target === overlay) closePopup();
+                });
+
+                // ESC key
+                document.addEventListener('keydown', function escHandler(e) {
+                    if (e.key === 'Escape') {
+                        closePopup();
+                        document.removeEventListener('keydown', escHandler);
+                    }
+                });
+            }
+
+            function escapeHtml(str) {
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;');
+            }
+
+            // ══════════════════════════════════════
+            //  Load companies
+            // ══════════════════════════════════════
             async function loadCompaniesForConverter() {
                 try {
                     const response = await fetch('/api/companies');
@@ -1194,7 +1473,6 @@
                     const data = await response.json();
                     const companies = data.companies || [];
 
-                    // Clear and repopulate dropdown
                     companySelect.innerHTML = '<option value="">-- Select company --</option>';
                     companies.forEach(name => {
                         const option = document.createElement('option');
@@ -1202,18 +1480,11 @@
                         option.textContent = name;
                         companySelect.appendChild(option);
                     });
-
-                    // Optionally select first company
-                    if (companies.length > 0) {
-                        // companySelect.value = companies[0];
-                        // if (companies[0]) await fetchMapping(companies[0]);
-                    }
                 } catch (err) {
                     showMessage('Failed to load companies. Is the server running?', 'error');
                 }
             }
 
-            // --- Fetch mapping for selected company ---
             async function fetchMapping(companyName) {
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(companyName)}`);
@@ -1225,10 +1496,8 @@
                 }
             }
 
-            // --- Call on page load ---
             loadCompaniesForConverter();
 
-            // --- When company changes, load its mapping ---
             companySelect.addEventListener('change', async function() {
                 const company = companySelect.value;
                 if (company) {
@@ -1239,21 +1508,20 @@
                 checkFormValidity();
             });
 
-            // --- Expose function so mapping editor can refresh dropdown ---
             window.loadCompaniesForConverter = loadCompaniesForConverter;
 
-            // --- Handle file selection ---
+            // ══════════════════════════════════════
+            //  File / sheet handling
+            // ══════════════════════════════════════
             fileInput.addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
 
-                // Reset sheet dropdown
                 sheetSelect.innerHTML = '<option value="">-- Select a sheet --</option>';
                 sheetSelect.disabled = true;
                 submitBtn.disabled = true;
-                sheetLoading.style.display = 'flex';  // show loading
+                sheetLoading.style.display = 'flex';
 
-                // Read the Excel file (SheetJS used only to extract sheet names)
                 const reader = new FileReader();
                 reader.onload = function(loadEvent) {
                     try {
@@ -1261,7 +1529,6 @@
                         const workbook = XLSX.read(data, { type: 'array' });
                         const sheetNames = workbook.SheetNames;
 
-                        // Populate sheet dropdown
                         sheetNames.forEach(name => {
                             const option = document.createElement('option');
                             option.value = name;
@@ -1269,7 +1536,6 @@
                             sheetSelect.appendChild(option);
                         });
 
-                        // Auto-select the first sheet
                         if (sheetNames.length > 0) {
                             sheetSelect.value = sheetNames[0];
                         }
@@ -1278,17 +1544,16 @@
                         sheetLoading.style.display = 'none';
                         checkFormValidity();
                     } catch (err) {
-                        showMessage('Error reading Excel file: ' + err.message, 'error');
                         sheetLoading.style.display = 'none';
+                        showErrorPopup('Error reading Excel file: ' + err.message);
                     }
                 };
                 reader.readAsArrayBuffer(file);
             });
 
-            // --- Enable submit when all required fields are filled ---
             function checkFormValidity() {
-                const fileSelected = fileInput.files.length > 0;
-                const sheetSelected = sheetSelect.value && sheetSelect.value !== '';
+                const fileSelected    = fileInput.files.length > 0;
+                const sheetSelected   = sheetSelect.value && sheetSelect.value !== '';
                 const companySelected = companySelect.value && companySelect.value !== '';
                 const voucherSelected = document.querySelector('input[name="vtype"]:checked') !== null;
 
@@ -1302,22 +1567,22 @@
                 radio.addEventListener('change', checkFormValidity);
             });
 
-            // --- Form submission: send to backend API ---
+            // ══════════════════════════════════════
+            //  Form submit  ← FIXED error handling
+            // ══════════════════════════════════════
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
-                const file = fileInput.files[0];
+                const file      = fileInput.files[0];
                 const sheetName = sheetSelect.value;
-                const company = companySelect.value;
-                const vtype = document.querySelector('input[name="vtype"]:checked').value;
+                const company   = companySelect.value;
+                const vtype     = document.querySelector('input[name="vtype"]:checked').value;
 
-                // Show progress bar
                 progress.style.display = 'block';
                 progressBar.style.width = '30%';
                 messageDiv.style.display = 'none';
 
                 try {
-                    // Build FormData for backend
                     const formData = new FormData();
                     formData.append('file', file);
                     formData.append('sheet_name', sheetName);
@@ -1326,7 +1591,6 @@
 
                     progressBar.style.width = '60%';
 
-                    // Send to backend API
                     const response = await fetch('/api/convert', {
                         method: 'POST',
                         body: formData
@@ -1339,15 +1603,12 @@
 
                     progressBar.style.width = '90%';
 
-                    // Read blob and get XML text for success card
                     const blob = await response.blob();
                     const xmlContent = await blob.text();
                     const xmlFilename = `Tally_${vtype}_${Date.now()}.xml`;
 
-                    // Capture for download success card
                     if (window.__captureDownload) window.__captureDownload(xmlContent, xmlFilename);
 
-                    // Trigger browser download
                     const url = URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
@@ -1356,27 +1617,44 @@
                     URL.revokeObjectURL(url);
 
                     progressBar.style.width = '100%';
-
                     showMessage('✅ XML generated successfully!', 'success');
+
                 } catch (err) {
-                    showMessage('❌ Error: ' + err.message, 'error');
+                    // ── Reset progress bar immediately on error ──
+                    progress.style.display = 'none';
+                    progressBar.style.width = '0%';
+
+                    // ── Reset button so it's ready to use again ──
+                    resetBtn();
+                    submitBtn.classList.remove('converting');
+                    submitBtn.style.pointerEvents = '';
+                    checkFormValidity(); // re-evaluate if button should be enabled
+
+                    // ── Show the popup instead of inline message ──
+                    showErrorPopup(err.message);
+                    return; // skip the finally progress hide
+
                 } finally {
-                    // Hide progress after a delay
-                    setTimeout(() => {
-                        progress.style.display = 'none';
-                        progressBar.style.width = '0%';
-                    }, 2000);
+                    // Only hide progress on success path (error path already hid it above)
+                    if (progress.style.display !== 'none') {
+                        setTimeout(() => {
+                            progress.style.display = 'none';
+                            progressBar.style.width = '0%';
+                        }, 2000);
+                    }
                 }
             });
 
-            // Show message
+            // Show inline message (success only now)
             function showMessage(text, type) {
                 messageDiv.textContent = text;
                 messageDiv.className = `message ${type}`;
                 messageDiv.style.display = 'block';
             }
 
-            // ── Download success card UI ──
+            // ══════════════════════════════════════
+            //  Download success card
+            // ══════════════════════════════════════
             const downloadSuccess = document.getElementById('downloadSuccess');
             const dsFilename      = document.getElementById('dsFilename');
             const dsMeta          = document.getElementById('dsMeta');
@@ -1386,13 +1664,11 @@
             let lastXmlContent  = null;
             let lastXmlFilename = null;
 
-            // Capture content for re-download
             window.__captureDownload = function(content, filename) {
                 lastXmlContent  = content;
                 lastXmlFilename = filename;
             };
 
-            // Watch for success message to show the card
             const msgObserver = new MutationObserver(() => {
                 if (messageDiv.classList.contains('success') && lastXmlFilename) {
                     messageDiv.style.display = 'none';
@@ -1404,7 +1680,6 @@
             });
             msgObserver.observe(messageDiv, { attributes: true, attributeFilter: ['class'] });
 
-            // Re-download button
             dsDownloadBtn.addEventListener('click', function() {
                 if (lastXmlContent && lastXmlFilename) {
                     const blob = new Blob([lastXmlContent], { type: 'application/xml' });
@@ -1417,7 +1692,6 @@
                 }
             });
 
-            // Convert another — reset UI
             dsNewBtn.addEventListener('click', function() {
                 downloadSuccess.style.display = 'none';
                 lastXmlContent  = null;
@@ -1425,8 +1699,10 @@
                 messageDiv.style.display = 'none';
             });
 
-            // ── Upload zone visual feedback (UI only, does not affect logic) ──
-            const uploadZone = document.getElementById('uploadZone');
+            // ══════════════════════════════════════
+            //  Upload zone visual feedback
+            // ══════════════════════════════════════
+            const uploadZone  = document.getElementById('uploadZone');
             const uploadInner = document.getElementById('uploadInner');
 
             uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
@@ -1439,7 +1715,7 @@
                     uploadZone.classList.add('has-file');
                     uploadInner.innerHTML = `
                         <div class="upload-icon-box">✅</div>
-                        <div class="upload-main">${file.name}</div>
+                        <div class="upload-main">${escapeHtml(file.name)}</div>
                         <div class="upload-sub">${(file.size/1024).toFixed(1)} KB · click to change</div>
                         <div class="upload-cta">Change File</div>`;
                 } else {
@@ -1450,9 +1726,11 @@
                         <div class="upload-sub">.xlsx or .xls files only</div>
                         <div class="upload-cta">Choose File</div>`;
                 }
-            }, false); // false = does not capture, fires after original listener
+            }, false);
 
-            // ── Button converting UI (UI only) ──
+            // ══════════════════════════════════════
+            //  Button converting UI
+            // ══════════════════════════════════════
             const btnIcon = document.getElementById('btnIcon');
             const btnText = document.getElementById('btnText');
             const btnPct  = document.getElementById('btnPct');
@@ -1480,26 +1758,38 @@
                 btnPct.style.display = 'none';
             }
 
+            // Store observer reference so we can disconnect on error
+            let btnProgressObserver = null;
+
             form.addEventListener('submit', function() {
                 submitBtn.classList.add('converting');
                 setBtnState(steps[0].pct, steps[0].icon, steps[0].label);
 
-                // Watch progressBar width changes to sync button UI
-                const observer = new MutationObserver(() => {
+                // Disconnect previous observer if any
+                if (btnProgressObserver) btnProgressObserver.disconnect();
+
+                btnProgressObserver = new MutationObserver(() => {
                     const w = parseFloat(progressBar.style.width) || 0;
                     if      (w >= 90) setBtnState(steps[3].pct, steps[3].icon, steps[3].label);
                     else if (w >= 60) setBtnState(steps[2].pct, steps[2].icon, steps[2].label);
                     else if (w >= 30) setBtnState(steps[1].pct, steps[1].icon, steps[1].label);
 
                     if (w >= 100) {
-                        observer.disconnect();
+                        btnProgressObserver.disconnect();
                         setTimeout(resetBtn, 2200);
+                    }
+                    // If bar goes back to 0 (error path reset it), disconnect & reset
+                    if (w === 0) {
+                        btnProgressObserver.disconnect();
                     }
                 });
 
-                observer.observe(progressBar, { attributes: true, attributeFilter: ['style'] });
+                btnProgressObserver.observe(progressBar, { attributes: true, attributeFilter: ['style'] });
             });
-            // ── Preview toggle ──
+
+            // ══════════════════════════════════════
+            //  Preview toggle
+            // ══════════════════════════════════════
             const tplPreviewBtn  = document.getElementById('tplPreviewBtn');
             const tplPreviewWrap = document.getElementById('tplPreviewWrap');
             const tplPreviewIcon = document.getElementById('tplPreviewBtnIcon');
@@ -1508,18 +1798,17 @@
                     const open = tplPreviewWrap.style.display !== 'none';
                     tplPreviewWrap.style.display = open ? 'none' : 'block';
                     tplPreviewIcon.textContent   = open ? '👁' : '🙈';
-                    tplPreviewBtn.querySelector('span + span') && (tplPreviewBtn.lastChild.textContent = open ? ' Preview Sample Data' : ' Hide Preview');
                     tplPreviewBtn.classList.toggle('active', !open);
-                    // Simple slide-in animation
                     if (!open) {
                         tplPreviewWrap.style.animation = 'fadeUp 0.3s cubic-bezier(0.22,1,0.36,1) both';
                     }
                 });
-                // Fix button text node
                 tplPreviewBtn.innerHTML = '<span id="tplPreviewBtnIcon">👁</span> Preview Sample Data';
             }
 
-            // ── Template download — generate .xlsx with SheetJS ──
+            // ══════════════════════════════════════
+            //  Template download
+            // ══════════════════════════════════════
             function downloadTemplate() {
                 const headers = [
                     'Sr', 'GSTIN', 'Recipient Name', 'Invoice Number',
@@ -1545,6 +1834,7 @@
 
             const tplDownloadBtn2 = document.getElementById('tplDownloadBtn2');
             if (tplDownloadBtn2) tplDownloadBtn2.addEventListener('click', downloadTemplate);
+
         })();
     </script>
 </div>
