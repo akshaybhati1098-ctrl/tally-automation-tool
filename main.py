@@ -86,7 +86,6 @@ async def login(
         key="access_token",
         value=token,
         httponly=True,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
         secure=False,  # Set to True in production with HTTPS
         samesite="lax"
     )
@@ -94,8 +93,15 @@ async def login(
 
 @app.get("/logout")
 async def logout():
-    response = RedirectResponse(url="/login")
-    response.delete_cookie("access_token")
+    response = RedirectResponse(url="/login", status_code=302)
+
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=False,   # must match login
+        samesite="lax"  # must match login
+    )
+
     return response
 
 # ---------- PROTECTED PAGE EXAMPLE ----------
@@ -126,7 +132,11 @@ async def register_page(request: Request):
 # Optional: make user available in all templates
 @app.middleware("http")
 async def add_user_to_request(request: Request, call_next):
-    user = await get_current_user(request)
+    try:
+        user = await get_current_user(request)
+    except:
+        user = None
+
     request.state.user = user
     response = await call_next(request)
     return response
