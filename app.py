@@ -626,12 +626,15 @@ async def convert_excel_api(
     if not file.filename.endswith((".xlsx", ".xls")):
         raise HTTPException(400, "Only Excel files allowed")
 
+    user_id = request.session.get("user_id")
+
     xml_content, count = excel_to_xml(
-        await file.read(),
-        sheet_name,
-        vtype,
-        company
-    )
+    await file.read(),
+    sheet_name,
+    vtype,
+    company,
+    user_id
+)
 
     return Response(
         content=xml_content,
