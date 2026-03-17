@@ -806,5 +806,5 @@ async def reset_password_page(request: Request, token: str = None):
         "pages/login.html",
         {"request": request, "reset_token": token}
     )
-give full code after change  
+ 
 
