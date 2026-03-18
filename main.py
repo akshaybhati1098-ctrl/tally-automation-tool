@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, Form, Request
+from fastapi.responses import JSONResponse
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
@@ -102,6 +103,17 @@ async def logout():
         samesite="lax"  # must match login
     )
 
+    return response
+
+@app.post("/logout")
+async def logout_post():
+    response = JSONResponse({"message": "logged out"})
+    response.delete_cookie(
+        key="access_token",
+        httponly=True,
+        secure=False,
+        samesite="lax"
+    )
     return response
 
 # ---------- PROTECTED PAGE EXAMPLE ----------
