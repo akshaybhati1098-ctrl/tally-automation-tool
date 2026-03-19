@@ -54,7 +54,9 @@ app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     same_site="none",
-    https_only=True
+    https_only=True,
+    max_age=None,
+    session_cookie="session"
 )
 app.add_middleware(
     CORSMiddleware,
@@ -66,7 +68,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
+SESSION_TIMEOUT_MINUTES = 60
+@app.middleware("http")
+async def session_timeout_middleware(request: Request, call_next):
+    if request.session.get("username"):
+        last_active = request.session.get("last_active")
+        if last_active:
+            last_dt = datetime.fromisoformat(last_active)
+            if datetime.now() - last_dt > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+                request.session.clear()
+        request.session["last_active"] = datetime.now().isoformat()
+    return await call_next(request)
 # =========================================================
 # STATIC & TEMPLATES
 # =========================================================
@@ -342,7 +354,10 @@ async def signup_post(
 
 @app.get("/logout")
 async def logout(request: Request):
+    is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     request.session.clear()
+    if is_ajax:
+        return JSONResponse({"success": True, "redirect": "/login"})
     return RedirectResponse("/login")
 
 @app.get("/api/me")

@@ -567,10 +567,5 @@
   function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
   function viewReports()    { alert('📈 Opening reports dashboard (demo)'); }
 </script>
-<script>
-   window.addEventListener("unload", function () {
-    navigator.sendBeacon("/logout");
-});
-</script>
 </body>
 </html>
