@@ -316,24 +316,31 @@ document.addEventListener('DOMContentLoaded', function() {
     updateNavbarVisibility();
 
     // ── Browser-close logout ──
-    // sessionStorage clears when ALL browser windows close
-    // localStorage persists across restarts
-    const isLoggedIn = window.currentUser && window.currentUser !== '';
+    (async function() {
+        try {
+            // Ask the server if we're actually logged in
+            const res  = await fetch('/api/me');
+            const data = await res.json();
 
-    if (isLoggedIn) {
-        // Mark session as alive
-        localStorage.setItem('was_logged_in', '1');
-        sessionStorage.setItem('tab_alive', '1');
-    } else {
-        // User is on login/signup page — check if browser was closed
-        const wasLoggedIn = localStorage.getItem('was_logged_in');
-        const tabAlive    = sessionStorage.getItem('tab_alive');
+            if (data.authenticated) {
+                // User is logged in — mark session alive in sessionStorage
+                localStorage.setItem('was_logged_in', '1');
+                sessionStorage.setItem('tab_alive', '1');
+            } else {
+                // Not logged in — check if browser was previously closed
+                const wasLoggedIn = localStorage.getItem('was_logged_in');
+                const tabAlive    = sessionStorage.getItem('tab_alive');
 
-        if (wasLoggedIn === '1' && !tabAlive) {
-            // Browser was fully closed while logged in — clear server session
-            localStorage.removeItem('was_logged_in');
-            fetch('/logout', { keepalive: true }).catch(() => {});
+                if (wasLoggedIn === '1' && !tabAlive) {
+                    // Browser was fully closed while logged in
+                    // Clear the stale server session and localStorage flag
+                    localStorage.removeItem('was_logged_in');
+                    await fetch('/logout', { keepalive: true });
+                }
+            }
+        } catch(e) {
+            // Network error — ignore silently
         }
-    }
+    })();
 });
 </script>
