@@ -69,15 +69,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 SESSION_TIMEOUT_MINUTES = 60
+
 @app.middleware("http")
 async def session_timeout_middleware(request: Request, call_next):
-    if request.session.get("username"):
-        last_active = request.session.get("last_active")
-        if last_active:
-            last_dt = datetime.fromisoformat(last_active)
-            if datetime.now() - last_dt > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
-                request.session.clear()
-        request.session["last_active"] = datetime.now().isoformat()
+    if "session" in request.scope:
+        try:
+            if request.session.get("username"):
+                last_active = request.session.get("last_active")
+                if last_active:
+                    last_dt = datetime.fromisoformat(last_active)
+                    if datetime.now() - last_dt > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+                        request.session.clear()
+                request.session["last_active"] = datetime.now().isoformat()
+        except Exception:
+            pass
     return await call_next(request)
 # =========================================================
 # STATIC & TEMPLATES
