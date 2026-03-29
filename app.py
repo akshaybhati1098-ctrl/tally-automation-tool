@@ -827,6 +827,7 @@ def api_tally_ledgers(group: Optional[str] = None):
 
 @app.post("/api/match-party")
 async def match_party(
+    reuest: Request,
     file: UploadFile = File(...),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
@@ -881,8 +882,17 @@ async def match_party(
                 "gstin_column": gstin_col,
             }
         # ✅ GET LEDGERS FROM FRONTEND
-        ledgers_json = request.form().get("ledgers", "[]")
-        ledgers_data = json.loads(ledgers_json)
+        try:
+          ledgers_data = json.loads(ledgers)
+        except:
+          ledgers_data = []
+
+        ledger_names = [l.get("name") for l in ledgers_data if l.get("name")]
+
+        # optional GST map
+        gst_map = {}
+
+        print(f"✅ Ledgers received: {len(ledger_names)}")
 
         ledgers = [l["name"] for l in ledgers_data]
 
@@ -893,7 +903,7 @@ async def match_party(
 
         results = match_party_names(
             df=df,
-            tally_ledgers=ledgers,
+            tally_ledgers=ledger_names,
             tally_gstin_map=gst_map,
             party_col=party_col,
             gstin_col=gstin_col,
