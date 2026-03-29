@@ -1,34 +1,76 @@
-print("CORE XML SCRIPT RUNNING")
-#!/usr/bin/env python3
-"""
-STRICT XML GENERATOR (GUI VERSION)
-----------------------------------
-✔ Works with GUI (NO input, NO menus)
-✔ Accepts: (vtype, df, out_dir, mapping)
-✔ Strict GST ledger mapping
-✔ Auto-adjust invoice ±10
-✔ SALE vouchers → Accounting Invoice Mode
-✔ PURCHASE vouchers unchanged
-✔ Returns: xml_path, record_count
-"""
-
-import os, json
+import os
 import pandas as pd
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 MISSING_LEDGER_NAME = "__RATE_NOT_MAPPED__"
+def tally_date(d):
+    try:
+        import pandas as pd
+        dt = pd.to_datetime(d, dayfirst=True, errors="coerce")
+        if pd.isna(dt):
+            return ""
+        return dt.strftime("%Y%m%d")
+    except:
+        return ""
 
 GST_STATE = {
- "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab",
- "04": "Chandigarh", "05": "Uttarakhand", "06": "Haryana",
- "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
- "10": "Bihar", "19": "West Bengal", "24": "Gujarat",
- "27": "Maharashtra", "29": "Karnataka", "33": "Tamil Nadu",
- "36": "Telangana"
+    "01": "Jammu and Kashmir",
+    "02": "Himachal Pradesh",
+    "03": "Punjab",
+    "04": "Chandigarh",
+    "05": "Uttarakhand",
+    "06": "Haryana",
+    "07": "Delhi",
+    "08": "Rajasthan",
+    "09": "Uttar Pradesh",
+    "10": "Bihar",
+    "11": "Sikkim",
+    "12": "Arunachal Pradesh",
+    "13": "Nagaland",
+    "14": "Manipur",
+    "15": "Mizoram",
+    "16": "Tripura",
+    "17": "Meghalaya",
+    "18": "Assam",
+    "19": "West Bengal",
+    "20": "Jharkhand",
+    "21": "Odisha",
+    "22": "Chhattisgarh",
+    "23": "Madhya Pradesh",
+    "24": "Gujarat",
+    "25": "Daman and Diu",
+    "26": "Dadra and Nagar Haveli",
+    "27": "Maharashtra",
+    "28": "Goa",
+    "29": "Karnataka",
+    "30": "Andaman and Nicobar Islands",
+    "31": "Lakshadweep",
+    "32": "Delhi",
+    "33": "Tamil Nadu",
+    "34": "Puducherry",
+    "35": "Kerala",
+    "36": "Telangana",
+    "37": "Andhra Pradesh"
 }
+def state_from_gstin(gstin):
+    gstin = clean_text(gstin)
+    return GST_STATE.get(gstin[:2], "")
 
-# ---------------------------- HELPERS ----------------------------
+# ---------------- HELPER ----------------
+def is_interstate(gstin, company_state="Uttar Pradesh"):
+    state = state_from_gstin(gstin)
+    print("👉 GSTIN:", gstin, "| STATE:", state, "| COMPANY:", company_state)
+    if not state:
+        return False
+    return state.strip().lower() != company_state.strip().lower()
+def is_already_normalized(mapping):
+    return (
+        "SALES" in mapping or
+        "PURCHASE" in mapping or
+        "CGST_RATES" in mapping
+    )
+# ---------------- BASIC HELPERS ----------------
 
 def num(x):
     try:
@@ -36,15 +78,10 @@ def num(x):
     except:
         return 0.0
 
-def tally_date(d):
-    try:
-        return pd.to_datetime(d, dayfirst=True).strftime("%Y%m%d")
-    except:
-        return ""
 
-def state_from_gstin(gstin):
-    gstin = str(gstin).strip()
-    return GST_STATE.get(gstin[:2], "")
+def clean_text(x):
+    return "" if x is None else str(x).strip()
+
 
 def normalize_rate_key(k):
     try:
@@ -52,169 +89,248 @@ def normalize_rate_key(k):
     except:
         return "0"
 
+
+def first_non_empty(row, *keys):
+    for k in keys:
+        if str(row.get(k, "")).strip():
+            return row.get(k)
+    return ""
+
+
 def add_entry(v, ledger, positive, amt):
     e = ET.SubElement(v, "ALLLEDGERENTRIES.LIST")
-    ET.SubElement(e, "LEDGERNAME").text = ledger
+    ET.SubElement(e, "LEDGERNAME").text = str(ledger).strip()
     ET.SubElement(e, "ISDEEMEDPOSITIVE").text = "Yes" if positive else "No"
     ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
 
-# ---------------------------- MAIN GUI FUNCTION ----------------------------
+
+# ---------------- MAIN FUNCTION ----------------
 
 def convert_excel_to_xml(vtype, df, out_dir, mapping):
-    """
-    vtype   : 'sale' or 'purchase'
-    df      : Pandas DataFrame from GUI
-    out_dir : XML output directory
-    mapping : Full mapping JSON from GUI
-    """
 
-    SALES       = { normalize_rate_key(k):v for k,v in mapping["SALES"].items() }
-    SALES_IGST  = { normalize_rate_key(k):v for k,v in mapping["SALES_IGST"].items() }
-    PURCHASE    = { normalize_rate_key(k):v for k,v in mapping["PURCHASE"].items() }
+    print("\n================= START CONVERSION =================")
 
-    CGST_MAP = { normalize_rate_key(k):v for k,v in mapping["CGST_RATES"].items() }
-    SGST_MAP = { normalize_rate_key(k):v for k,v in mapping["SGST_RATES"].items() }
-    IGST_MAP = { normalize_rate_key(k):v for k,v in mapping["IGST_RATES"].items() }
+    # ✅ SMART MAPPING
+    if not is_already_normalized(mapping):
+        print("⚙️ Mapping not normalized → normalizing...")
+        mapping = normalize_mapping(mapping)
 
-    COMPANY_STATE = mapping["COMPANY_STATE"]
+    print("📦 FINAL MAPPING KEYS:", list(mapping.keys()))
+
+    SALES = mapping.get("SALES", {})
+    SALES_INTER = mapping.get("SALES_INTER", {})
+    PURCHASE = mapping.get("PURCHASE", {})
+    PURCHASE_INTER = mapping.get("PURCHASE_INTER", {})
+
+    CGST_SALES = mapping.get("CGST_SALES") or mapping.get("CGST_RATES", {})
+    SGST_SALES = mapping.get("SGST_SALES") or mapping.get("SGST_RATES", {})
+    IGST_SALES = mapping.get("IGST_SALES") or mapping.get("IGST_RATES", {})
+
+    CGST_PURCHASE = mapping.get("CGST_PURCHASE") or mapping.get("CGST_RATES", {})
+    SGST_PURCHASE = mapping.get("SGST_PURCHASE") or mapping.get("SGST_RATES", {})
+    IGST_PURCHASE = mapping.get("IGST_PURCHASE") or mapping.get("IGST_RATES", {})
+
+    COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
+    print("🏢 COMPANY STATE:", COMPANY_STATE)
 
     ENV = ET.Element("ENVELOPE")
+
     HDR = ET.SubElement(ENV, "HEADER")
     ET.SubElement(HDR, "TALLYREQUEST").text = "Import Data"
+
     BODY = ET.SubElement(ENV, "BODY")
     IMP = ET.SubElement(BODY, "IMPORTDATA")
     REQ = ET.SubElement(IMP, "REQUESTDATA")
 
     record_count = 0
-    exceptions = []
 
-    # ------------------------------------------------------------------
-    # PROCESS EVERY ROW
-    # ------------------------------------------------------------------
-    for _, row in df.iterrows():
+    for i, row in df.iterrows():
+
+        print("\n================= ROW", i, "=================")
+
         record_count += 1
 
-        taxable = num(row.get("Taxable Value", 0))
-        cgst = num(row.get("CGST", 0))
-        sgst = num(row.get("SGST", 0))
-        igst = num(row.get("IGST", 0))
+        taxable = num(first_non_empty(row, "Taxable Value", "Taxable"))
+        cgst = num(first_non_empty(row, "CGST", "CGST Amount"))
+        sgst = num(first_non_empty(row, "SGST", "SGST Amount"))
+        igst = num(first_non_empty(row, "IGST", "IGST Amount"))
 
-        invoice_no = str(row.get("Invoice Number", row.get("Invoice No", "")))
-        invoice_date = row.get("Invoice Date", "")
+        print("💰 TAXABLE:", taxable)
+        print("💰 CGST:", cgst, "| SGST:", sgst, "| IGST:", igst)
 
-        invoice_value = num(row.get("Invoice Value", row.get("Invoice Amount", 0)))
-        calc_total = round(taxable + cgst + sgst + igst, 2)
-        diff = abs(invoice_value - calc_total)
+        invoice_no = clean_text(first_non_empty(row, "Invoice Number"))
+        invoice_date = first_non_empty(row, "Invoice date", "Date")
+        invoice_value = num(first_non_empty(row, "Invoice Value", "Total"))
 
-        # ±10 Adjustment
-        voucher_total = calc_total if diff <= 10 else invoice_value
+        print("🧾 INVOICE:", invoice_no, "| DATE:", invoice_date, "| VALUE:", invoice_value)
 
-        if diff > 10:
-            r = row.copy()
-            r["__EXCEPTION__"] = f"Diff {diff}"
-            exceptions.append(r)
+        calc_total = taxable + cgst + sgst + igst
+        voucher_total = calc_total if abs(invoice_value - calc_total) <= 10 else invoice_value
 
-        # GST RATE
-        rate = 0 if taxable == 0 else int(round((cgst + sgst + igst) / taxable * 100))
-        rk = normalize_rate_key(rate)
+        print("📊 CALC TOTAL:", calc_total, "| FINAL:", voucher_total)
 
-        party_state = state_from_gstin(row.get("GSTIN", "")) or ""
-        is_intra = (party_state != "" and party_state == COMPANY_STATE)
+        full_rate = 0 if taxable == 0 else round((cgst + sgst + igst) / taxable * 100, 2)
 
-        # TAXABLE LEDGER
-        if vtype == "sale":
-            if igst > 0:
-                taxable_ledger = SALES_IGST.get(rk, MISSING_LEDGER_NAME)
-                mapped = rk in SALES_IGST
-            else:
-                taxable_ledger = SALES.get(rk, MISSING_LEDGER_NAME)
-                mapped = rk in SALES
-        else:
-            taxable_ledger = PURCHASE.get(rk, MISSING_LEDGER_NAME)
-            mapped = rk in PURCHASE
+        # Sales / Purchase key
+        rk = str(int(round(full_rate)))
 
-        if not mapped:
-            r = row.copy()
-            r["__EXCEPTION__"] = f"Rate {rk}% not mapped"
-            exceptions.append(r)
+        # CGST / SGST key (HALF)
+        half_rate = round(full_rate / 2, 2)
 
-        cgst_led = CGST_MAP.get(rk, MISSING_LEDGER_NAME)
-        sgst_led = SGST_MAP.get(rk, MISSING_LEDGER_NAME)
-        igst_led = IGST_MAP.get(rk, MISSING_LEDGER_NAME)
+        # convert to clean string like "9", "2.5"
+        rk_half = str(half_rate).rstrip("0").rstrip(".")
 
-        # ------------------------------------------------------------------
-        # BUILD VOUCHER
-        # ------------------------------------------------------------------
+        print("📌 RATE:", full_rate, "| RK:", rk, "| HALF:", rk_half)
+
+        gstin = clean_text(first_non_empty(row, "GSTIN"))
+        party_state = state_from_gstin(gstin) or COMPANY_STATE
+        interstate = is_interstate(gstin, COMPANY_STATE)
+
+        print("🌍 PARTY STATE:", party_state)
+        print("🚚 INTERSTATE:", interstate)
+
         msg = ET.SubElement(REQ, "TALLYMESSAGE")
         V = ET.SubElement(msg, "VOUCHER",
-                          VCHTYPE=("Sales" if vtype=="sale" else "Purchase"),
+                          VCHTYPE=("Sales" if vtype == "sale" else "Purchase"),
                           ACTION="Create")
-
-        ET.SubElement(V, "DATE").text = tally_date(invoice_date)
-        ET.SubElement(V, "VOUCHERTYPENAME").text = "Sales" if vtype=="sale" else "Purchase"
-
-        # 🔵 ONLY SALE — ACCOUNTING INVOICE MODE
+        
         if vtype == "sale":
-            ET.SubElement(V, "USEFORGOODS").text = "No"
-            ET.SubElement(V, "ISINVOICE").text = "Yes"
+           ET.SubElement(V, "ISINVOICE").text = "Yes"
+           ET.SubElement(V, "USEFORGOODS").text = "No"
+           ET.SubElement(V, "PERSISTEDVIEW").text = "Accounting Voucher View"
 
-        # PARTY
-        if vtype == "purchase":
-            party = row.get("Supplier Name", "")
-        else:
-            party = row.get("Recipient Name", row.get("Party", ""))
+        date_str = tally_date(invoice_date)
+        if date_str:
+            ET.SubElement(V, "DATE").text = date_str
 
-        ET.SubElement(V, "PARTYLEDGERNAME").text = party
+        ET.SubElement(V, "VOUCHERTYPENAME").text = "Sales" if vtype == "sale" else "Purchase"
 
-        # VOUCHER NUMBER / REFERENCE
-        if vtype == "purchase":
-            ET.SubElement(V, "REFERENCE").text = invoice_no
-            ET.SubElement(V, "VOUCHERNUMBER").text = ""
-        else:
+
+        party = clean_text(first_non_empty(row, "Recipient Name", "Party"))
+
+        print("👤 PARTY:", party)
+
+        # ================= SALES =================
+        if vtype == "sale":
+
+            if interstate:
+                sales_ledger = SALES_INTER.get(rk)
+                igst_ledger = IGST_SALES.get(rk)
+                cgst_ledger = None
+                sgst_ledger = None
+                print("📦 SALES TYPE: INTERSTATE")
+            else:
+                sales_ledger = SALES.get(rk)
+                cgst_ledger = CGST_SALES.get(rk_half)
+                sgst_ledger = SGST_SALES.get(rk_half)
+                igst_ledger = None
+                print("📦 SALES TYPE: LOCAL")
+
+            print("📘 SALES LEDGER:", sales_ledger)
+            print("📘 CGST LEDGER:", cgst_ledger)
+            print("📘 SGST LEDGER:", sgst_ledger)
+            print("📘 IGST LEDGER:", igst_ledger)
+
+            ET.SubElement(V, "PARTYLEDGERNAME").text = party
             ET.SubElement(V, "VOUCHERNUMBER").text = invoice_no
+            ET.SubElement(V, "STATENAME").text = party_state
+            ET.SubElement(V, "COUNTRYNAME").text = "India"
+            ET.SubElement(V, "PLACEOFSUPPLY").text = party_state
 
-        ET.SubElement(V, "STATENAME").text = party_state
-        ET.SubElement(V, "PLACEOFSUPPLY").text = party_state or COMPANY_STATE
+            if gstin:
+               ET.SubElement(V, "PARTYGSTIN").text = gstin
+               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Regular"
+            else:
+               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
 
-        if row.get("GSTIN"):
-            ET.SubElement(V, "PARTYGSTIN").text = row["GSTIN"]
+            # Consignee (same as party)
+            ET.SubElement(V, "CONSIGNEENAME").text = party
+            ET.SubElement(V, "CONSIGNEESTATENAME").text = party_state
 
-        ET.SubElement(V, "CONSIGNEENAME").text = party
-        if row.get("GSTIN"):
-            ET.SubElement(V, "CONSIGNEEGSTIN").text = row["GSTIN"]
-        ET.SubElement(V, "CONSIGNEESTATENAME").text = party_state
+            if gstin:
+                ET.SubElement(V, "CONSIGNEEGSTIN").text = gstin
 
-        if row.get("Address"):
-            ET.SubElement(V, "CONSIGNEEADDRESS").text = row["Address"]
-
-        # ------------------- LEDGER ENTRIES -------------------
-        if vtype == "sale":
             add_entry(V, party, True, voucher_total)
-            add_entry(V, taxable_ledger, False, taxable)
 
-            if is_intra:
-                if cgst: add_entry(V, cgst_led, False, cgst)
-                if sgst: add_entry(V, sgst_led, False, sgst)
-            else:
-                if igst: add_entry(V, igst_led, False, igst)
+            if sales_ledger:
+                add_entry(V, sales_ledger, False, taxable)
 
+            if cgst_ledger and cgst:
+                add_entry(V, cgst_ledger, False, cgst)
+
+            if sgst_ledger and sgst:
+                add_entry(V, sgst_ledger, False, sgst)
+
+            if igst_ledger and igst:
+                add_entry(V, igst_ledger, False, igst)
+
+        # ================= PURCHASE =================
         else:
-            add_entry(V, party, False, voucher_total)
-            add_entry(V, taxable_ledger, True, taxable)
 
-            if is_intra:
-                if cgst: add_entry(V, cgst_led, True, cgst)
-                if sgst: add_entry(V, sgst_led, True, sgst)
+            if interstate:
+                purchase_ledger = PURCHASE_INTER.get(rk)
+                igst_ledger = IGST_PURCHASE.get(rk)
+                cgst_ledger = None
+                sgst_ledger = None
+                print("📦 PURCHASE TYPE: INTERSTATE")
             else:
-                if igst: add_entry(V, igst_led, True, igst)
+                purchase_ledger = PURCHASE.get(rk)
+                cgst_ledger = CGST_PURCHASE.get(rk_half)
+                sgst_ledger = SGST_PURCHASE.get(rk_half)
+                igst_ledger = None
+                print("📦 PURCHASE TYPE: LOCAL")
 
-    # ------------------- SAVE XML FILE -------------------
+            print("📘 PURCHASE LEDGER:", purchase_ledger)
+            print("📘 CGST LEDGER:", cgst_ledger)
+            print("📘 SGST LEDGER:", sgst_ledger)
+            print("📘 IGST LEDGER:", igst_ledger)
 
-    name = f"{vtype}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xml"
-    xml_out = os.path.join(out_dir, name)
+            ET.SubElement(V, "PARTYLEDGERNAME").text = party
+            ET.SubElement(V, "REFERENCE").text = invoice_no
+            ET.SubElement(V, "STATENAME").text = party_state
+            ET.SubElement(V, "COUNTRYNAME").text = "India"
+            ET.SubElement(V, "PLACEOFSUPPLY").text = party_state
 
-    xml = minidom.parseString(ET.tostring(ENV)).toprettyxml(indent="  ")
-    with open(xml_out, "w", encoding="utf-8") as f:
-        f.write(xml)
+            if gstin:
+                ET.SubElement(V, "PARTYGSTIN").text = gstin
+                ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Regular"
+            else:
+               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
 
-    return xml_out, record_count
+            # ✅ Consignee same as Buyer
+            ET.SubElement(V, "CONSIGNEENAME").text = party
+            ET.SubElement(V, "CONSIGNEESTATENAME").text = party_state
+
+            if gstin:
+                ET.SubElement(V, "CONSIGNEEGSTIN").text = gstin
+
+            add_entry(V, party, False, voucher_total)
+
+            if purchase_ledger:
+                add_entry(V, purchase_ledger, True, taxable)
+
+            if cgst_ledger and cgst:
+                add_entry(V, cgst_ledger, True, cgst)
+
+            if sgst_ledger and sgst:
+                add_entry(V, sgst_ledger, True, sgst)
+
+            if igst_ledger and igst:
+                add_entry(V, igst_ledger, True, igst)
+
+    print("\n✅ TOTAL RECORDS:", record_count)
+
+    # SAVE
+    file_name = f"{vtype}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xml"
+    xml_path = os.path.join(out_dir, file_name)
+
+    xml_str = minidom.parseString(
+        ET.tostring(ENV, encoding="utf-8")
+    ).toprettyxml(indent="  ")
+
+    with open(xml_path, "w", encoding="utf-8") as f:
+        f.write(xml_str)
+
+    print("📁 FILE SAVED:", xml_path)
+
+    return xml_path, record_count

@@ -11,9 +11,6 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    /* ══════════════════════════════════════════
-       DESIGN TOKENS
-    ══════════════════════════════════════════ */
     :root {
       --ink:        #0a0f1e;
       --ink2:       #1a2035;
@@ -38,9 +35,6 @@
       --shadow-md:  0 2px 8px rgba(10,15,30,0.06), 0 16px 36px rgba(10,15,30,0.10);
     }
 
-    /* ══════════════════════════════════════════
-       PAGE
-    ══════════════════════════════════════════ */
     body {
       font-family: 'DM Sans', sans-serif;
       color: var(--ink);
@@ -60,16 +54,12 @@
       pointer-events: none; z-index: 0;
     }
 
-    /* ══════════════════════════════════════════
-       WRAPPER
-    ══════════════════════════════════════════ */
     .mapping-wrap {
       position: relative; z-index: 1;
-      max-width: 1000px;
-      /* Sidebar is ~210px wide; nudge left by half so card centres
-         in the content area, not the full viewport */
+      max-width: 1090px;
+      /* Sidebar grew by 90px; shift left by same amount so card re-centres in content area */
       margin: 0 auto;
-      margin-left: max(1.5rem, calc(50vw - 500px - 80px));
+      margin-left: max(1.5rem, calc(50vw - 545px - 20px));
       font-family: 'DM Sans', sans-serif;
       color: var(--ink);
     }
@@ -78,7 +68,6 @@
       .mapping-wrap { margin-left: auto; }
     }
 
-    /* Page header */
     .page-header {
       text-align: center;
       margin-bottom: 2rem;
@@ -112,9 +101,6 @@
 
     .page-header p { font-size: 0.92rem; color: var(--muted); }
 
-    /* ══════════════════════════════════════════
-       KEYFRAMES
-    ══════════════════════════════════════════ */
     @keyframes mpFadeUp {
       from { opacity: 0; transform: translateY(20px) scale(0.987); }
       to   { opacity: 1; transform: none; }
@@ -133,9 +119,6 @@
       to   { transform: scaleY(1); }
     }
 
-    /* ══════════════════════════════════════════
-       CARD
-    ══════════════════════════════════════════ */
     .mapping-wrap .card {
       background: var(--white);
       border: 1px solid rgba(255,255,255,0.85);
@@ -153,9 +136,6 @@
       background: linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent);
     }
 
-    /* ══════════════════════════════════════════
-       CARD HEADER
-    ══════════════════════════════════════════ */
     .mapping-wrap .card-header {
       display: flex; align-items: center; gap: 1.1rem;
       padding: 1.8rem 2.2rem 1.6rem;
@@ -194,20 +174,16 @@
 
     .mapping-wrap .card-header-sub { font-size: 0.76rem; color: var(--muted); }
 
-    /* ══════════════════════════════════════════
-       LAYOUT — wider left column
-    ══════════════════════════════════════════ */
+    /* ── LAYOUT: wider left column ── */
     .mapping-wrap .mapping-container {
       display: grid;
-      grid-template-columns: 290px 1fr;
+      grid-template-columns: 500px 1fr;
       gap: 0;
       align-items: stretch;
       min-height: 520px;
     }
 
-    /* ══════════════════════════════════════════
-       LEFT PANEL — company sidebar
-    ══════════════════════════════════════════ */
+    /* ── LEFT PANEL ── */
     .mapping-wrap .company-panel {
       border-right: 1px solid var(--line);
       padding: 1.6rem 1.4rem;
@@ -215,17 +191,12 @@
       display: flex; flex-direction: column; gap: 1rem;
     }
 
-    /* ══════════════════════════════════════════
-       RIGHT PANEL
-    ══════════════════════════════════════════ */
+    /* ── RIGHT PANEL ── */
     .mapping-wrap .mapping-panel {
       padding: 1.6rem 2rem;
       display: flex; flex-direction: column; gap: 0;
     }
 
-    /* ══════════════════════════════════════════
-       PANEL HEADINGS
-    ══════════════════════════════════════════ */
     .mapping-wrap .panel-head {
       display: flex; align-items: center;
       justify-content: space-between;
@@ -240,8 +211,42 @@
     }
 
     /* ══════════════════════════════════════════
-       COMPANY LIST
+       COMPANY SEARCH INPUT — NEW
     ══════════════════════════════════════════ */
+    .mapping-wrap .company-search-wrap {
+      position: relative;
+    }
+
+    .mapping-wrap .company-search-icon {
+      position: absolute;
+      left: 0.85rem; top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.82rem;
+      pointer-events: none;
+      z-index: 1;
+      opacity: 0.55;
+    }
+
+    .mapping-wrap .company-search-input {
+      width: 100%;
+      padding: 0.65rem 2rem 0.65rem 2.3rem;
+      border: 1.5px solid var(--line);
+      border-radius: 11px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 0.83rem;
+      color: var(--ink2);
+      background: var(--white);
+      outline: none;
+      transition: border-color 0.18s, box-shadow 0.18s;
+    }
+    .mapping-wrap .company-search-input::placeholder { color: var(--muted); }
+    .mapping-wrap .company-search-input:hover { border-color: var(--line2); }
+    .mapping-wrap .company-search-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(22,73,224,0.1);
+    }
+
+    /* ── Company List — increased height ── */
     .mapping-wrap .company-list {
       flex: 1;
       overflow-y: auto;
@@ -251,6 +256,8 @@
       box-shadow: var(--shadow-sm);
       scrollbar-width: thin;
       scrollbar-color: var(--line2) transparent;
+      min-height: 380px;   /* increased with sidebar width */
+      max-height: 520px;   /* increased max height */
     }
     .mapping-wrap .company-list::-webkit-scrollbar { width: 4px; }
     .mapping-wrap .company-list::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
@@ -289,7 +296,6 @@
     }
     .mapping-wrap .company-item.active::before { opacity: 1; }
 
-    /* Active accent bar */
     .mapping-wrap .company-item.active::after {
       content: '';
       position: absolute; left: 0; top: 0; bottom: 0;
@@ -300,7 +306,6 @@
       transform-origin: top;
     }
 
-    /* Count badge on company item (cosmetic) */
     .mapping-wrap .company-item .company-meta {
       margin-left: auto;
       font-size: 0.65rem; font-weight: 700;
@@ -316,7 +321,66 @@
       color: var(--accent);
     }
 
-    /* ── Add company quick-hint ── */
+    /* Hidden company item (filtered by search) */
+    .mapping-wrap .company-item.company-hidden { display: none; }
+
+    /* Label span inside company item — target for highlight injection */
+    .mapping-wrap .company-item .company-item-text {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* Search highlight mark — subtle, clean */
+    .mapping-wrap .company-item mark {
+      background: rgba(251,191,36,0.35);
+      color: inherit;
+      font-weight: 600;
+      border-radius: 2px;
+      padding: 0 2px;
+      margin: 0;
+      border: none;
+      font-style: normal;
+    }
+    .mapping-wrap .company-item.active mark {
+      background: rgba(255,255,255,0.4);
+      color: inherit;
+    }
+
+    /* Clear (×) button inside search input */
+    .mapping-wrap .company-search-clear {
+      position: absolute;
+      right: 0.7rem; top: 50%;
+      transform: translateY(-50%);
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      border: none;
+      background: var(--muted);
+      color: var(--white);
+      font-size: 0.68rem;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+      transition: background 0.15s, transform 0.18s;
+      z-index: 2;
+    }
+    .mapping-wrap .company-search-clear.visible { display: flex; }
+    .mapping-wrap .company-search-clear:hover { background: var(--ink3); transform: translateY(-50%) scale(1.15); }
+
+    /* No results state inside company list */
+    .mapping-wrap .company-no-results {
+      padding: 2rem 1rem;
+      text-align: center;
+      color: var(--muted);
+      font-size: 0.8rem;
+      display: none;
+    }
+    .mapping-wrap .company-no-results.visible { display: block; }
+
     .mapping-wrap .company-hint {
       font-size: 0.7rem; color: var(--muted);
       text-align: center;
@@ -324,15 +388,12 @@
       line-height: 1.5;
     }
 
-    /* ══════════════════════════════════════════
-       GROUP + RATE LISTS
-    ══════════════════════════════════════════ */
     .mapping-wrap .group-list,
     .mapping-wrap .rate-list {
-      max-height: 220px;
+      max-height: 400px;
       overflow-y: auto;
       border: 1.5px solid var(--line);
-      border-radius: 14px;
+      border-radius: 20px;
       background: var(--white);
       box-shadow: var(--shadow-sm);
       scrollbar-width: thin;
@@ -375,13 +436,11 @@
       transform-origin: top;
     }
 
-    /* Group item label */
     .mapping-wrap .group-item-label {
       flex: 1; min-width: 0;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
 
-    /* Group action buttons — hidden until hover/active */
     .mapping-wrap .group-item-actions {
       display: flex; gap: 0.28rem; flex-shrink: 0;
       opacity: 0; pointer-events: none;
@@ -403,7 +462,6 @@
       flex-shrink: 0;
     }
 
-    /* Edit — blue */
     .mapping-wrap .group-item-actions .gi-edit {
       border-color: rgba(22,73,224,0.18);
       background: rgba(22,73,224,0.06);
@@ -414,7 +472,6 @@
       transform: scale(1.12); box-shadow: 0 2px 8px rgba(22,73,224,0.18);
     }
 
-    /* Remove — red */
     .mapping-wrap .group-item-actions .gi-remove {
       border-color: rgba(220,38,38,0.18);
       background: rgba(220,38,38,0.06);
@@ -427,9 +484,6 @@
 
     .mapping-wrap .group-item-actions button:active { transform: scale(0.88); }
 
-    /* ══════════════════════════════════════════
-       RATE ITEMS
-    ══════════════════════════════════════════ */
     .mapping-wrap .rate-item {
       display: flex; justify-content: space-between; align-items: center;
       padding: 0.75rem 1rem;
@@ -451,9 +505,6 @@
       margin-right: 0.3rem;
     }
 
-    /* ══════════════════════════════════════════
-       ACTION BUTTONS (edit/delete)
-    ══════════════════════════════════════════ */
     .mapping-wrap .rate-actions { display: flex; gap: 0.35rem; }
 
     .mapping-wrap .rate-actions button {
@@ -473,9 +524,6 @@
     }
     .mapping-wrap .rate-actions button:active { transform: scale(0.9); }
 
-    /* ══════════════════════════════════════════
-       SECTION DIVIDERS
-    ══════════════════════════════════════════ */
     .mapping-wrap .rate-panel {
       margin-top: 1.5rem; padding-top: 1.5rem;
       border-top: 1px solid var(--line);
@@ -495,7 +543,6 @@
       border-radius: 2px; flex-shrink: 0;
     }
 
-    /* ── Company name badge ── */
     .mapping-wrap .company-name {
       font-weight: 700; color: var(--accent);
       background: rgba(22,73,224,0.09);
@@ -505,9 +552,6 @@
       white-space: nowrap;
     }
 
-    /* ══════════════════════════════════════════
-       BUTTONS
-    ══════════════════════════════════════════ */
     .mapping-wrap .btn {
       display: inline-flex; align-items: center; justify-content: center;
       gap: 0.38rem; padding: 0.62rem 1.2rem;
@@ -575,7 +619,6 @@
     }
     .mapping-wrap .btn-danger::before { display: none; }
 
-    /* ── Company action bar (Rename + Delete) ── */
     .mapping-wrap .company-action-bar {
       display: flex;
       gap: 0.5rem;
@@ -629,7 +672,6 @@
 
     .mapping-wrap .btn-company-action .ca-icon { font-size: 0.88rem; line-height: 1; }
 
-    /* ── Add Company button — full width in sidebar ── */
     .mapping-wrap .btn-add-company {
       width: 100%; justify-content: center;
       padding: 0.75rem 1rem;
@@ -642,7 +684,6 @@
       box-shadow: 0 8px 22px rgba(15,169,102,0.4);
     }
 
-    /* ── h4 headings ── */
     .mapping-wrap h4 {
       font-family: 'DM Sans', sans-serif;
       font-size: 0.88rem; font-weight: 600;
@@ -654,7 +695,6 @@
       display: flex; gap: 0.55rem; margin-top: 1.1rem; flex-wrap: wrap;
     }
 
-    /* ── Empty states ── */
     .mapping-wrap .company-list:empty::after,
     .mapping-wrap .group-list:empty::after,
     .mapping-wrap .rate-list:empty::after {
@@ -666,21 +706,15 @@
     .mapping-wrap .company-list:empty::after { content: "No companies found — click Add to create one."; }
     .mapping-wrap .group-list:empty::after   { content: "Select a company to view groups."; }
 
-    /* ══════════════════════════════════════════
-       GROUP PANEL SEPARATOR
-    ══════════════════════════════════════════ */
     .mapping-wrap .group-panel { margin-bottom: 0; }
 
-    /* Divider between group and rate panels */
     .mapping-wrap .section-label {
       font-size: 0.63rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.1em;
       color: var(--muted); margin-bottom: 0.7rem;
     }
 
-    /* ══════════════════════════════════════════
-       MODAL
-    ══════════════════════════════════════════ */
+    /* MODAL */
     .mapping-wrap .modal {
       display: none; position: fixed; z-index: 9999; inset: 0;
       background: rgba(10,15,25,0.5);
@@ -754,11 +788,6 @@
       border-top: 1px solid var(--line);
     }
 
-    /* ══════════════════════════════════════════
-       EDIT LEDGER MODAL
-    ══════════════════════════════════════════ */
-
-    /* Close ✕ button in top-right */
     .mapping-wrap .modal-close-x {
       position: absolute;
       top: 1.1rem; right: 1.1rem;
@@ -777,12 +806,10 @@
       transform: scale(1.1) rotate(90deg);
     }
 
-    /* Edit modal — amber accent stripe */
     .mapping-wrap .edit-modal-content::before {
       background: linear-gradient(90deg, var(--accent), var(--accent2)) !important;
     }
 
-    /* Rate badge row */
     .mapping-wrap .edit-rate-badge-row {
       display: flex; align-items: center; gap: 0.65rem;
       margin-bottom: 1.4rem;
@@ -809,21 +836,12 @@
       letter-spacing: -0.01em;
     }
 
-    /* ══════════════════════════════════════════
-       DELETE CONFIRM MODAL
-    ══════════════════════════════════════════ */
-
-    .mapping-wrap .delete-modal-content {
-      text-align: center;
-    }
-
+    .mapping-wrap .delete-modal-content { text-align: center; }
     .mapping-wrap .delete-modal-content::before {
       background: linear-gradient(90deg, var(--red), #ef4444, #f97316) !important;
     }
 
-    .mapping-wrap .delete-icon-wrap {
-      margin: 0.4rem auto 1.2rem;
-    }
+    .mapping-wrap .delete-icon-wrap { margin: 0.4rem auto 1.2rem; }
 
     .mapping-wrap .delete-icon-circle {
       width: 64px; height: 64px;
@@ -849,7 +867,6 @@
       color: var(--ink);
       margin: 0 0 0.75rem;
     }
-    /* Override the ::before bar for delete title */
     .mapping-wrap .delete-modal-title::before { display: none !important; }
 
     .mapping-wrap .delete-modal-msg {
@@ -857,12 +874,8 @@
       line-height: 1.65; margin-bottom: 0;
     }
 
-    .mapping-wrap .delete-modal-actions {
-      justify-content: center !important;
-      gap: 0.75rem;
-    }
+    .mapping-wrap .delete-modal-actions { justify-content: center !important; gap: 0.75rem; }
 
-    /* Outline cancel button */
     .mapping-wrap .btn-outline {
       background: var(--white);
       color: var(--ink3);
@@ -876,7 +889,6 @@
     }
     .mapping-wrap .btn-outline::before { display: none; }
 
-    /* Solid red delete button */
     .mapping-wrap .btn-danger-solid {
       background: var(--red);
       color: var(--white);
@@ -888,10 +900,6 @@
       box-shadow: 0 7px 22px rgba(220,38,38,0.44);
     }
 
-    /* ══════════════════════════════════════════
-       CHANGE STATE MODAL
-    ══════════════════════════════════════════ */
-
     .mapping-wrap .change-state-modal-content {
       max-width: 520px !important;
       width: 520px !important;
@@ -901,7 +909,6 @@
       background: linear-gradient(90deg, #0fa966, #1649e0, #3324d8) !important;
     }
 
-    /* Current state pill row */
     .mapping-wrap .state-current-row {
       display: flex; align-items: center; gap: 0.7rem;
       padding: 0.8rem 1.1rem;
@@ -927,7 +934,6 @@
       font-family: 'JetBrains Mono', monospace;
     }
 
-    /* Input with icon */
     .mapping-wrap .state-input-wrap { position: relative; }
 
     .mapping-wrap .state-input-icon {
@@ -938,7 +944,6 @@
 
     .mapping-wrap .state-input-wrap input { padding-left: 2.6rem !important; }
 
-    /* Section label */
     .mapping-wrap .state-section-label {
       font-size: 0.66rem; font-weight: 700;
       text-transform: uppercase; letter-spacing: 0.09em;
@@ -946,7 +951,6 @@
       margin-bottom: 0.5rem;
     }
 
-    /* Scrollable chip container */
     .mapping-wrap .state-chips {
       display: flex; flex-wrap: wrap; gap: 0.38rem;
       max-height: 130px;
@@ -961,7 +965,6 @@
     .mapping-wrap .state-chips::-webkit-scrollbar { width: 4px; }
     .mapping-wrap .state-chips::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
 
-    /* State chip */
     .mapping-wrap .state-chip {
       display: inline-flex; align-items: center;
       padding: 0.28rem 0.72rem;
@@ -991,7 +994,6 @@
       font-weight: 600;
     }
 
-    /* UT chips — teal tint */
     .mapping-wrap .state-chip-ut {
       border-color: rgba(15,169,102,0.25);
       background: rgba(15,169,102,0.04);
@@ -1009,14 +1011,9 @@
       color: var(--green2);
     }
 
-    /* Hidden chip (filtered out) */
     .mapping-wrap .state-chip.hidden { display: none; }
 
-    /* ══════════════════════════════════════════
-       TOAST NOTIFICATION SYSTEM
-    ══════════════════════════════════════════ */
-
-    /* Container — bottom-right stack */
+    /* TOAST */
     #toast-container {
       position: fixed;
       bottom: 2rem;
@@ -1028,7 +1025,6 @@
       pointer-events: none;
     }
 
-    /* Individual toast */
     .toast {
       pointer-events: all;
       display: flex;
@@ -1049,9 +1045,7 @@
       animation: toastIn 0.45s cubic-bezier(0.22,1,0.36,1) both;
     }
 
-    .toast.toast-leaving {
-      animation: toastOut 0.38s cubic-bezier(0.55,0,1,0.45) both;
-    }
+    .toast.toast-leaving { animation: toastOut 0.38s cubic-bezier(0.55,0,1,0.45) both; }
 
     @keyframes toastIn {
       0%   { opacity: 0; transform: translateX(60px) scale(0.94); }
@@ -1060,11 +1054,10 @@
     }
 
     @keyframes toastOut {
-      0%   { opacity: 1; transform: translateX(0) scale(1);     max-height: 120px; }
+      0%   { opacity: 1; transform: translateX(0) scale(1); max-height: 120px; }
       100% { opacity: 0; transform: translateX(60px) scale(0.92); max-height: 0; padding: 0; margin: 0; }
     }
 
-    /* Coloured left stripe */
     .toast::before {
       content: '';
       position: absolute;
@@ -1078,7 +1071,6 @@
     .toast-info::before    { background: linear-gradient(to bottom, var(--accent), var(--accent2)); }
     .toast-warn::before    { background: linear-gradient(to bottom, var(--amber), #b45309); }
 
-    /* Progress bar — auto-dismiss timer */
     .toast-progress {
       position: absolute;
       bottom: 0; left: 0;
@@ -1098,7 +1090,6 @@
       to   { width: 0%; }
     }
 
-    /* Icon bubble */
     .toast-icon {
       width: 38px; height: 38px;
       border-radius: 12px;
@@ -1113,7 +1104,6 @@
     .toast-info    .toast-icon { background: var(--accent-soft); }
     .toast-warn    .toast-icon { background: var(--amber-bg); }
 
-    /* Text */
     .toast-body { flex: 1; min-width: 0; }
 
     .toast-title {
@@ -1128,13 +1118,8 @@
     .toast-info    .toast-title { color: var(--accent); }
     .toast-warn    .toast-title { color: var(--amber); }
 
-    .toast-msg {
-      font-size: 0.82rem;
-      color: var(--ink3);
-      line-height: 1.5;
-    }
+    .toast-msg { font-size: 0.82rem; color: var(--ink3); line-height: 1.5; }
 
-    /* Dismiss × */
     .toast-close {
       width: 26px; height: 26px;
       background: var(--surface);
@@ -1147,7 +1132,6 @@
     }
     .toast-close:hover { background: var(--surface2); color: var(--ink2); transform: scale(1.1); }
 
-    /* Save button loading pulse */
     @keyframes savePulse {
       0%, 100% { box-shadow: 0 3px 14px rgba(22,73,224,0.32); }
       50%       { box-shadow: 0 3px 24px rgba(22,73,224,0.6); }
@@ -1159,9 +1143,6 @@
       pointer-events: none;
     }
 
-    /* ══════════════════════════════════════════
-       RESPONSIVE
-    ══════════════════════════════════════════ */
     @media (max-width: 760px) {
       .mapping-wrap .mapping-container { grid-template-columns: 1fr; }
       .mapping-wrap .company-panel { border-right: none; border-bottom: 1px solid var(--line); }
@@ -1174,7 +1155,6 @@
 <body>
 <div class="mapping-wrap">
 
-  <!-- Page header -->
   <div class="page-header">
     <div class="badge">🗂️ Tally Configuration</div>
     <h1>Ledger <span>Mapping</span> Editor</h1>
@@ -1183,7 +1163,6 @@
 
   <div class="card">
 
-    <!-- Card header -->
     <div class="card-header">
       <div class="card-header-icon">🗂️</div>
       <div class="card-header-text">
@@ -1202,9 +1181,24 @@
           <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
         </div>
 
-        <div id="companyList" class="company-list"></div>
+        <!-- SEARCH INPUT — NEW -->
+        <div class="company-search-wrap">
+          <span class="company-search-icon">🔍</span>
+          <input
+            type="text"
+            id="companySearchInput"
+            class="company-search-input"
+            placeholder="Search companies…"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="company-search-clear" id="companySearchClear" aria-label="Clear search">✕</button>
+        </div>
 
-        <!-- Full-width Add button at bottom of sidebar -->
+        <div id="companyList" class="company-list">
+          <div class="company-no-results" id="companyNoResults">No companies match your search.</div>
+        </div>
+
         <button class="btn btn-add-company" id="addCompanyBtn2" style="display:none;">
           ➕ Add New Company
         </button>
@@ -1283,7 +1277,7 @@
     </div>
   </div>
 
-  <!-- ✏️ Edit Ledger Modal — replaces prompt() -->
+  <!-- Edit Ledger Modal -->
   <div id="editLedgerModal" class="modal">
     <div class="modal-content edit-modal-content">
       <button class="modal-close-x" id="editModalCloseX" aria-label="Close">✕</button>
@@ -1305,7 +1299,7 @@
     </div>
   </div>
 
-  <!-- 🗑️ Delete Confirm Modal — replaces confirm() for deleteRate -->
+  <!-- Delete Confirm Modal -->
   <div id="deleteConfirmModal" class="modal">
     <div class="modal-content delete-modal-content">
       <button class="modal-close-x" id="deleteModalCloseX" aria-label="Close">✕</button>
@@ -1323,7 +1317,7 @@
     </div>
   </div>
 
-  <!-- 🏢 Delete Company confirm modal -->
+  <!-- Delete Company confirm modal -->
   <div id="deleteCompanyConfirmModal" class="modal">
     <div class="modal-content delete-modal-content">
       <button class="modal-close-x" id="deleteCompanyModalCloseX" aria-label="Close">✕</button>
@@ -1341,7 +1335,7 @@
     </div>
   </div>
 
-  <!-- ✏️ Edit Group Name Modal -->
+  <!-- Edit Group Name Modal -->
   <div id="editGroupModal" class="modal">
     <div class="modal-content">
       <button class="modal-close-x" id="editGroupModalCloseX" aria-label="Close">✕</button>
@@ -1361,7 +1355,7 @@
     </div>
   </div>
 
-  <!-- ➕ Add Ledger Group Modal -->
+  <!-- Add Ledger Group Modal -->
   <div id="addGroupModal" class="modal">
     <div class="modal-content">
       <button class="modal-close-x" id="addGroupModalCloseX" aria-label="Close">✕</button>
@@ -1377,7 +1371,7 @@
     </div>
   </div>
 
-  <!-- 🗑️ Remove Ledger Group confirm Modal -->
+  <!-- Remove Ledger Group confirm Modal -->
   <div id="removeGroupModal" class="modal">
     <div class="modal-content delete-modal-content">
       <button class="modal-close-x" id="removeGroupModalCloseX" aria-label="Close">✕</button>
@@ -1393,7 +1387,7 @@
     </div>
   </div>
 
-  <!-- 🏛️ Change State Modal — replaces prompt() for COMPANY_STATE -->
+  <!-- Change State Modal -->
   <div id="changeStateModal" class="modal">
     <div class="modal-content change-state-modal-content">
       <button class="modal-close-x" id="stateModalCloseX" aria-label="Close">✕</button>
@@ -1467,19 +1461,12 @@
 
 </div><!-- /mapping-wrap -->
 
-<!-- Toast container -->
 <div id="toast-container"></div>
 
-<!-- ═══════════════════════════════════════════
-     TOAST ENGINE — intercepts alert() calls
-     and replaces with beautiful notifications
-════════════════════════════════════════════ -->
 <script>
 (function() {
-  /* ── Toast config ── */
-  const DURATION = 4200; // ms before auto-dismiss
+  const DURATION = 4200;
 
-  /* ── Classify the message to pick type/icon/title ── */
   function classify(msg) {
     const m = (msg || '').toLowerCase();
     if (m.includes('successfully') || m.includes('saved') || m.includes('success')) {
@@ -1494,7 +1481,6 @@
     return { type: 'info', icon: 'ℹ️', title: 'Notice' };
   }
 
-  /* ── Create and show one toast ── */
   window.showToast = function(msg, overrideType) {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -1515,7 +1501,6 @@
       <div class="toast-progress" style="animation-duration:${DURATION}ms;"></div>
     `;
 
-    /* Dismiss logic */
     const dismiss = () => {
       toast.classList.add('toast-leaving');
       toast.addEventListener('animationend', () => toast.remove(), { once: true });
@@ -1529,7 +1514,6 @@
     container.appendChild(toast);
   };
 
-  /* ── Override window.alert to use toasts ── */
   const _nativeAlert = window.alert.bind(window);
   window.alert = function(msg) {
     if (typeof msg === 'string') {
@@ -1539,13 +1523,9 @@
     }
   };
 
-  /* ══════════════════════════════════════════
-     PROMPT OVERRIDE — Edit Ledger + Change State
-  ══════════════════════════════════════════ */
   const _nativePrompt = window.prompt.bind(window);
 
   window.prompt = function(message, defaultValue) {
-    // ── Edit Ledger ──
     if (typeof message === 'string' && message.startsWith('Edit ledger for')) {
       return new Promise((resolve) => {
         const modal   = document.getElementById('editLedgerModal');
@@ -1588,7 +1568,6 @@
       });
     }
 
-    // ── Change Company State ──
     if (typeof message === 'string' && message.startsWith('Enter company state')) {
       return new Promise((resolve) => {
         const modal      = document.getElementById('changeStateModal');
@@ -1599,11 +1578,9 @@
         const closeX     = document.getElementById('stateModalCloseX');
         if (!modal || !input) { resolve(_nativePrompt(message, defaultValue)); return; }
 
-        // Show current state value
         if (currentVal) currentVal.textContent = defaultValue || 'Not set';
         input.value = '';
 
-        // Reset chip selections and show all
         const allChips = document.querySelectorAll('.state-chip');
         allChips.forEach(c => {
           c.classList.remove('selected', 'hidden');
@@ -1613,7 +1590,6 @@
         modal.classList.add('show');
         setTimeout(() => { input.focus(); }, 80);
 
-        // Live search filter
         const onSearch = () => {
           const q = input.value.trim().toLowerCase();
           allChips.forEach(c => {
@@ -1623,7 +1599,6 @@
         };
         input.addEventListener('input', onSearch);
 
-        // Chip click — fill input and select
         const allChipContainers = document.querySelectorAll('#stateChips, #utChips');
         const onChipClick = (e) => {
           const chip = e.target.closest('.state-chip');
@@ -1631,7 +1606,6 @@
           input.value = chip.dataset.state;
           allChips.forEach(c => c.classList.remove('selected'));
           chip.classList.add('selected');
-          // Reset filter so chip is visible
           onSearch();
         };
         allChipContainers.forEach(c => c.addEventListener('click', onChipClick));
@@ -1674,13 +1648,9 @@
     return _nativePrompt(message, defaultValue);
   };
 
-  /* ══════════════════════════════════════════
-     CONFIRM OVERRIDE — Delete Confirm Modal
-  ══════════════════════════════════════════ */
   const _nativeConfirm = window.confirm.bind(window);
 
   window.confirm = function(message) {
-    // Only intercept "Delete mapping for X%?" pattern
     if (typeof message === 'string' && message.startsWith('Delete mapping for')) {
       return new Promise((resolve) => {
         const modal     = document.getElementById('deleteConfirmModal');
@@ -1690,7 +1660,6 @@
         const closeX    = document.getElementById('deleteModalCloseX');
         if (!modal) { resolve(_nativeConfirm(message)); return; }
 
-        // Extract rate from "Delete mapping for 18%?"
         const rateMatch = message.match(/Delete mapping for (.+?)\?/);
         if (rateSpan) rateSpan.textContent = rateMatch ? rateMatch[1] : 'this rate';
 
@@ -1717,7 +1686,6 @@
         document.addEventListener('keydown', onKey);
       });
     }
-    // ── Delete Company ──
     if (typeof message === 'string' && message.includes('delete company')) {
       return new Promise((resolve) => {
         const modal     = document.getElementById('deleteCompanyConfirmModal');
@@ -1744,7 +1712,6 @@
 
         const onOk = () => {
           cleanup();
-          // Toast fires after a short delay so the DELETE fetch can run first
           setTimeout(() => showToast(`🏢 Company "${companyName}" deleted successfully`, 'success'), 700);
           resolve(true);
         };
@@ -1760,27 +1727,15 @@
       });
     }
 
-    // Fall back to native confirm for everything else
     return _nativeConfirm(message);
   };
 
-  /* ──────────────────────────────────────────
-     Patch: intercept edit/delete button clicks
-     at capture phase (fires before original
-     per-button listeners) and use async modals.
-     Original editRate/deleteRate receive
-     undefined from async prompt/confirm → no-op.
-  ────────────────────────────────────────── */
   document.addEventListener('DOMContentLoaded', function() {
     const rateListEl = document.getElementById('rateList');
     if (!rateListEl) return;
 
-    // Listen for custom events dispatched after modal resolution
     rateListEl.addEventListener('_editDone', function(e) {
       const { group, rate, newLedger } = e.detail;
-      // Walk up to find currentMapping via the global scope isn't accessible,
-      // so we trigger a simulated input change on the rate item's edit btn
-      // The data is applied here via a shared bridge object
       if (window.__mappingBridge && window.__mappingBridge.currentMapping) {
         window.__mappingBridge.currentMapping[group][rate] = newLedger;
         if (window.__mappingBridge.renderRateList) {
@@ -1831,10 +1786,9 @@
           }));
         }
       }
-    }, true); // capture phase — fires before original listeners
+    }, true);
   });
 
-  /* ── Save button loading pulse ── */
   document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('saveMappingBtn');
     if (!btn) return;
@@ -1852,28 +1806,19 @@
     });
   });
 
-  /* ══════════════════════════════════════════
-     LEDGER GROUP ACTIONS
-     MutationObserver injects ✏️ / ➕ / 🗑️ buttons
-     into each group-item after renderGroupList runs.
-     All logic uses __mappingBridge + __groupBridge.
-  ══════════════════════════════════════════ */
   document.addEventListener('DOMContentLoaded', function() {
     const groupListEl = document.getElementById('groupList');
     if (!groupListEl) return;
 
-    /* ── Inject action buttons into each group item ── */
     function upgradeGroupItems() {
       groupListEl.querySelectorAll('.group-item:not([data-gi-upgraded])').forEach(item => {
         item.dataset.giUpgraded = '1';
         const groupKey = item.dataset.key;
 
-        // Wrap existing text in a label span
         const labelSpan = document.createElement('span');
         labelSpan.className = 'group-item-label';
         labelSpan.textContent = item.textContent.trim();
 
-        // Build action buttons — edit + remove only (add is a single bottom button)
         const actions = document.createElement('div');
         actions.className = 'group-item-actions';
         actions.innerHTML = `
@@ -1885,13 +1830,9 @@
         item.appendChild(labelSpan);
         item.appendChild(actions);
 
-        // Stop button clicks from selecting the group
         actions.addEventListener('click', e => e.stopPropagation());
 
-        // Edit group name
         actions.querySelector('.gi-edit').addEventListener('click', () => openEditGroupModal(groupKey, labelSpan));
-
-        // Remove group
         actions.querySelector('.gi-remove').addEventListener('click', () => openRemoveGroupModal(groupKey));
       });
     }
@@ -1899,16 +1840,13 @@
     new MutationObserver(upgradeGroupItems).observe(groupListEl, { childList: true });
     upgradeGroupItems();
 
-    // Single "Add Ledger Group" button below the list
     const addGroupBtn = document.getElementById('addGroupBtn');
     if (addGroupBtn) {
       addGroupBtn.addEventListener('click', () => openAddGroupModal(null));
     }
 
-    /* ── Helpers to expose groupNames + renderGroupList ── */
     function getBridge() { return window.__groupBridge || {}; }
 
-    /* ── EDIT GROUP MODAL ── */
     function openEditGroupModal(groupKey, labelSpan) {
       const modal   = document.getElementById('editGroupModal');
       const badge   = document.getElementById('editGroupCurrentName');
@@ -1949,7 +1887,6 @@
       input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.onclick(); if (e.key === 'Escape') cleanup(); };
     }
 
-    /* ── ADD GROUP MODAL ── */
     function openAddGroupModal(afterKey) {
       const modal   = document.getElementById('addGroupModal');
       const input   = document.getElementById('addGroupInput');
@@ -1997,7 +1934,6 @@
       input.onkeydown = (e) => { if (e.key === 'Enter') okBtn.onclick(); if (e.key === 'Escape') cleanup(); };
     }
 
-    /* ── REMOVE GROUP MODAL ── */
     function openRemoveGroupModal(groupKey) {
       const modal   = document.getElementById('removeGroupModal');
       const span    = document.getElementById('removeGroupNameSpan');
@@ -2022,7 +1958,6 @@
           if (idx !== -1) b.groupNames.splice(idx, 1);
           delete b.currentMapping[groupKey];
           if (b.renderGroupList) b.renderGroupList();
-          // Select first remaining group
           if (b.groupNames.length > 0 && b.selectGroup) b.selectGroup(b.groupNames[0]);
         }
         cleanup();
@@ -2032,6 +1967,7 @@
       modal.onclick = (e) => { if (e.target === modal) cleanup(); };
     }
   });
+
   document.addEventListener('DOMContentLoaded', function() {
     const companyList      = document.getElementById('companyList');
     const companyModalOk   = document.getElementById('companyModalOkBtn');
@@ -2040,7 +1976,6 @@
 
     let pendingAddName = '';
 
-    // Capture the name at mousedown — before the original click handler fires
     companyModalOk.addEventListener('mousedown', function() {
       const title = document.getElementById('companyModalTitle');
       const isAdd = title && title.textContent.toLowerCase().includes('add');
@@ -2051,7 +1986,6 @@
       }
     }, true);
 
-    // Watch for new <div class="company-item"> nodes added to the list
     let previousCount = companyList.querySelectorAll('.company-item').length;
     const observer = new MutationObserver(() => {
       const newCount = companyList.querySelectorAll('.company-item').length;
@@ -2064,7 +1998,85 @@
     observer.observe(companyList, { childList: true });
   });
 
-  /* Spin + shake keyframes */
+  /* ══════════════════════════════════════════
+     COMPANY SEARCH FILTER
+  ══════════════════════════════════════════ */
+  document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('companySearchInput');
+    const clearBtn    = document.getElementById('companySearchClear');
+    const companyList = document.getElementById('companyList');
+    const noResults   = document.getElementById('companyNoResults');
+    if (!searchInput || !companyList) return;
+
+    function escapeRegex(s) {
+      return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function buildHighlightHTML(fullName, query) {
+      if (!query) return escapeHTML(fullName);
+      // \b ensures match only from start of a word, not mid-word
+      const re = new RegExp('\\b(' + escapeRegex(query) + ')', 'gi');
+      return escapeHTML(fullName).replace(re, '<mark>$1</mark>');
+    }
+
+    function clearSearch() {
+      searchInput.value = '';
+      if (clearBtn) clearBtn.classList.remove('visible');
+      companyList.querySelectorAll('.company-item').forEach(item => {
+        item.classList.remove('company-hidden');
+        const label = item.querySelector('.company-item-text');
+        if (label) label.textContent = item.dataset.name || '';
+      });
+      if (noResults) noResults.classList.remove('visible');
+    }
+
+    searchInput.addEventListener('input', function() {
+      const q = this.value.trim();
+
+      // Show/hide clear button
+      if (clearBtn) clearBtn.classList.toggle('visible', q.length > 0);
+
+      const items = companyList.querySelectorAll('.company-item');
+      let visibleCount = 0;
+
+      items.forEach(item => {
+        const name = item.dataset.name || '';
+        // Match only from start of a word
+        const wordStartRe = new RegExp('\\b' + escapeRegex(q), 'i');
+        const matches = !q || wordStartRe.test(name);
+        item.classList.toggle('company-hidden', !matches);
+
+        const label = item.querySelector('.company-item-text');
+        if (label) label.innerHTML = buildHighlightHTML(name, q);
+
+        if (matches) visibleCount++;
+      });
+
+      if (noResults) {
+        noResults.classList.toggle('visible', visibleCount === 0 && q.length > 0);
+      }
+    });
+
+    // Clear button click
+    if (clearBtn) {
+      clearBtn.addEventListener('click', () => {
+        clearSearch();
+        searchInput.focus();
+      });
+    }
+
+    // Clear highlights and search when a company is selected
+    companyList.addEventListener('click', function(e) {
+      if (e.target.closest('.company-item')) {
+        clearSearch();
+      }
+    });
+  });
+
   const style = document.createElement('style');
   style.textContent = `
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -2081,35 +2093,32 @@
 })();
 </script>
 
-<!-- ═══════════════════════════════════════════
-     ALL JS BELOW IS 100% ORIGINAL — UNTOUCHED
-════════════════════════════════════════════ -->
+<!-- ORIGINAL JS — UNTOUCHED -->
 <script>
     (function() {
-        // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', function() {
-            // Group keys (including DEBUG and COMPANY_STATE)
             const groupNames = [
                 'COMPANY_STATE',
                 'SALES',
-                'SALES_IGST',
+                'SALES_INTER',
                 'PURCHASE',
+                "PURCHASE_INTER",
                 'CGST_RATES',
                 'SGST_RATES',
                 'IGST_RATES',
-                'DEBUG'
+                'CGST_PURCHASE',
+                'SGST_PURCHASE',
+                'IGST_PURCHASE',
             ];
 
-            // State variables
             let companies = [];
             let currentCompany = null;
             let currentGroup = null;
             let currentMapping = null;
-            let companyModalMode = 'add'; // 'add' or 'rename'
+            let companyModalMode = 'add';
             let oldCompanyName = null;
             let currentModalGroup = null;
 
-            // DOM elements
             const companyListEl = document.getElementById('companyList');
             const groupListEl = document.getElementById('groupList');
             const rateListEl = document.getElementById('rateList');
@@ -2120,7 +2129,6 @@
             const addRateBtn = document.getElementById('addRateBtn');
             const saveMappingBtn = document.getElementById('saveMappingBtn');
 
-            // Modals
             const companyModal = document.getElementById('companyModal');
             const rateModal = document.getElementById('rateModal');
             const companyModalTitle = document.getElementById('companyModalTitle');
@@ -2132,7 +2140,6 @@
             const modalOk = document.getElementById('modalOkBtn');
             const modalCancel = document.getElementById('modalCancelBtn');
 
-            // ===== COMPANY FUNCTIONS =====
             async function loadCompaniesForMapping() {
                 if (!companyListEl) return;
                 try {
@@ -2148,12 +2155,17 @@
 
             function renderCompanyList() {
                 if (!companyListEl) return;
-                companyListEl.innerHTML = '';
+                // Remove all existing company-items (keep the no-results div)
+                companyListEl.querySelectorAll('.company-item').forEach(el => el.remove());
                 companies.forEach(name => {
                     const div = document.createElement('div');
                     div.className = 'company-item' + (name === currentCompany ? ' active' : '');
-                    div.textContent = name;
                     div.dataset.name = name;
+                    // Label span — highlight is injected here, never touches ::before emoji
+                    const label = document.createElement('span');
+                    label.className = 'company-item-text';
+                    label.textContent = name;
+                    div.appendChild(label);
                     div.addEventListener('click', () => selectCompany(name));
                     companyListEl.appendChild(div);
                 });
@@ -2161,9 +2173,8 @@
 
             async function selectCompany(name) {
                 currentCompany = name;
-                window.__currentCompanyForCore = name; // exposed for save-to-core
+                window.__currentCompanyForCore = name;
                 if (selectedCompanySpan) selectedCompanySpan.textContent = name;
-                // Update active class
                 document.querySelectorAll('#companyList .company-item').forEach(item => {
                     item.classList.toggle('active', item.dataset.name === name);
                 });
@@ -2176,7 +2187,6 @@
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
                     currentMapping = await response.json();
-                    // Update bridge
                     if (!window.__mappingBridge) window.__mappingBridge = {};
                     window.__mappingBridge.currentMapping = currentMapping;
                     if (!window.__groupBridge) window.__groupBridge = {};
@@ -2188,9 +2198,7 @@
                 }
             }
 
-            // ===== GROUP FUNCTIONS =====
             function renderGroupList() {
-                // Expose bridge for group action patch
                 if (!window.__groupBridge) window.__groupBridge = {};
                 window.__groupBridge.groupNames = groupNames;
                 window.__groupBridge.currentMapping = currentMapping;
@@ -2217,9 +2225,7 @@
                 renderRateList(name);
             }
 
-            // ===== RATE FUNCTIONS =====
             function renderRateList(group) {
-                // Expose bridge for async modal patch
                 if (!window.__mappingBridge) window.__mappingBridge = {};
                 window.__mappingBridge.currentMapping = currentMapping;
                 window.__mappingBridge.renderRateList = renderRateList;
@@ -2264,7 +2270,6 @@
                                 `;
                                 rateListEl.appendChild(item);
                             });
-                        // Attach event listeners for edit/delete
                         document.querySelectorAll('.btn-edit').forEach(btn => {
                             btn.addEventListener('click', (e) => {
                                 e.stopPropagation();
@@ -2311,7 +2316,6 @@
                 }
             }
 
-            // ===== MODAL EVENT LISTENERS =====
             if (modalOk) {
                 modalOk.addEventListener('click', () => {
                     if (!rateModal || !modalRate || !modalLedger) return;
@@ -2341,7 +2345,6 @@
                     currentMapping[group][rateKey] = ledger;
 
                     renderRateList(group);
-
                     rateModal.classList.remove('show');
                     currentModalGroup = null;
                 });
@@ -2354,7 +2357,6 @@
                 });
             }
 
-            // ===== COMPANY ACTIONS =====
             const addCompanyBtn = document.getElementById('addCompanyBtn');
             if (addCompanyBtn) {
                 addCompanyBtn.addEventListener('click', () => {
@@ -2483,7 +2485,6 @@
                 });
             }
 
-            // ===== SAVE MAPPING =====
             if (saveMappingBtn) {
                 saveMappingBtn.addEventListener('click', async () => {
                     if (!currentCompany) return alert('No company selected');
@@ -2504,7 +2505,6 @@
                 });
             }
 
-            // ===== CLOSE MODALS WHEN CLICKING OUTSIDE =====
             window.addEventListener('click', (e) => {
                 if (e.target === companyModal) {
                     companyModal.classList.remove('show');
@@ -2517,7 +2517,6 @@
                 }
             });
 
-            // ===== INIT =====
             loadCompaniesForMapping();
         });
     })();

@@ -22,6 +22,13 @@
         "18": "Local Purchase @18%",
         "28": "Local Purchase @28%"
     },
+    "PURCHASE_IGST": {
+        "0": "Purchase - IGST 0%",
+        "5": "Interstate Purchase @5%",
+        "12": "Interstate Purchase @12%",
+        "18": "Interstate Purchase @18%",
+        "28": "Interstate Purchase @28%"
+    },  
     "CGST_RATES": {
         "5": "CGST @ 2.5%",
         "12": "CGST @ 6%",

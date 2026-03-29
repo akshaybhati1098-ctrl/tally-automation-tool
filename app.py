@@ -1,19 +1,34 @@
 import os
+from dotenv import load_dotenv
+load_dotenv()
 import io
+import uuid
 import logging
+import json
 import bcrypt
 import secrets
+import tempfile
+
+MATCH_SESSIONS = {}
 from datetime import datetime, timedelta
 os.makedirs("/data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
 
-from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends
+from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends, File
 from fastapi.responses import Response, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from core.excel_service import (
+    excel_to_xml,
+    prepare_excel_party_matching,
+    apply_corrections_and_build_final_df,
+    export_dataframe_to_excel_bytes,
+)
+from core.tally_service import fetch_tally_ledgers, get_tally_status
+from core.match_service import apply_match_results_to_dataframe
 
 import openpyxl
 import pandas as pd
@@ -52,11 +67,7 @@ if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable not set")
 app.add_middleware(
     SessionMiddleware,
-    secret_key=SECRET_KEY,
-    same_site="none",
-    https_only=True,
-    max_age=None,
-    session_cookie="session"
+    secret_key=SECRET_KEY
 )
 app.add_middleware(
     CORSMiddleware,
@@ -84,6 +95,7 @@ async def session_timeout_middleware(request: Request, call_next):
         except Exception:
             pass
     return await call_next(request)
+ 
 # =========================================================
 # STATIC & TEMPLATES
 # =========================================================
@@ -634,36 +646,6 @@ async def update_company_mapping(
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
-@app.post("/api/convert")
-async def convert_excel_api(
-    request: Request,
-    file: UploadFile,
-    sheet_name: str = Form(...),
-    vtype: str = Form("sale"),
-    company: str = Form("Default"),
-    user: str = Depends(require_login)
-):
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(400, "Only Excel files allowed")
-
-    user_id = request.session.get("user_id")
-
-    xml_content, count = excel_to_xml(
-    await file.read(),
-    sheet_name,
-    vtype,
-    company,
-    user_id
-)
-
-    return Response(
-        content=xml_content,
-        media_type="application/xml",
-        headers={
-            "Content-Disposition": f"attachment; filename={file.filename}_output.xml",
-            "X-Records-Processed": str(count)
-        }
-    )
 
 @app.post("/api/image-to-excel")
 async def image_to_excel_api(
@@ -828,6 +810,292 @@ async def reset_password_page(request: Request, token: str = None):
     return templates.TemplateResponse(
         "pages/login.html",
         {"request": request, "reset_token": token}
+    )
+@app.get("/api/tally/status")
+def api_tally_status():
+    return get_tally_status()
+
+
+@app.get("/api/tally/ledgers")
+def api_tally_ledgers(group: Optional[str] = None):
+    try:
+        ledgers = fetch_tally_ledgers(group=group)
+        return {"status": "ok", "ledgers": ledgers}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+
+@app.post("/api/match-party")
+async def match_party(
+    file: UploadFile = File(...),
+    sheet_name: str = Form(None),
+    manual_columns: str = Form("{}"),
+):
+    try:
+        import io
+        import json
+
+        contents = await file.read()
+        print("📄 Sheet received from frontend:", sheet_name)
+
+        if sheet_name and sheet_name.strip():
+            df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
+        else:
+            print("⚠️ No sheet provided, using default Sheet1")
+            df = pd.read_excel(io.BytesIO(contents))
+
+        df = df.fillna("")
+
+        from core.match_service import detect_party_column, detect_gstin_column, match_party_names, apply_match_results_to_dataframe
+        from core.tally_service import fetch_tally_ledgers_with_gstin
+
+        # Detect columns automatically
+        party_col = detect_party_column(df)
+        gstin_col = detect_gstin_column(df)
+
+        print("🧠 Detected party column:", party_col)
+        print("🧠 Detected GSTIN column:", gstin_col)
+
+        # Parse manual columns if provided
+        try:
+            manual_cols = json.loads(manual_columns) if isinstance(manual_columns, str) else manual_columns
+        except:
+            manual_cols = {}
+
+        # Override with manual columns if provided
+        if manual_cols.get("party"):
+            party_col = manual_cols["party"]
+            print("🔧 Using manual party column:", party_col)
+        if manual_cols.get("gstin"):
+            gstin_col = manual_cols["gstin"]
+            print("🔧 Using manual GSTIN column:", gstin_col)
+
+        # Check if both columns are available
+        if not party_col or not gstin_col:
+            print("⚠️ Missing columns - returning manual_required")
+            return {
+                "status": "manual_required",
+                "columns": list(df.columns),
+                "party_column": party_col,
+                "gstin_column": gstin_col,
+            }
+
+        print("🔄 Fetching Tally ledgers...")
+        led1, gst1 = fetch_tally_ledgers_with_gstin("Sundry Debtors")
+        led2, gst2 = fetch_tally_ledgers_with_gstin("Sundry Creditors")
+
+        ledgers = list(dict.fromkeys(led1 + led2))
+        gst_map = {**gst1, **gst2}
+
+        print(f"✅ Ledgers fetched: {len(ledgers)}")
+
+        results = match_party_names(
+            df=df,
+            tally_ledgers=ledgers,
+            tally_gstin_map=gst_map,
+            party_col=party_col,
+            gstin_col=gstin_col,
+        )
+
+        reviewed_df = apply_match_results_to_dataframe(
+            df=df,
+            match_results=results,
+            party_col=party_col,
+        )
+
+        session_id = str(uuid.uuid4())
+        MATCH_SESSIONS[session_id] = {
+            "reviewed_df": reviewed_df,
+            "match_results": results,
+            "party_col": party_col,
+            "gstin_col": gstin_col,
+            "ledger_list": ledgers,
+            "sheet_name": sheet_name,
+            "source_filename": file.filename,
+            "columns": list(df.columns)
+        }
+
+        unmatched_count = len([r for r in results if r.get("status") != "matched"])
+
+        return {
+            "status": "ok",
+            "session_id": session_id,
+            "party_column": party_col,
+            "gstin_column": gstin_col,
+            "rows": results,
+            "ledger_list": ledgers,
+            "unmatched_count": unmatched_count,
+            "block_convert": unmatched_count > 0,
+        }
+
+    except Exception as e:
+        print("❌ MATCH ERROR:", str(e))
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/api/apply-corrections")
+async def api_apply_corrections(payload: dict):
+    try:
+        session_id = payload.get("session_id")
+        corrections = payload.get("corrections", {})
+
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id is required")
+
+        session = MATCH_SESSIONS.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Matching session not found")
+
+        reviewed_df = session["reviewed_df"]
+        party_col = session["party_col"]
+
+        normalized_corrections = {}
+        for k, v in corrections.items():
+            try:
+                normalized_corrections[int(k)] = v
+            except Exception:
+                continue
+
+        final_df = apply_corrections_and_build_final_df(
+            reviewed_df=reviewed_df,
+            corrections=normalized_corrections,
+            party_col=party_col,
+        )
+
+        session["reviewed_df"] = final_df
+
+        unmatched = [
+            row for row in session["match_results"]
+            if row.get("status") != "matched" and not normalized_corrections.get(row["row_index"])
+        ]
+
+        return {
+            "status": "ok",
+            "unmatched_count": len(unmatched),
+            "can_convert": len(unmatched) == 0,
+            "preview_rows": final_df.to_dict(orient="records"),
+        }
+
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+
+from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+import json
+
+@app.post("/api/download-reviewed-excel")
+async def api_download_reviewed_excel(payload: dict):
+    try:
+        session_id = payload.get("session_id")
+        corrections = payload.get("corrections", {})
+
+        if not session_id:
+            raise HTTPException(status_code=400, detail="session_id is required")
+
+        session = MATCH_SESSIONS.get(session_id)
+        if not session:
+            raise HTTPException(status_code=404, detail="Matching session not found")
+
+        # ✅ SAFE DATAFRAME FETCH
+        reviewed_df = session.get("reviewed_df")
+        if reviewed_df is None:
+            reviewed_df = session.get("df")
+
+        if reviewed_df is None:
+            raise HTTPException(status_code=500, detail="No dataframe found in session")
+
+        party_col = session.get("party_col")
+        if not party_col:
+            raise HTTPException(status_code=500, detail="Party column missing in session")
+
+        # ✅ NORMALIZE CORRECTIONS
+        normalized_corrections = {}
+        for k, v in corrections.items():
+            try:
+                normalized_corrections[int(k)] = v
+            except:
+                continue
+
+        print("Corrections:", normalized_corrections)
+
+        # ✅ APPLY CORRECTIONS
+        final_df = apply_corrections_and_build_final_df(
+            reviewed_df=reviewed_df,
+            corrections=normalized_corrections,
+            party_col=party_col,
+        )
+
+        print("Final DF shape:", final_df.shape)
+
+        # ✅ EXPORT TO EXCEL (BYTES)
+        excel_bytes = export_dataframe_to_excel_bytes(final_df)
+
+        # ✅ STREAM FILE (NO TEMP FILE NEEDED)
+        output = BytesIO(excel_bytes)
+        output.seek(0)
+
+        return StreamingResponse(
+            output,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": "attachment; filename=reviewed_matching_result.xlsx"
+            },
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        print("❌ ERROR:", str(exc))
+        raise HTTPException(status_code=500, detail=str(exc))
+
+@app.post("/api/convert")
+async def convert_excel_api(
+    request: Request,
+    file: UploadFile,
+    sheet_name: str = Form(...),
+    vtype: str = Form("sale"),
+    company: str = Form("Default"),
+    column_mapping: str = Form("{}"),
+    tally_corrections: str = Form("{}"),
+    user: str = Depends(require_login),
+):
+    if not file.filename.endswith((".xlsx", ".xls")):
+        raise HTTPException(400, "Only Excel files allowed")
+
+    user_id = request.session.get("user_id")
+
+    try:
+        mapping_data = json.loads(column_mapping)
+    except Exception:
+        mapping_data = {}
+
+    try:
+        tally_corrections_data = json.loads(tally_corrections)
+        print("🔥 RECEIVED CORRECTIONS:", tally_corrections_data)
+    except Exception:
+        tally_corrections_data = {}
+
+    xml_content, count = excel_to_xml(
+        await file.read(),
+        sheet_name,
+        vtype,
+        company,
+        user_id,
+        column_mapping=mapping_data,
+        tally_corrections=tally_corrections_data,
+    )
+
+    return Response(
+        content=xml_content,
+        media_type="application/xml",
+        headers={
+            "Content-Disposition": f"attachment; filename={file.filename}_output.xml",
+            "X-Records-Processed": str(count),
+        },
     )
  
 

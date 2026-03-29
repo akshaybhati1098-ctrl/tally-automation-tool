@@ -51,7 +51,7 @@ def get_default_mapping():
             "18": "Local Sale @18%",
             "28": "Local Sale @28%"
         },
-        "SALES_IGST": {
+        "SALES_INTER": {
             "0": "Sales - IGST 0%",
             "5": "Interstate Sale @5%",
             "12": "Interstate Sale @12%",
@@ -65,23 +65,48 @@ def get_default_mapping():
             "18": "Local Purchase @18%",
             "28": "Local Purchase @28%"
         },
+        "PURCHASE_INTER": {
+            "0": "Purchase - IGST 0%",
+            "5": "Interstate Purchase @5%",
+            "12": "Interstate Purchase @12%",
+            "18": "Interstate Purchase @18%",
+            "28": "Interstate Purchase @28%"
+        },
         "CGST_RATES": {
-            "5": "CGST @ 2.5%",
-            "12": "CGST @ 6%",
-            "18": "CGST @ 9%",
-            "28": "CGST @ 14%"
+            "2.5": "CGST @ 2.5%",
+            "6": "CGST @ 6%",
+            "9": "CGST @ 9%",
+            "14": "CGST @ 14%"
         },
         "SGST_RATES": {
-            "5": "SGST @ 2.5%",
-            "12": "SGST @ 6%",
-            "18": "SGST @ 9%",
-            "28": "SGST @ 14%"
+            "2.5": "SGST @ 2.5%",
+            "6": "SGST @ 6%",
+            "9": "SGST @ 9%",
+            "14": "SGST @ 14%"
         },
         "IGST_RATES": {
             "5": "IGST @ 5%",
             "12": "IGST @ 12%",
             "18": "IGST @ 18%",
             "28": "IGST @ 28%"
+        },
+        "CGST_PURCHASE": {
+            "2.5": "INPUT CGST 2.5%",
+            "6": "INPUT CGST 6%",
+            "9": "INPUT CGST 9%",
+            "14": "INPUT CGST 14%"  
+        },
+        "SGST_PURCHASE": {
+            "2.5": "INPUT SGST 2.5%",
+            "6": "INPUT SGST 6%",
+            "9": "INPUT SGST 9%",
+            "14": "INPUT SGST 14%"
+        },
+        "IGST_PURCHASE": {
+            "5": "INPUT IGST 5%",
+            "12": "INPUT IGST 12%",
+            "18": "INPUT IGST 18%",
+            "28": "INPUT IGST 28%"
         }
     }
 

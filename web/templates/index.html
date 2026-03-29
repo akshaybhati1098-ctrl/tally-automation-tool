@@ -93,7 +93,14 @@
 
         // Default page after login
         document.addEventListener("DOMContentLoaded", () => {
-            showPage("dashboard");
+            // Check if there's a saved page preference in sessionStorage
+            const savedPage = sessionStorage.getItem("activePage");
+            if (savedPage) {
+                showPage(savedPage);
+                sessionStorage.removeItem("activePage");  // Clear it after use
+            } else {
+                showPage("dashboard");
+            }
         });
     </script>
 
