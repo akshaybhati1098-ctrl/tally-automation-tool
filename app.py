@@ -830,6 +830,7 @@ async def match_party(
     file: UploadFile = File(...),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
+    ledgers: str = Form("[]"),
 ):
     try:
         import io
@@ -847,7 +848,7 @@ async def match_party(
         df = df.fillna("")
 
         from core.match_service import detect_party_column, detect_gstin_column, match_party_names, apply_match_results_to_dataframe
-        from core.tally_service import fetch_tally_ledgers_with_gstin
+        
 
         # Detect columns automatically
         party_col = detect_party_column(df)
@@ -879,13 +880,14 @@ async def match_party(
                 "party_column": party_col,
                 "gstin_column": gstin_col,
             }
+        # ✅ GET LEDGERS FROM FRONTEND
+        ledgers_json = request.form().get("ledgers", "[]")
+        ledgers_data = json.loads(ledgers_json)
 
-        print("🔄 Fetching Tally ledgers...")
-        led1, gst1 = fetch_tally_ledgers_with_gstin("Sundry Debtors")
-        led2, gst2 = fetch_tally_ledgers_with_gstin("Sundry Creditors")
+        ledgers = [l["name"] for l in ledgers_data]
 
-        ledgers = list(dict.fromkeys(led1 + led2))
-        gst_map = {**gst1, **gst2}
+        # optional: empty GST map
+        gst_map = {}
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
 
