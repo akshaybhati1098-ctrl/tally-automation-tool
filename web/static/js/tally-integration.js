@@ -13,7 +13,7 @@
     selectedGroup: "Sundry Debtors",
     file: null,
     matchResults: [],
-    overrides: {},
+    overrides: {}
   };
 
   // ───────── DOM ─────────
@@ -47,6 +47,7 @@
 
   // ───────── EVENTS ─────────
   function bindEvents() {
+
     document.getElementById("btnDebtors").onclick = () => {
       state.selectedGroup = "Sundry Debtors";
     };
@@ -73,98 +74,68 @@
 
   // ───────── STATUS ─────────
   async function checkStatus() {
-    const xml = `
-  <ENVELOPE>
-    <HEADER>
-      <TALLYREQUEST>Export</TALLYREQUEST>
-      <TYPE>Collection</TYPE>
-      <ID>Company Collection</ID>
-    </HEADER>
-    <BODY></BODY>
-  </ENVELOPE>`;
-
     try {
-      const res = await fetch("http://localhost:9000", {
-        method: "POST",
-        headers: { "Content-Type": "text/xml" },
-        body: xml,
-      });
+      const res = await fetch(API.STATUS);
+      const data = await res.json();
 
-      const text = await res.text();
-
-      if (text.includes("COMPANY")) {
+      if (data.status === "running" && data.company) {
         statusDot.className = "tally-status-dot green";
         statusLabel.textContent = "Connected to Tally";
-        statusCompany.textContent = "Company detected";
+        statusCompany.textContent = data.company;
         statusPill.textContent = "Online";
         statusPill.className = "tally-status-pill green";
         fetchBtn.disabled = false;
       } else {
-        throw new Error();
+        statusDot.className = "tally-status-dot red";
+        statusLabel.textContent = "Tally not detected";
+        statusCompany.textContent = "Open Tally on port 9000";
+        statusPill.textContent = "Offline";
+        statusPill.className = "tally-status-pill red";
+        fetchBtn.disabled = true;
       }
+
     } catch {
       statusDot.className = "tally-status-dot red";
-      statusLabel.textContent = "Tally not detected";
-      statusCompany.textContent = "Open Tally on port 9000";
-      statusPill.textContent = "Offline";
-      statusPill.className = "tally-status-pill red";
-      fetchBtn.disabled = true;
+      statusLabel.textContent = "Connection failed";
     }
   }
+
   // ───────── FETCH LEDGERS ─────────
   async function fetchLedgers() {
     spinner.classList.remove("hidden");
     ledgerCount.textContent = "";
 
-    const xml = `
-  <ENVELOPE>
-    <HEADER>
-      <TALLYREQUEST>Export Data</TALLYREQUEST>
-    </HEADER>
-    <BODY>
-      <EXPORTDATA>
-        <REQUESTDESC>
-          <REPORTNAME>List of Accounts</REPORTNAME>
-        </REQUESTDESC>
-      </EXPORTDATA>
-    </BODY>
-  </ENVELOPE>`;
-
     try {
-      const res = await fetch("http://localhost:9000", {
-        method: "POST",
-        headers: { "Content-Type": "text/xml" },
-        body: xml,
-      });
+      const res = await fetch(`${API.LEDGERS}?group=${state.selectedGroup}`);
+      const data = await res.json();
 
-      const text = await res.text();
-
-      const matches = [...text.matchAll(/<NAME>(.*?)<\/NAME>/g)];
-      state.ledgers = matches.map((m) => ({ name: m[1] }));
+      state.ledgers = data.ledgers || [];
 
       ledgerCount.textContent = `✓ ${state.ledgers.length} loaded`;
       ledgerCount.className = "tally-ledger-count success";
 
       if (state.file) runMatching();
-    } catch {
-      ledgerCount.textContent = "Tally not connected";
+
+    } catch (e) {
+      ledgerCount.textContent = "Error loading";
       ledgerCount.className = "tally-ledger-count error";
     }
 
     spinner.classList.add("hidden");
   }
+
   // ───────── MATCHING ─────────
   async function runMatching() {
     if (!state.file) return;
 
     const formData = new FormData();
     formData.append("file", state.file);
-    formData.append("ledgers", JSON.stringify(state.ledgers));
+    formData.append("tally_group", state.selectedGroup);
 
     try {
       const res = await fetch(API.MATCH, {
         method: "POST",
-        body: formData,
+        body: formData
       });
 
       const data = await res.json();
@@ -175,6 +146,7 @@
       matchSection.classList.remove("hidden");
 
       checkWarnings();
+
     } catch (e) {
       showWarning("Matching failed");
     }
@@ -197,7 +169,7 @@
         <td>
           <select data-index="${r.row_index}">
             <option value="">Select</option>
-            ${state.ledgers.map((l) => `<option>${l.name}</option>`).join("")}
+            ${state.ledgers.map(l => `<option>${l.name}</option>`).join("")}
           </select>
         </td>
       `;
@@ -206,7 +178,7 @@
     });
 
     // Manual override
-    matchBody.querySelectorAll("select").forEach((sel) => {
+    matchBody.querySelectorAll("select").forEach(sel => {
       sel.addEventListener("change", (e) => {
         state.overrides[e.target.dataset.index] = e.target.value;
         checkWarnings();
@@ -216,8 +188,8 @@
 
   // ───────── WARNINGS ─────────
   function checkWarnings() {
-    const unresolved = state.matchResults.filter(
-      (r) => r.status !== "matched" && !state.overrides[r.row_index],
+    const unresolved = state.matchResults.filter(r =>
+      r.status !== "matched" && !state.overrides[r.row_index]
     );
 
     if (unresolved.length > 0) {
@@ -231,4 +203,5 @@
     warning.classList.remove("hidden");
     warningText.textContent = msg;
   }
+
 })();
