@@ -159,7 +159,7 @@
 
     const formData = new FormData();
     formData.append("file", state.file);
-    formData.append("tally_group", state.selectedGroup);
+    formData.append("ledgers", JSON.stringify(state.ledgers));
 
     try {
       const res = await fetch(API.MATCH, {
