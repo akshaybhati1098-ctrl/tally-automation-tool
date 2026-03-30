@@ -865,16 +865,9 @@ async def reset_password_page(request: Request, token: str = None):
 def api_tally_status(request: Request):
     user_id = str(request.session.get("user_id"))
 
-    xml = build_company_status_xml()
-
-    JOBS.setdefault(user_id, []).append({"xml": xml})
-
-    result = RESULTS.get(user_id)
-
-    if not result:
-        return {"status": "waiting"}
-
-    return parse_company_status(result.get("data", ""))
+    return {
+        "status": USER_STATUS.get(user_id, "not_running")
+    }
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
