@@ -37,7 +37,7 @@
   const sheetSelect = document.getElementById("sheetSelect");
 
   // ───────── INIT ─────────
-  init();
+  document.addEventListener("DOMContentLoaded", init);
 
   function init() {
     bindEvents();
@@ -109,25 +109,39 @@
 
     // 🌐 RENDER → special detection
     try {
-      const img = new Image();
+     const img = new Image();
+     let done = false;
 
-      img.onload = () => {
-        console.log("✅ Tally detected");
-        setOnlineUI("Local Tally");
+     img.onload = () => {
+       if (done) return;
+       done = true;
+       console.log("✅ Tally detected");
+       setOnlineUI("Local Tally");
       };
 
-      img.onerror = () => {
-        console.log("❌ Tally not detected");
-        setOfflineUI();
-      };
+     img.onerror = () => {
+      if (done) return;
+      done = true;
+      console.log("❌ Tally not detected");
+      setOfflineUI();
+    };
 
-      // 🔥 SET SRC LAST
-      img.src = "http://127.0.0.1:9000/favicon.ico?" + Date.now();
-    } catch (e) {
-      console.log("Render detection error:", e);
+  // ⏱ fallback (VERY IMPORTANT)
+  setTimeout(() => {
+    if (!done) {
+      console.log("⏱ Timeout → assume offline");
+      done = true;
       setOfflineUI();
     }
-  }
+  }, 3000);
+
+  // 🔥 FIXED URL (no favicon)
+  img.src = "http://127.0.0.1:9000/" + Date.now();
+
+} catch (e) {
+  console.log("Render detection error:", e);
+  setOfflineUI();
+}
 
   // ───────── FETCH LEDGERS ─────────
   async function fetchLedgers() {
