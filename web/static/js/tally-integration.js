@@ -73,30 +73,39 @@
 
   // ───────── STATUS ─────────
   async function checkStatus() {
-    try {
-      const res = await fetch("http://127.0.0.1:9000", {
-        method: "POST",
-        body: "<ENVELOPE><HEADER><VERSION>1</VERSION></HEADER></ENVELOPE>",
-        mode: "no-cors",
-      });
+    const isLocal =
+      window.location.hostname === "localhost" ||
+      window.location.hostname === "127.0.0.1";
 
-      // If no error → assume running
-      statusDot.className = "tally-status-dot green";
-      statusLabel.textContent = "Connected to Tally";
-      statusCompany.textContent = "Detected locally";
-      statusPill.textContent = "Online";
-      statusPill.className = "tally-status-pill green";
-      fetchBtn.disabled = false;
-    } catch (e) {
-      statusDot.className = "tally-status-dot red";
-      statusLabel.textContent = "Tally not detected";
-      statusCompany.textContent = "Open Tally on port 9000";
-      statusPill.textContent = "Offline";
-      statusPill.className = "tally-status-pill red";
-      fetchBtn.disabled = true;
+    // ✅ LOCAL → use backend (no change)
+    if (isLocal) {
+      try {
+        const res = await fetch("/api/tally/status");
+        const data = await res.json();
+
+        if (data.status === "running") {
+          setOnlineUI(data.company);
+        } else {
+          setOfflineUI();
+        }
+      } catch {
+        setOfflineUI();
+      }
+      return;
+    }
+
+    // 🌐 RENDER → special detection
+    try {
+      const img = new Image();
+
+      img.src = "http://127.0.0.1:9000/favicon.ico?" + Date.now();
+
+      img.onload = () => setOnlineUI("Local Tally");
+      img.onerror = () => setOfflineUI();
+    } catch {
+      setOfflineUI();
     }
   }
-
   // ───────── FETCH LEDGERS ─────────
   async function fetchLedgers() {
     spinner.classList.remove("hidden");
