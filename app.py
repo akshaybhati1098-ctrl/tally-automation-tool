@@ -10,6 +10,8 @@ import secrets
 import tempfile
 
 MATCH_SESSIONS = {}
+JOBS = {}
+RESULTS = {}
 from datetime import datetime, timedelta
 os.makedirs("/data", exist_ok=True)
 from io import BytesIO
@@ -27,7 +29,12 @@ from core.excel_service import (
     apply_corrections_and_build_final_df,
     export_dataframe_to_excel_bytes,
 )
-from core.tally_service import fetch_tally_ledgers, get_tally_status
+from core.tally_service import (
+    build_ledger_xml,
+    build_company_status_xml,
+    parse_ledgers,
+    parse_company_status,
+)
 from core.match_service import apply_match_results_to_dataframe
 
 import openpyxl
@@ -643,6 +650,36 @@ async def update_company_mapping(
         raise HTTPException(400, str(e))
     return {"status": "saved"}
 
+# ================================
+# 🔌 CONNECTOR APIs
+# ================================
+
+@app.post("/api/add-job/{user_id}")
+def add_job(user_id: str, data: dict):
+    JOBS.setdefault(user_id, []).append(data)
+    return {"ok": True}
+
+
+@app.get("/api/get-job/{user_id}")
+def get_job(user_id: str):
+    print("📥 Connector requested job for:", user_id)
+
+    if JOBS.get(user_id):
+        return JOBS[user_id].pop(0)
+        print("📤 Sending job:", job)
+    return {}
+
+
+@app.post("/api/submit-result/{user_id}")
+def submit_result(user_id: str, data: dict):
+    RESULTS[user_id] = data
+    return {"ok": True}
+
+
+@app.get("/api/get-result/{user_id}")
+def get_result(user_id: str):
+    return RESULTS.get(user_id, {})
+
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
@@ -811,19 +848,41 @@ async def reset_password_page(request: Request, token: str = None):
         "pages/login.html",
         {"request": request, "reset_token": token}
     )
+
 @app.get("/api/tally/status")
-def api_tally_status():
-    return get_tally_status()
+def api_tally_status(request: Request):
+    user_id = str(request.session.get("user_id"))
 
+    xml = build_company_status_xml()
 
+    JOBS.setdefault(user_id, []).append({"xml": xml})
+
+    result = RESULTS.get(user_id)
+
+    if not result:
+        return {"status": "waiting"}
+
+    return parse_company_status(result.get("data", ""))
 @app.get("/api/tally/ledgers")
-def api_tally_ledgers(group: Optional[str] = None):
-    try:
-        ledgers = fetch_tally_ledgers(group=group)
-        return {"status": "ok", "ledgers": ledgers}
-    except Exception as exc:
-        raise HTTPException(status_code=500, detail=str(exc))
+def api_tally_ledgers(request: Request):
+    user_id = str(request.session.get("user_id"))
 
+    # 1. create XML
+    xml = build_ledger_xml()
+
+    # 2. send job
+    JOBS.setdefault(user_id, []).append({"xml": xml})
+
+    # 3. check result
+    result = RESULTS.get(user_id)
+
+    if not result:
+        return {"status": "waiting"}
+
+    # 4. parse result
+    ledgers = parse_ledgers(result.get("data", ""))
+
+    return {"status": "ok", "ledgers": ledgers}
 
 @app.post("/api/match-party")
 async def match_party(
@@ -847,7 +906,7 @@ async def match_party(
         df = df.fillna("")
 
         from core.match_service import detect_party_column, detect_gstin_column, match_party_names, apply_match_results_to_dataframe
-        from core.tally_service import fetch_tally_ledgers_with_gstin
+        from core.tally_service import parse_ledgers_with_gstin, build_ledger_xml
 
         # Detect columns automatically
         party_col = detect_party_column(df)
@@ -881,8 +940,18 @@ async def match_party(
             }
 
         print("🔄 Fetching Tally ledgers...")
-        led1, gst1 = fetch_tally_ledgers_with_gstin("Sundry Debtors")
-        led2, gst2 = fetch_tally_ledgers_with_gstin("Sundry Creditors")
+        user_id = str(request.session.get("user_id"))
+
+        # send job
+        xml = build_ledger_xml()
+        JOBS.setdefault(user_id, []).append({"xml": xml})
+
+        result = RESULTS.get(user_id)
+
+        if not result:
+           return {"status": "waiting"}
+
+        ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
 
         ledgers = list(dict.fromkeys(led1 + led2))
         gst_map = {**gst1, **gst2}

@@ -1,7 +1,4 @@
-const API = {
-  STATUS: "http://localhost:5001/status",
-  LEDGERS: "http://localhost:5001/ledgers",
-};
+
 (function () {
   "use strict";
 
@@ -81,21 +78,30 @@ const API = {
       const res = await fetch(API.STATUS);
       const data = await res.json();
 
-      if (data.status === "running" && data.company) {
-        statusDot.className = "tally-status-dot green";
-        statusLabel.textContent = "Connected to Tally";
-        statusCompany.textContent = data.company;
-        statusPill.textContent = "Online";
-        statusPill.className = "tally-status-pill green";
-        fetchBtn.disabled = false;
-      } else {
-        statusDot.className = "tally-status-dot red";
-        statusLabel.textContent = "Tally not detected";
-        statusCompany.textContent = "Open Tally on port 9000";
-        statusPill.textContent = "Offline";
-        statusPill.className = "tally-status-pill red";
-        fetchBtn.disabled = true;
-      }
+     if (data.status === "running") {
+  statusDot.className = "tally-status-dot green";
+  statusLabel.textContent = "Connected to Tally";
+  statusCompany.textContent = data.company || "";
+  statusPill.textContent = "Online";
+  statusPill.className = "tally-status-pill green";
+  fetchBtn.disabled = false;
+
+} else if (data.status === "waiting") {
+  statusDot.className = "tally-status-dot yellow";
+  statusLabel.textContent = "Connecting...";
+  statusCompany.textContent = "Waiting for connector";
+  statusPill.textContent = "Connecting";
+  statusPill.className = "tally-status-pill yellow";
+  fetchBtn.disabled = true;
+
+} else {
+  statusDot.className = "tally-status-dot red";
+  statusLabel.textContent = "Tally not detected";
+  statusCompany.textContent = "Run Connector + Open Tally";
+  statusPill.textContent = "Offline";
+  statusPill.className = "tally-status-pill red";
+  fetchBtn.disabled = false;
+}
     } catch {
       statusDot.className = "tally-status-dot red";
       statusLabel.textContent = "Connection failed";
@@ -111,7 +117,15 @@ const API = {
       const res = await fetch(`${API.LEDGERS}?group=${state.selectedGroup}`);
       const data = await res.json();
 
-      state.ledgers = data.ledgers || [];
+      if (data.status === "waiting") {
+       ledgerCount.textContent = "Waiting for connector...";
+       ledgerCount.className = "tally-ledger-count warning";
+
+      setTimeout(fetchLedgers, 2000); // retry
+      return;
+    }
+
+    state.ledgers = data.ledgers || [];
 
       ledgerCount.textContent = `✓ ${state.ledgers.length} loaded`;
       ledgerCount.className = "tally-ledger-count success";

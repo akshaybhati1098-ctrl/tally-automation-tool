@@ -20,7 +20,7 @@ from core.match_service import (
     get_unmatched_rows,
     match_party_names,
 )
-from core.tally_service import fetch_tally_ledgers_with_gstin
+from core.tally_service import parse_ledgers_with_gstin
 
 CANONICAL_COLUMNS = {
     "invoice_number": "Invoice Number",
@@ -64,10 +64,10 @@ def prepare_excel_party_matching(
     gstin_col = detect_gstin_column(df)
 
     if ledger_group and ledger_group.lower() not in {"all", "both", "any"}:
-        ledgers, gstin_map = fetch_tally_ledgers_with_gstin(group=ledger_group)
+        ledgers, gstin_map = fetch_tally_with_gstin(group=ledger_group)
     else:
-        led1, gst1 = fetch_tally_ledgers_with_gstin("Sundry Debtors")
-        led2, gst2 = fetch_tally_ledgers_with_gstin("Sundry Creditors")
+        led1, gst1 = fetch_tally_with_gstin("Sundry Debtors")
+        led2, gst2 = fetch_tally_with_gstin("Sundry Creditors")
         ledgers = list(dict.fromkeys(led1 + led2))
         gstin_map = {**gst1, **gst2}
 
