@@ -1,3 +1,7 @@
+const API = {
+  STATUS: "http://localhost:5001/status",
+  LEDGERS: "http://localhost:5001/ledgers",
+};
 (function () {
   "use strict";
 
@@ -13,7 +17,7 @@
     selectedGroup: "Sundry Debtors",
     file: null,
     matchResults: [],
-    overrides: {}
+    overrides: {},
   };
 
   // ───────── DOM ─────────
@@ -47,7 +51,6 @@
 
   // ───────── EVENTS ─────────
   function bindEvents() {
-
     document.getElementById("btnDebtors").onclick = () => {
       state.selectedGroup = "Sundry Debtors";
     };
@@ -93,7 +96,6 @@
         statusPill.className = "tally-status-pill red";
         fetchBtn.disabled = true;
       }
-
     } catch {
       statusDot.className = "tally-status-dot red";
       statusLabel.textContent = "Connection failed";
@@ -115,7 +117,6 @@
       ledgerCount.className = "tally-ledger-count success";
 
       if (state.file) runMatching();
-
     } catch (e) {
       ledgerCount.textContent = "Error loading";
       ledgerCount.className = "tally-ledger-count error";
@@ -135,7 +136,7 @@
     try {
       const res = await fetch(API.MATCH, {
         method: "POST",
-        body: formData
+        body: formData,
       });
 
       const data = await res.json();
@@ -146,7 +147,6 @@
       matchSection.classList.remove("hidden");
 
       checkWarnings();
-
     } catch (e) {
       showWarning("Matching failed");
     }
@@ -169,7 +169,7 @@
         <td>
           <select data-index="${r.row_index}">
             <option value="">Select</option>
-            ${state.ledgers.map(l => `<option>${l.name}</option>`).join("")}
+            ${state.ledgers.map((l) => `<option>${l.name}</option>`).join("")}
           </select>
         </td>
       `;
@@ -178,7 +178,7 @@
     });
 
     // Manual override
-    matchBody.querySelectorAll("select").forEach(sel => {
+    matchBody.querySelectorAll("select").forEach((sel) => {
       sel.addEventListener("change", (e) => {
         state.overrides[e.target.dataset.index] = e.target.value;
         checkWarnings();
@@ -188,8 +188,8 @@
 
   // ───────── WARNINGS ─────────
   function checkWarnings() {
-    const unresolved = state.matchResults.filter(r =>
-      r.status !== "matched" && !state.overrides[r.row_index]
+    const unresolved = state.matchResults.filter(
+      (r) => r.status !== "matched" && !state.overrides[r.row_index],
     );
 
     if (unresolved.length > 0) {
@@ -203,5 +203,4 @@
     warning.classList.remove("hidden");
     warningText.textContent = msg;
   }
-
 })();
