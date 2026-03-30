@@ -1,5 +1,6 @@
 import os
 from dotenv import load_dotenv
+from fastapi import Request
 load_dotenv()
 import io
 import uuid
@@ -338,6 +339,17 @@ async def serve_ui(request: Request):
         "index.html",
         {"request": request, "username": user}
     )
+USER_STATUS = {}
+
+@app.post("/api/update-status/{user_id}")
+def update_status(user_id: str, data: dict):
+    USER_STATUS.get(user_id, "not_running")
+    return {"success": True}
+@app.get("/api/tally/status/{user_id}")
+def tally_status(user_id: str):
+    return {
+        "status": USER_STATUS.get(user_id, "not_running")
+    }
 
 @app.get("/login")
 async def login_page(request: Request):
