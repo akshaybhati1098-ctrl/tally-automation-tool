@@ -109,41 +109,39 @@
 
     // 🌐 RENDER → special detection
     try {
-  const img = new Image();
-  let done = false;
+      const img = new Image();
+      let done = false;
 
-  img.onload = () => {
-    if (done) return;
-    done = true;
-    console.log("✅ Tally detected");
-    setOnlineUI("Local Tally");
-  };
+      img.onload = () => {
+        if (done) return;
+        done = true;
+        console.log("✅ Tally detected");
+        setOnlineUI("Local Tally");
+      };
 
-  img.onerror = () => {
-    if (done) return;
-    done = true;
-    console.log("❌ Tally not detected");
-    setOfflineUI();
-  };
+      img.onerror = () => {
+        if (done) return;
+        done = true;
+        console.log("❌ Tally not detected");
+        setOfflineUI();
+      };
 
-  // ⏱ fallback (VERY IMPORTANT)
-  setTimeout(() => {
-    if (!done) {
-      console.log("⏱ Timeout → assume offline");
-      done = true;
+      // ⏱ fallback (VERY IMPORTANT)
+      setTimeout(() => {
+        if (!done) {
+          console.log("⏱ Timeout → assume offline");
+          done = true;
+          setOfflineUI();
+        }
+      }, 3000);
+
+      // 🔥 FIXED URL (no favicon)
+      img.src = "http://127.0.0.1:9000/" + Date.now();
+    } catch (e) {
+      console.log("Render detection error:", e);
       setOfflineUI();
     }
-  }, 3000);
-
-  // 🔥 FIXED URL (no favicon)
-  img.src = "http://127.0.0.1:9000/" + Date.now();
-
-} catch (e) {
-  console.log("Render detection error:", e);
-  setOfflineUI();
-}
-
-}
+  }
 
   // ───────── FETCH LEDGERS ─────────
   async function fetchLedgers() {
@@ -238,6 +236,11 @@
   // 🔥 ADD HERE ↓↓↓
 
   function setOnlineUI(company) {
+    if (!statusDot || !statusLabel || !statusCompany || !statusPill) {
+      console.log("❌ DOM elements missing");
+      return;
+    }
+
     statusDot.className = "tally-status-dot green";
     statusLabel.textContent = "Connected to Tally";
     statusCompany.textContent = company;
@@ -247,6 +250,11 @@
   }
 
   function setOfflineUI() {
+    if (!statusDot || !statusLabel || !statusCompany || !statusPill) {
+      console.log("❌ DOM elements missing");
+      return;
+    }
+
     statusDot.className = "tally-status-dot red";
     statusLabel.textContent = "Tally not detected";
     statusCompany.textContent = "Open Tally on port 9000";
