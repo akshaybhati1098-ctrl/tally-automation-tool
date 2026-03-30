@@ -2234,6 +2234,32 @@
     </style>
   </head>
   <body>
+    <!-- 🔥 TALLY STATUS UI -->
+    <div
+      style="
+        margin: 20px 0;
+        padding: 15px;
+        border: 1px solid #eee;
+        border-radius: 12px;
+      "
+    >
+      <div style="display: flex; align-items: center; gap: 10px">
+        <div id="tallyStatusDot" class="tally-status-dot red"></div>
+
+        <div>
+          <div id="tallyStatusLabel">Tally not detected</div>
+          <div id="tallyCompanyName" style="font-size: 12px; color: #666">
+            Open Tally on port 9000
+          </div>
+        </div>
+
+        <div style="margin-left: auto">
+          <span id="tallyStatusPill" class="tally-status-pill red">
+            Offline
+          </span>
+        </div>
+      </div>
+    </div>
     <div class="converter-wrap">
       <!-- Page Header -->
       <div class="page-header">
@@ -2814,7 +2840,7 @@
 
           // Global state
           let currentMapping = null;
-          let tallyOfflineDismissed = false;  // Track if user dismissed the popup
+          let tallyOfflineDismissed = false; // Track if user dismissed the popup
 
           // ══════════════════════════════════════
           //  UTILITY FUNCTIONS
@@ -2830,16 +2856,16 @@
           // ══════════════════════════════════════
           //  TOAST NOTIFICATION
           // ══════════════════════════════════════
-          function showToast(message, type = 'success', duration = 3000) {
+          function showToast(message, type = "success", duration = 3000) {
             console.log(`🔔 Toast [${type}]: ${message}`);
 
             // Create or get container
-            let container = document.getElementById('toast-container');
+            let container = document.getElementById("toast-container");
             if (!container) {
               console.log("📦 Creating toast container...");
-              container = document.createElement('div');
-              container.id = 'toast-container';
-              container.className = 'toast-container';
+              container = document.createElement("div");
+              container.id = "toast-container";
+              container.className = "toast-container";
               // Add inline styles as backup
               container.style.cssText = `
                 position: fixed;
@@ -2853,31 +2879,34 @@
               `;
               document.body.appendChild(container);
               console.log("✅ Toast container created and appended to body");
-              console.log("Container styles:", window.getComputedStyle(container));
+              console.log(
+                "Container styles:",
+                window.getComputedStyle(container),
+              );
             } else {
               console.log("📦 Using existing toast container");
             }
 
             // Map icons for different types
             const icons = {
-              success: '✅',
-              error: '❌',
-              warning: '⚠️',
-              info: 'ℹ️'
+              success: "✅",
+              error: "❌",
+              warning: "⚠️",
+              info: "ℹ️",
             };
 
             // Create toast element
-            const toast = document.createElement('div');
+            const toast = document.createElement("div");
             toast.className = `toast ${type}`;
             toast.style.cssText = `
               background: #fff;
               border-radius: 12px;
               padding: 14px 20px;
               box-shadow: 0 8px 24px rgba(10, 15, 30, 0.2);
-              border-left: 5px solid ${type === 'error' ? '#dc2626' : type === 'warning' ? '#f59e0b' : type === 'info' ? '#1649e0' : '#0fa966'};
+              border-left: 5px solid ${type === "error" ? "#dc2626" : type === "warning" ? "#f59e0b" : type === "info" ? "#1649e0" : "#0fa966"};
               font-size: 0.95rem;
               font-weight: 500;
-              color: ${type === 'error' ? '#dc2626' : '#0a0f1e'};
+              color: ${type === "error" ? "#dc2626" : "#0a0f1e"};
               display: flex;
               align-items: center;
               gap: 12px;
@@ -2895,13 +2924,19 @@
             console.log("🎨 Toast element created:", toast);
             console.log("Toast HTML:", toast.innerHTML);
             container.appendChild(toast);
-            console.log("📍 Toast appended to container. Container children:", container.children.length);
-            console.log("Toast computed styles:", window.getComputedStyle(toast));
+            console.log(
+              "📍 Toast appended to container. Container children:",
+              container.children.length,
+            );
+            console.log(
+              "Toast computed styles:",
+              window.getComputedStyle(toast),
+            );
 
             // Close button handler
-            const closeBtn = toast.querySelector('.toast-close');
+            const closeBtn = toast.querySelector(".toast-close");
             if (closeBtn) {
-              closeBtn.addEventListener('click', () => {
+              closeBtn.addEventListener("click", () => {
                 console.log("👆 Toast close button clicked");
                 removeToast(toast);
               });
@@ -2924,32 +2959,34 @@
               console.log("⚠️ Toast element is null, cannot remove");
               return;
             }
-            toast.classList.add('removing');
+            toast.classList.add("removing");
             console.log("Animation class added. Waiting for animation...");
-            
+
             const animHandler = () => {
               console.log("✂️ Animation ended, removing toast element");
               toast.remove();
-              toast.removeEventListener('animationend', animHandler);
-              
+              toast.removeEventListener("animationend", animHandler);
+
               // Clean up container if empty
-              const container = document.getElementById('toast-container');
+              const container = document.getElementById("toast-container");
               if (container && container.children.length === 0) {
                 console.log("🧹 Toast container is empty, removing it");
                 container.remove();
               }
             };
-            
-            toast.addEventListener('animationend', animHandler, { once: true });
-            
+
+            toast.addEventListener("animationend", animHandler, { once: true });
+
             // Fallback: remove after 500ms if animation doesn't trigger
             setTimeout(() => {
               if (toast.parentNode) {
-                console.log("⏭️ Fallback: removing toast (animation didn't trigger)");
+                console.log(
+                  "⏭️ Fallback: removing toast (animation didn't trigger)",
+                );
                 toast.remove();
-                
+
                 // Clean up container if empty
-                const container = document.getElementById('toast-container');
+                const container = document.getElementById("toast-container");
                 if (container && container.children.length === 0) {
                   console.log("🧹 Toast container is empty, removing it");
                   container.remove();
@@ -2962,16 +2999,21 @@
           //  TALLY OFFLINE POPUP
           // ══════════════════════════════════════
           function showTallyOfflinePopup(companyName) {
-            console.log("🎯 showTallyOfflinePopup called with company:", companyName);
-            
+            console.log(
+              "🎯 showTallyOfflinePopup called with company:",
+              companyName,
+            );
+
             // Skip if user dismissed it
             if (tallyOfflineDismissed) {
               console.log("⏭️ Popup dismissed by user, skipping");
               return;
             }
-            
+
             // Prevent duplicate popups
-            const existingPopup = document.getElementById("tallyOfflinePopupOverlay");
+            const existingPopup = document.getElementById(
+              "tallyOfflinePopupOverlay",
+            );
             if (existingPopup) {
               console.log("⚠️ Popup already exists, skipping");
               return;
@@ -3037,19 +3079,27 @@
             });
 
             // Retry button - refresh status
-            document.getElementById("tallyRetryBtn").addEventListener("click", () => {
-              console.log("🔄 Retry clicked, removing popup and refreshing status");
-              tallyOfflineDismissed = false;  // Reset dismiss flag so popup can show again
-              overlay.remove();
-              refreshTallyStatus();
-            });
+            document
+              .getElementById("tallyRetryBtn")
+              .addEventListener("click", () => {
+                console.log(
+                  "🔄 Retry clicked, removing popup and refreshing status",
+                );
+                tallyOfflineDismissed = false; // Reset dismiss flag so popup can show again
+                overlay.remove();
+                refreshTallyStatus();
+              });
 
             // Dismiss button
-            document.getElementById("tallyDismissBtn").addEventListener("click", () => {
-              console.log("✖️ Dismiss clicked, removing popup and won't show again");
-              tallyOfflineDismissed = true;
-              overlay.remove();
-            });
+            document
+              .getElementById("tallyDismissBtn")
+              .addEventListener("click", () => {
+                console.log(
+                  "✖️ Dismiss clicked, removing popup and won't show again",
+                );
+                tallyOfflineDismissed = true;
+                overlay.remove();
+              });
 
             // Close on ESC key
             const escapeHandler = (e) => {
@@ -3780,7 +3830,10 @@
               console.log("🔧 Apply Fix button clicked");
               console.log("Corrections:", window.tallyCorrections);
 
-              if (!window.tallyCorrections || Object.keys(window.tallyCorrections).length === 0) {
+              if (
+                !window.tallyCorrections ||
+                Object.keys(window.tallyCorrections).length === 0
+              ) {
                 console.log("❌ No corrections available");
                 showToast("No corrections to apply", "warning");
                 return;
@@ -4645,9 +4698,11 @@
                 dot.style.boxShadow = "0 0 0 3px rgba(15,169,102,0.25)";
               }
               // Close popup if Tally comes online
-              const existingPopup = document.getElementById("tallyOfflinePopupOverlay");
+              const existingPopup = document.getElementById(
+                "tallyOfflinePopupOverlay",
+              );
               if (existingPopup) existingPopup.remove();
-              
+
               // Reset dismiss flag when Tally comes back online
               tallyOfflineDismissed = false;
               console.log("✅ Tally online - reset dismiss flag");
@@ -4677,23 +4732,35 @@
 
               // Show offline popup with company info
               const companySelectEl = document.getElementById("companySelect");
-              const selectedCompany = companySelectEl ? companySelectEl.value : null;
-              console.log("📋 companySelect element exists:", !!companySelectEl);
+              const selectedCompany = companySelectEl
+                ? companySelectEl.value
+                : null;
+              console.log(
+                "📋 companySelect element exists:",
+                !!companySelectEl,
+              );
               console.log("📊 Company value:", selectedCompany);
-              
+
               // Show popup regardless of company selection
               console.log("🎯 Tally is offline - showing popup");
-              const companyName = (selectedCompany && selectedCompany.trim() !== "") ? selectedCompany : "Not Selected";
-              
+              const companyName =
+                selectedCompany && selectedCompany.trim() !== ""
+                  ? selectedCompany
+                  : "Not Selected";
+
               try {
-                if (typeof showTallyOfflinePopup === 'function') {
+                if (typeof showTallyOfflinePopup === "function") {
                   showTallyOfflinePopup(companyName);
                 } else if (window.showTallyOfflinePopup) {
                   window.showTallyOfflinePopup(companyName);
                 } else {
-                  console.error("❌ showTallyOfflinePopup is not defined, trying alternative");
+                  console.error(
+                    "❌ showTallyOfflinePopup is not defined, trying alternative",
+                  );
                   // Fallback: create simple alert
-                  alert(`Tally is Not Running\n\nCompany: ${companyName}\n\nPlease open Tally and load the company to proceed.`);
+                  alert(
+                    `Tally is Not Running\n\nCompany: ${companyName}\n\nPlease open Tally and load the company to proceed.`,
+                  );
                 }
               } catch (popupErr) {
                 console.error("Error showing popup:", popupErr);
@@ -5017,7 +5084,7 @@
             const tr = document.createElement("tr");
             const rowIndex = row.row_index;
             const selectedFix = window.tallyCorrections[rowIndex] || "";
-            
+
             // Determine final name based on status and manual selection
             let finalName = "";
             if (selectedFix) {
@@ -5035,7 +5102,7 @@
             let statusClass = "status-review";
             let statusIcon = "⚠️";
             let displayStatus = row.status;
-            
+
             if (selectedFix) {
               // If manually selected, show as matched
               statusClass = "status-matched";
@@ -5163,21 +5230,24 @@
                 dropdownList.style.left = rect.left + "px";
                 dropdownList.style.width = Math.max(rect.width, 300) + "px";
 
-                console.log("Dropdown created with", tallyLedgers.length, "ledgers");
+                console.log(
+                  "Dropdown created with",
+                  tallyLedgers.length,
+                  "ledgers",
+                );
 
                 // Handle search input in dropdown
                 dropdownSearchInput.addEventListener("input", (e) => {
                   const searchText = e.target.value.toLowerCase();
-                  const options = optionsContainer.querySelectorAll(".ledger-option");
+                  const options =
+                    optionsContainer.querySelectorAll(".ledger-option");
                   options.forEach((opt) => {
-                    const text =
-                      opt.getAttribute("data-value").toLowerCase();
+                    const text = opt.getAttribute("data-value").toLowerCase();
                     const label = opt
                       .querySelector("span")
                       .textContent.toLowerCase();
                     opt.style.display =
-                      text.includes(searchText) ||
-                      label.includes(searchText)
+                      text.includes(searchText) || label.includes(searchText)
                         ? "block"
                         : "none";
                   });
@@ -5191,7 +5261,8 @@
                 });
 
                 // Handle option selection
-                const options = optionsContainer.querySelectorAll(".ledger-option");
+                const options =
+                  optionsContainer.querySelectorAll(".ledger-option");
                 options.forEach((opt) => {
                   opt.addEventListener("click", (e) => {
                     e.stopPropagation();
@@ -5436,8 +5507,11 @@
             }
 
             try {
-              console.log("📥 Downloading with corrections:", window.tallyCorrections);
-              
+              console.log(
+                "📥 Downloading with corrections:",
+                window.tallyCorrections,
+              );
+
               const res = await fetch("/api/download-reviewed-excel", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
