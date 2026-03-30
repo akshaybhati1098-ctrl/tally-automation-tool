@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 
-TALLY_URL = os.getenv("TALLY_URL", "http://127.0.0.1:9000")
+TALLY_URL = os.getenv("TALLY_URL", "https://untimid-ja-nondefinitively.ngrok-free.dev")
 REQUEST_TIMEOUT = float(os.getenv("TALLY_TIMEOUT", "10"))
 
 
