@@ -109,22 +109,22 @@
 
     // 🌐 RENDER → special detection
     try {
-     const img = new Image();
-     let done = false;
+  const img = new Image();
+  let done = false;
 
-     img.onload = () => {
-       if (done) return;
-       done = true;
-       console.log("✅ Tally detected");
-       setOnlineUI("Local Tally");
-      };
+  img.onload = () => {
+    if (done) return;
+    done = true;
+    console.log("✅ Tally detected");
+    setOnlineUI("Local Tally");
+  };
 
-     img.onerror = () => {
-      if (done) return;
-      done = true;
-      console.log("❌ Tally not detected");
-      setOfflineUI();
-    };
+  img.onerror = () => {
+    if (done) return;
+    done = true;
+    console.log("❌ Tally not detected");
+    setOfflineUI();
+  };
 
   // ⏱ fallback (VERY IMPORTANT)
   setTimeout(() => {
@@ -141,6 +141,8 @@
 } catch (e) {
   console.log("Render detection error:", e);
   setOfflineUI();
+}
+
 }
 
   // ───────── FETCH LEDGERS ─────────
