@@ -875,6 +875,13 @@ def api_tally_status(request: Request):
         return {"status": "waiting"}
 
     return parse_company_status(result.get("data", ""))
+
+@app.post("/api/update-status/{user_id}")
+def update_status(user_id: str, data: dict):
+    print("🔥 STATUS RECEIVED:", user_id, data)
+    USER_STATUS[user_id] = data.get("status")
+    return {"success": True}
+
 @app.get("/api/tally/ledgers")
 def api_tally_ledgers(request: Request):
     user_id = str(request.session.get("user_id"))
