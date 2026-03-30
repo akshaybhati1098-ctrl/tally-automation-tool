@@ -863,10 +863,8 @@ async def reset_password_page(request: Request, token: str = None):
 
 @app.get("/api/tally/status")
 def api_tally_status(request: Request):
-    user_id = str(request.session.get("user_id"))
-
     return {
-        "status": USER_STATUS.get(user_id, "not_running")
+        "status": USER_STATUS.get("1", "not_running")
     }
 
 @app.post("/api/update-status/{user_id}")
