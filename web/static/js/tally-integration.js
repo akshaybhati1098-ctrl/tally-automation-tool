@@ -98,14 +98,24 @@
     try {
       const img = new Image();
 
-      img.src = "http://127.0.0.1:9000/favicon.ico?" + Date.now();
+      img.onload = () => {
+        console.log("✅ Tally detected");
+        setOnlineUI("Local Tally");
+      };
 
-      img.onload = () => setOnlineUI("Local Tally");
-      img.onerror = () => setOfflineUI();
-    } catch {
+      img.onerror = () => {
+        console.log("❌ Tally not detected");
+        setOfflineUI();
+      };
+
+      // 🔥 SET SRC LAST
+      img.src = "http://127.0.0.1:9000/favicon.ico?" + Date.now();
+    } catch (e) {
+      console.log("Render detection error:", e);
       setOfflineUI();
     }
   }
+
   // ───────── FETCH LEDGERS ─────────
   async function fetchLedgers() {
     spinner.classList.remove("hidden");
