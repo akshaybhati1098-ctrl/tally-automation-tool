@@ -47,28 +47,41 @@
 
   // ───────── EVENTS ─────────
   function bindEvents() {
-    document.getElementById("btnDebtors").onclick = () => {
-      state.selectedGroup = "Sundry Debtors";
-    };
+    const btnDebtors = document.getElementById("btnDebtors");
+    const btnCreditors = document.getElementById("btnCreditors");
 
-    document.getElementById("btnCreditors").onclick = () => {
-      state.selectedGroup = "Sundry Creditors";
-    };
+    if (btnDebtors) {
+      btnDebtors.onclick = () => {
+        state.selectedGroup = "Sundry Debtors";
+      };
+    }
 
-    fetchBtn.onclick = fetchLedgers;
+    if (btnCreditors) {
+      btnCreditors.onclick = () => {
+        state.selectedGroup = "Sundry Creditors";
+      };
+    }
 
-    fileInput.addEventListener("change", () => {
-      state.file = fileInput.files[0];
-      if (state.file && state.ledgers.length > 0) {
-        runMatching();
-      }
-    });
+    if (fetchBtn) {
+      fetchBtn.onclick = fetchLedgers;
+    }
 
-    sheetSelect.addEventListener("change", () => {
-      if (state.file && state.ledgers.length > 0) {
-        runMatching();
-      }
-    });
+    if (fileInput) {
+      fileInput.addEventListener("change", () => {
+        state.file = fileInput.files[0];
+        if (state.file && state.ledgers.length > 0) {
+          runMatching();
+        }
+      });
+    }
+
+    if (sheetSelect) {
+      sheetSelect.addEventListener("change", () => {
+        if (state.file && state.ledgers.length > 0) {
+          runMatching();
+        }
+      });
+    }
   }
 
   // ───────── STATUS ─────────
@@ -224,6 +237,11 @@
     statusPill.textContent = "Offline";
     statusPill.className = "tally-status-pill red";
     fetchBtn.disabled = true;
+  }
+  // 🔥 ADD THIS ALSO
+  function refreshTallyStatus() {
+    console.log("Manual refresh triggered");
+    checkStatus();
   }
 
   // ───────── END ─────────
