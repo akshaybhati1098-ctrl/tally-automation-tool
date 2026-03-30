@@ -201,20 +201,30 @@
   }
 
   // ───────── WARNINGS ─────────
-  function checkWarnings() {
-    const unresolved = state.matchResults.filter(
-      (r) => r.status !== "matched" && !state.overrides[r.row_index],
-    );
-
-    if (unresolved.length > 0) {
-      showWarning(`${unresolved.length} unmatched parties`);
-    } else {
-      warning.classList.add("hidden");
-    }
-  }
-
   function showWarning(msg) {
     warning.classList.remove("hidden");
     warningText.textContent = msg;
   }
+
+  // 🔥 ADD HERE ↓↓↓
+
+  function setOnlineUI(company) {
+    statusDot.className = "tally-status-dot green";
+    statusLabel.textContent = "Connected to Tally";
+    statusCompany.textContent = company;
+    statusPill.textContent = "Online";
+    statusPill.className = "tally-status-pill green";
+    fetchBtn.disabled = false;
+  }
+
+  function setOfflineUI() {
+    statusDot.className = "tally-status-dot red";
+    statusLabel.textContent = "Tally not detected";
+    statusCompany.textContent = "Open Tally on port 9000";
+    statusPill.textContent = "Offline";
+    statusPill.className = "tally-status-pill red";
+    fetchBtn.disabled = true;
+  }
+
+  // ───────── END ─────────
 })();
