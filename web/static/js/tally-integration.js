@@ -13,7 +13,7 @@
     selectedGroup: "Sundry Debtors",
     file: null,
     matchResults: [],
-    overrides: {},
+    overrides: {}
   };
 
   // ───────── DOM ─────────
@@ -37,7 +37,7 @@
   const sheetSelect = document.getElementById("sheetSelect");
 
   // ───────── INIT ─────────
-  document.addEventListener("DOMContentLoaded", init);
+  init();
 
   function init() {
     bindEvents();
@@ -47,99 +47,56 @@
 
   // ───────── EVENTS ─────────
   function bindEvents() {
-    const btnDebtors = document.getElementById("btnDebtors");
-    const btnCreditors = document.getElementById("btnCreditors");
 
-    if (btnDebtors) {
-      btnDebtors.onclick = () => {
-        state.selectedGroup = "Sundry Debtors";
-      };
-    }
+    document.getElementById("btnDebtors").onclick = () => {
+      state.selectedGroup = "Sundry Debtors";
+    };
 
-    if (btnCreditors) {
-      btnCreditors.onclick = () => {
-        state.selectedGroup = "Sundry Creditors";
-      };
-    }
+    document.getElementById("btnCreditors").onclick = () => {
+      state.selectedGroup = "Sundry Creditors";
+    };
 
-    if (fetchBtn) {
-      fetchBtn.onclick = fetchLedgers;
-    }
+    fetchBtn.onclick = fetchLedgers;
 
-    if (fileInput) {
-      fileInput.addEventListener("change", () => {
-        state.file = fileInput.files[0];
-        if (state.file && state.ledgers.length > 0) {
-          runMatching();
-        }
-      });
-    }
+    fileInput.addEventListener("change", () => {
+      state.file = fileInput.files[0];
+      if (state.file && state.ledgers.length > 0) {
+        runMatching();
+      }
+    });
 
-    if (sheetSelect) {
-      sheetSelect.addEventListener("change", () => {
-        if (state.file && state.ledgers.length > 0) {
-          runMatching();
-        }
-      });
-    }
+    sheetSelect.addEventListener("change", () => {
+      if (state.file && state.ledgers.length > 0) {
+        runMatching();
+      }
+    });
   }
 
   // ───────── STATUS ─────────
   async function checkStatus() {
-    const isLocal =
-      window.location.hostname === "localhost" ||
-      window.location.hostname === "127.0.0.1";
-
-    // ✅ LOCAL → use backend (no change)
-    if (isLocal) {
-      try {
-        const res = await fetch("/api/tally/status");
-        const data = await res.json();
-
-        if (data.status === "running") {
-          setOnlineUI(data.company);
-        } else {
-          setOfflineUI();
-        }
-      } catch {
-        setOfflineUI();
-      }
-      return;
-    }
-
-    // 🌐 RENDER → special detection
     try {
-      const img = new Image();
-      let done = false;
+      const res = await fetch(API.STATUS);
+      const data = await res.json();
 
-      img.onload = () => {
-        if (done) return;
-        done = true;
-        console.log("✅ Tally detected");
-        setOnlineUI("Local Tally");
-      };
+      if (data.status === "running" && data.company) {
+        statusDot.className = "tally-status-dot green";
+        statusLabel.textContent = "Connected to Tally";
+        statusCompany.textContent = data.company;
+        statusPill.textContent = "Online";
+        statusPill.className = "tally-status-pill green";
+        fetchBtn.disabled = false;
+      } else {
+        statusDot.className = "tally-status-dot red";
+        statusLabel.textContent = "Tally not detected";
+        statusCompany.textContent = "Open Tally on port 9000";
+        statusPill.textContent = "Offline";
+        statusPill.className = "tally-status-pill red";
+        fetchBtn.disabled = true;
+      }
 
-      img.onerror = () => {
-        if (done) return;
-        done = true;
-        console.log("❌ Tally not detected");
-        setOfflineUI();
-      };
-
-      // ⏱ fallback (VERY IMPORTANT)
-      setTimeout(() => {
-        if (!done) {
-          console.log("⏱ Timeout → assume offline");
-          done = true;
-          setOfflineUI();
-        }
-      }, 3000);
-
-      // 🔥 FIXED URL (no favicon)
-      img.src = "http://127.0.0.1:9000/" + Date.now();
-    } catch (e) {
-      console.log("Render detection error:", e);
-      setOfflineUI();
+    } catch {
+      statusDot.className = "tally-status-dot red";
+      statusLabel.textContent = "Connection failed";
     }
   }
 
@@ -158,6 +115,7 @@
       ledgerCount.className = "tally-ledger-count success";
 
       if (state.file) runMatching();
+
     } catch (e) {
       ledgerCount.textContent = "Error loading";
       ledgerCount.className = "tally-ledger-count error";
@@ -177,7 +135,7 @@
     try {
       const res = await fetch(API.MATCH, {
         method: "POST",
-        body: formData,
+        body: formData
       });
 
       const data = await res.json();
@@ -188,6 +146,7 @@
       matchSection.classList.remove("hidden");
 
       checkWarnings();
+
     } catch (e) {
       showWarning("Matching failed");
     }
@@ -210,7 +169,7 @@
         <td>
           <select data-index="${r.row_index}">
             <option value="">Select</option>
-            ${state.ledgers.map((l) => `<option>${l.name}</option>`).join("")}
+            ${state.ledgers.map(l => `<option>${l.name}</option>`).join("")}
           </select>
         </td>
       `;
@@ -219,7 +178,7 @@
     });
 
     // Manual override
-    matchBody.querySelectorAll("select").forEach((sel) => {
+    matchBody.querySelectorAll("select").forEach(sel => {
       sel.addEventListener("change", (e) => {
         state.overrides[e.target.dataset.index] = e.target.value;
         checkWarnings();
@@ -228,45 +187,21 @@
   }
 
   // ───────── WARNINGS ─────────
+  function checkWarnings() {
+    const unresolved = state.matchResults.filter(r =>
+      r.status !== "matched" && !state.overrides[r.row_index]
+    );
+
+    if (unresolved.length > 0) {
+      showWarning(`${unresolved.length} unmatched parties`);
+    } else {
+      warning.classList.add("hidden");
+    }
+  }
+
   function showWarning(msg) {
     warning.classList.remove("hidden");
     warningText.textContent = msg;
   }
 
-  // 🔥 ADD HERE ↓↓↓
-
-  function setOnlineUI(company) {
-    if (!statusDot || !statusLabel || !statusCompany || !statusPill) {
-      console.log("❌ DOM elements missing");
-      return;
-    }
-
-    statusDot.className = "tally-status-dot green";
-    statusLabel.textContent = "Connected to Tally";
-    statusCompany.textContent = company;
-    statusPill.textContent = "Online";
-    statusPill.className = "tally-status-pill green";
-    fetchBtn.disabled = false;
-  }
-
-  function setOfflineUI() {
-    if (!statusDot || !statusLabel || !statusCompany || !statusPill) {
-      console.log("❌ DOM elements missing");
-      return;
-    }
-
-    statusDot.className = "tally-status-dot red";
-    statusLabel.textContent = "Tally not detected";
-    statusCompany.textContent = "Open Tally on port 9000";
-    statusPill.textContent = "Offline";
-    statusPill.className = "tally-status-pill red";
-    fetchBtn.disabled = true;
-  }
-  // 🔥 ADD THIS ALSO
-  function refreshTallyStatus() {
-    console.log("Manual refresh triggered");
-    checkStatus();
-  }
-
-  // ───────── END ─────────
 })();

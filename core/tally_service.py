@@ -8,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 
 import requests
 
-TALLY_URL = os.getenv("TALLY_URL", "http://127.0.0.1:9000")
+TALLY_URL = os.getenv("TALLY_URL", "http://localhost:5001")
 REQUEST_TIMEOUT = float(os.getenv("TALLY_TIMEOUT", "10"))
 
 
