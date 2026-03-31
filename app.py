@@ -923,7 +923,7 @@ def api_tally_ledgers(request: Request):
 
 @app.post("/api/match-party")
 async def match_party(
-     request: Request,
+    request: Request,
     file: UploadFile = File(...),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
@@ -931,6 +931,7 @@ async def match_party(
     try:
         import io
         import json
+        import time
 
         contents = await file.read()
         print("📄 Sheet received from frontend:", sheet_name)
@@ -943,8 +944,16 @@ async def match_party(
 
         df = df.fillna("")
 
-        from core.match_service import detect_party_column, detect_gstin_column, match_party_names, apply_match_results_to_dataframe
-        from core.tally_service import parse_ledgers_with_gstin, build_ledger_xml
+        from core.match_service import (
+            detect_party_column,
+            detect_gstin_column,
+            match_party_names,
+            apply_match_results_to_dataframe,
+        )
+        from core.tally_service import (
+            parse_ledgers_with_gstin,
+            build_ledger_xml,
+        )
 
         # Detect columns automatically
         party_col = detect_party_column(df)
@@ -963,6 +972,7 @@ async def match_party(
         if manual_cols.get("party"):
             party_col = manual_cols["party"]
             print("🔧 Using manual party column:", party_col)
+
         if manual_cols.get("gstin"):
             gstin_col = manual_cols["gstin"]
             print("🔧 Using manual GSTIN column:", gstin_col)
@@ -980,21 +990,28 @@ async def match_party(
         print("🔄 Fetching Tally ledgers...")
         user_id = str(request.session.get("user_id"))
 
-        # send job
+        # 🔥 Send job to connector
         xml = build_ledger_xml()
         JOBS.setdefault(user_id, []).append({"xml": xml})
 
-        result = RESULTS.get(user_id)
+        # 🔥 WAIT for connector response (IMPORTANT FIX)
+        result = None
+        for _ in range(10):  # ~5 seconds max
+            time.sleep(0.5)
+            result = RESULTS.get(user_id)
+            if result:
+                break
 
         if not result:
-           return {"status": "waiting"}
+            print("⏳ Waiting for connector response...")
+            return {"status": "waiting"}
 
-        ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
-
+        # 🔥 Parse ledgers (FIXED)
         ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
 
+        # Match parties
         results = match_party_names(
             df=df,
             tally_ledgers=ledgers,
@@ -1018,10 +1035,12 @@ async def match_party(
             "ledger_list": ledgers,
             "sheet_name": sheet_name,
             "source_filename": file.filename,
-            "columns": list(df.columns)
+            "columns": list(df.columns),
         }
 
-        unmatched_count = len([r for r in results if r.get("status") != "matched"])
+        unmatched_count = len(
+            [r for r in results if r.get("status") != "matched"]
+        )
 
         return {
             "status": "ok",
