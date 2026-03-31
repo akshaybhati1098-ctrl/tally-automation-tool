@@ -871,11 +871,6 @@ async def reset_password_page(request: Request, token: str = None):
         {"request": request, "reset_token": token}
     )
 
-@app.get("/api/tally/status")
-def api_tally_status(request: Request):
-    return {
-        "status": USER_STATUS.get("1", "not_running")
-    }
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
