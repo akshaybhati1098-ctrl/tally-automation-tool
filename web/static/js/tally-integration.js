@@ -3,11 +3,13 @@
   "use strict";
 
   // ───────── CONFIG ─────────
-  const API = {
-    STATUS: "/api/tally/status",
-    LEDGERS: "/api/tally/ledgers",
-    MATCH: "/api/match-party",
-  };
+const USER_ID = window.USER_ID; // comes from HTML
+
+const API = {
+  STATUS: `/api/tally/status/${USER_ID}`,
+  LEDGERS: "/api/tally/ledgers",
+  MATCH: "/api/match-party",
+};
 
   const state = {
     ledgers: [],
@@ -73,12 +75,20 @@
   }
 
   // ───────── STATUS ─────────
-  async function checkStatus() {
-    try {
-      const res = await fetch(API.STATUS);
-      const data = await res.json();
+async function checkStatus() {
+  try {
+    const res = await fetch(API.STATUS);
 
-     if (data.status === "running") {
+    if (!res.ok) {
+      console.error("API error:", res.status);
+      return;
+    }
+
+    const data = await res.json();
+
+    console.log("STATUS DATA:", data); // 👈 ADD HERE
+
+    if (data.status === "running") {
   statusDot.className = "tally-status-dot green";
   statusLabel.textContent = "Connected to Tally";
   statusCompany.textContent = data.company || "";

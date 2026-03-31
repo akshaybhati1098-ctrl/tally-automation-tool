@@ -343,8 +343,9 @@ USER_STATUS = {}
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
-    USER_STATUS.get(user_id, "not_running")
+    USER_STATUS[user_id] = data.get("status", "not_running")
     return {"success": True}
+
 @app.get("/api/tally/status/{user_id}")
 def tally_status(user_id: str):
     return {
