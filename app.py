@@ -923,6 +923,7 @@ def api_tally_ledgers(request: Request):
 
 @app.post("/api/match-party")
 async def match_party(
+     request: Request,
     file: UploadFile = File(...),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
@@ -990,8 +991,7 @@ async def match_party(
 
         ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
 
-        ledgers = list(dict.fromkeys(led1 + led2))
-        gst_map = {**gst1, **gst2}
+        ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
 
