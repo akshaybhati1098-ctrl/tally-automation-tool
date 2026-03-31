@@ -886,7 +886,7 @@ async def reset_password_page(request: Request, token: str = None):
 
 @app.get("/api/tally/status")
 def api_tally_status(request: Request):
-    user_id = str(request.session.get("user_id", "1"))
+    user_id = "1"
     data = USER_STATUS.get(user_id)
 
     if isinstance(data, dict):
