@@ -52,10 +52,14 @@ const API = {
   function bindEvents() {
     document.getElementById("btnDebtors").onclick = () => {
       state.selectedGroup = "Sundry Debtors";
+      fetchLedgers();
+      console.log("📦 Selected:", state.selectedGroup);
     };
 
     document.getElementById("btnCreditors").onclick = () => {
       state.selectedGroup = "Sundry Creditors";
+      fetchLedgers();
+      console.log("📦 Selected:", state.selectedGroup);
     };
 
     fetchBtn.onclick = fetchLedgers;

@@ -700,8 +700,10 @@ def get_job(user_id: str):
     print("📥 Connector requested job for:", user_id)
 
     if JOBS.get(user_id):
-        return JOBS[user_id].pop(0)
+        job = JOBS[user_id].pop(0)
         print("📤 Sending job:", job)
+        return job
+
     return {}
 
 
@@ -906,6 +908,7 @@ def api_tally_ledgers(request: Request):
 
     # 1. create XML
     xml = build_ledger_xml()
+    print("📦 API received group:", group)
 
     # 2. send job
     JOBS.setdefault(user_id, []).append({"xml": xml})
@@ -988,16 +991,18 @@ async def match_party(
             }
 
         print("🔄 Fetching Tally ledgers...")
-        user_id = str(request.session.get("user_id"))
+        user_id = "1"
 
         # 🔥 Send job to connector
         xml = build_ledger_xml()
         JOBS.setdefault(user_id, []).append({"xml": xml})
+        print("🧾 JOB ADDED:", JOBS)
 
         # 🔥 WAIT for connector response (IMPORTANT FIX)
         result = None
         for _ in range(20):  # ~5 seconds max
-            time.sleep(0.5)
+            import asyncio
+            await asyncio.sleep(0.5)
             result = RESULTS.get(user_id)
             if result:
                 break

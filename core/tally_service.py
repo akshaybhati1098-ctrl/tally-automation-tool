@@ -63,25 +63,32 @@ def build_company_status_xml() -> str:
     </ENVELOPE>
     """.strip()
 
-
-def build_ledger_xml(group: Optional[str] = None) -> str:
-    group_xml = f"<GROUPNAME>{group}</GROUPNAME>" if group else ""
+def build_ledger_xml(group: str = None) -> str:
+    group_xml = f"<CHILDOF>{group}</CHILDOF>" if group else ""
 
     return f"""
     <ENVELOPE>
      <HEADER>
-      <TALLYREQUEST>Export Data</TALLYREQUEST>
+      <VERSION>1</VERSION>
+      <TALLYREQUEST>Export</TALLYREQUEST>
+      <TYPE>Collection</TYPE>
+      <ID>Ledger Collection</ID>
      </HEADER>
      <BODY>
-      <EXPORTDATA>
-       <REQUESTDESC>
-        <REPORTNAME>List of Accounts</REPORTNAME>
-        <STATICVARIABLES>
-            <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-            {group_xml}
-        </STATICVARIABLES>
-       </REQUESTDESC>
-      </EXPORTDATA>
+      <DESC>
+       <STATICVARIABLES>
+        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+       </STATICVARIABLES>
+       <TDL>
+        <TDLMESSAGE>
+         <COLLECTION NAME="Ledger Collection">
+          <TYPE>Ledger</TYPE>
+          {group_xml}
+          <FETCH>Name,PartyGSTIN,GSTIN</FETCH>
+         </COLLECTION>
+        </TDLMESSAGE>
+       </TDL>
+      </DESC>
      </BODY>
     </ENVELOPE>
     """.strip()
