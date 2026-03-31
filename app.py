@@ -341,24 +341,15 @@ async def serve_ui(request: Request):
     )
 USER_STATUS = {}
 
+@app.post("/api/update-status/{user_id}")
+def update_status(user_id: str, data: dict):
+    USER_STATUS[user_id] = data.get("status", "not_running")
+    return {"success": True}
+
 @app.get("/api/tally/status/{user_id}")
 def tally_status(user_id: str):
-    data = USER_STATUS.get(user_id, {})
-
     return {
-        "status": data.get("status", "not_running"),
-        "company": data.get("company")
-    }
-
-
-@app.get("/api/tally/status")
-def api_tally_status(request: Request):
-    user_id = str(request.session.get("user_id", "1"))
-    data = USER_STATUS.get(user_id, {})
-
-    return {
-        "status": data.get("status", "not_running"),
-        "company": data.get("company")
+        "status": USER_STATUS.get(user_id, "not_running")
     }
 
 @app.get("/login")
@@ -871,14 +862,16 @@ async def reset_password_page(request: Request, token: str = None):
         {"request": request, "reset_token": token}
     )
 
+@app.get("/api/tally/status")
+def api_tally_status(request: Request):
+    return {
+        "status": USER_STATUS.get("1", "not_running")
+    }
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
-    USER_STATUS[user_id] = {
-        "status": data.get("status", "not_running"),
-        "company": data.get("company")
-    }
-    print("UPDATED:", USER_STATUS[user_id])
+    print("🔥 STATUS RECEIVED:", user_id, data)
+    USER_STATUS[user_id] = data.get("status")
     return {"success": True}
 
 @app.get("/api/tally/ledgers")
