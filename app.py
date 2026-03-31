@@ -341,15 +341,24 @@ async def serve_ui(request: Request):
     )
 USER_STATUS = {}
 
-@app.post("/api/update-status/{user_id}")
-def update_status(user_id: str, data: dict):
-    USER_STATUS[user_id] = data.get("status", "not_running")
-    return {"success": True}
-
 @app.get("/api/tally/status/{user_id}")
 def tally_status(user_id: str):
+    data = USER_STATUS.get(user_id, {})
+
     return {
-        "status": USER_STATUS.get(user_id, "not_running")
+        "status": data.get("status", "not_running"),
+        "company": data.get("company")
+    }
+
+
+@app.get("/api/tally/status")
+def api_tally_status(request: Request):
+    user_id = str(request.session.get("user_id", "1"))
+    data = USER_STATUS.get(user_id, {})
+
+    return {
+        "status": data.get("status", "not_running"),
+        "company": data.get("company")
     }
 
 @app.get("/login")
@@ -870,8 +879,11 @@ def api_tally_status(request: Request):
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
-    print("🔥 STATUS RECEIVED:", user_id, data)
-    USER_STATUS[user_id] = data.get("status")
+    USER_STATUS[user_id] = {
+        "status": data.get("status", "not_running"),
+        "company": data.get("company")
+    }
+    print("UPDATED:", USER_STATUS[user_id])
     return {"success": True}
 
 @app.get("/api/tally/ledgers")
