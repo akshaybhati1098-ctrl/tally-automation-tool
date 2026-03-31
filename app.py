@@ -996,7 +996,7 @@ async def match_party(
 
         # 🔥 WAIT for connector response (IMPORTANT FIX)
         result = None
-        for _ in range(10):  # ~5 seconds max
+        for _ in range(20):  # ~5 seconds max
             time.sleep(0.5)
             result = RESULTS.get(user_id)
             if result:
