@@ -348,8 +348,18 @@ def update_status(user_id: str, data: dict):
 
 @app.get("/api/tally/status/{user_id}")
 def tally_status(user_id: str):
+    data = USER_STATUS.get(user_id)
+
+    if isinstance(data, dict):
+        return {
+            "status": data.get("status", "not_running"),
+            "company": data.get("company")
+        }
+
+    # fallback (old data)
     return {
-        "status": USER_STATUS.get(user_id, "not_running")
+        "status": data or "not_running",
+        "company": None
     }
 
 @app.get("/login")
@@ -864,14 +874,35 @@ async def reset_password_page(request: Request, token: str = None):
 
 @app.get("/api/tally/status")
 def api_tally_status(request: Request):
+    user_id = str(request.session.get("user_id", "1"))
+    data = USER_STATUS.get(user_id)
+
+    if isinstance(data, dict):
+        return {
+            "status": data.get("status", "not_running"),
+            "company": data.get("company")
+        }
+
     return {
-        "status": USER_STATUS.get("1", "not_running")
+        "status": data or "not_running",
+        "company": None
     }
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
     print("🔥 STATUS RECEIVED:", user_id, data)
-    USER_STATUS[user_id] = data.get("status")
+
+    # If already dict → update
+    if isinstance(USER_STATUS.get(user_id), dict):
+        USER_STATUS[user_id]["status"] = data.get("status")
+        USER_STATUS[user_id]["company"] = data.get("company")
+    else:
+        # Convert old string → dict
+        USER_STATUS[user_id] = {
+            "status": data.get("status"),
+            "company": data.get("company")
+        }
+
     return {"success": True}
 
 @app.get("/api/tally/ledgers")
