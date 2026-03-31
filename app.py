@@ -343,7 +343,19 @@ USER_STATUS = {}
 
 @app.post("/api/update-status/{user_id}")
 def update_status(user_id: str, data: dict):
-    USER_STATUS[user_id] = data.get("status", "not_running")
+    print("🔥 STATUS RECEIVED:", user_id, data)
+
+    # If already dict → update
+    if isinstance(USER_STATUS.get(user_id), dict):
+        USER_STATUS[user_id]["status"] = data.get("status")
+        USER_STATUS[user_id]["company"] = data.get("company")
+    else:
+        # Convert old string → dict
+        USER_STATUS[user_id] = {
+            "status": data.get("status"),
+            "company": data.get("company")
+        }
+
     return {"success": True}
 
 @app.get("/api/tally/status/{user_id}")
@@ -887,23 +899,6 @@ def api_tally_status(request: Request):
         "status": data or "not_running",
         "company": None
     }
-
-@app.post("/api/update-status/{user_id}")
-def update_status(user_id: str, data: dict):
-    print("🔥 STATUS RECEIVED:", user_id, data)
-
-    # If already dict → update
-    if isinstance(USER_STATUS.get(user_id), dict):
-        USER_STATUS[user_id]["status"] = data.get("status")
-        USER_STATUS[user_id]["company"] = data.get("company")
-    else:
-        # Convert old string → dict
-        USER_STATUS[user_id] = {
-            "status": data.get("status"),
-            "company": data.get("company")
-        }
-
-    return {"success": True}
 
 @app.get("/api/tally/ledgers")
 def api_tally_ledgers(request: Request):
