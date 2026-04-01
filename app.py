@@ -24,6 +24,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
+from typing import Optional
+from datetime import datetime, timezone
 from core.excel_service import (
     excel_to_xml,
     prepare_excel_party_matching,
@@ -423,6 +427,7 @@ async def logout(request: Request):
 async def api_me(request: Request):
     user = get_current_user(request)
     return {"authenticated": bool(user), "username": user}
+    
 
 # =========================================================
 # OTP ENDPOINTS (for email verification signup)
@@ -902,13 +907,19 @@ def api_tally_status(request: Request):
         "company": None
     }
 
+from fastapi import Query
+
 @app.get("/api/tally/ledgers")
-def api_tally_ledgers(request: Request):
+def api_tally_ledgers(request: Request, group: str = Query(None)):
+
+    print("📦 API received group:", group)  # ✅ NOW WORKS
+
     user_id = str(request.session.get("user_id"))
 
-    # 1. create XML
-    xml = build_ledger_xml()
-    print("📦 API received group:", group)
+    # 1. create XML with group
+    xml = build_ledger_xml(group)
+
+    print("📤 XML SENT:\n", xml)  # 🔥 DEBUG
 
     # 2. send job
     JOBS.setdefault(user_id, []).append({"xml": xml})
@@ -928,8 +939,10 @@ def api_tally_ledgers(request: Request):
 async def match_party(
     request: Request,
     file: UploadFile = File(...),
+    tally_group: str = Form(None), 
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
+   
 ):
     try:
         import io
@@ -994,7 +1007,10 @@ async def match_party(
         user_id = "1"
 
         # 🔥 Send job to connector
-        xml = build_ledger_xml()
+        print("📦 MATCH using group:", tally_group)
+
+        xml = build_ledger_xml(tally_group)
+        RESULTS.pop(user_id, None) 
         JOBS.setdefault(user_id, []).append({"xml": xml})
         print("🧾 JOB ADDED:", JOBS)
 
@@ -1227,5 +1243,6 @@ async def convert_excel_api(
             "X-Records-Processed": str(count),
         },
     )
+
  
 

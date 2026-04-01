@@ -64,34 +64,32 @@ def build_company_status_xml() -> str:
     """.strip()
 
 def build_ledger_xml(group: str = None) -> str:
-    group_xml = f"<CHILDOF>{group}</CHILDOF>" if group else ""
+    group = (group or "").strip()
+
+    group_block = f"<GROUPNAME>{group}</GROUPNAME>" if group else ""
 
     return f"""
-    <ENVELOPE>
-     <HEADER>
-      <VERSION>1</VERSION>
-      <TALLYREQUEST>Export</TALLYREQUEST>
-      <TYPE>Collection</TYPE>
-      <ID>Ledger Collection</ID>
-     </HEADER>
-     <BODY>
-      <DESC>
-       <STATICVARIABLES>
-        <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
-       </STATICVARIABLES>
-       <TDL>
-        <TDLMESSAGE>
-         <COLLECTION NAME="Ledger Collection">
-          <TYPE>Ledger</TYPE>
-          {group_xml}
-          <FETCH>Name,PartyGSTIN,GSTIN</FETCH>
-         </COLLECTION>
-        </TDLMESSAGE>
-       </TDL>
-      </DESC>
-     </BODY>
-    </ENVELOPE>
-    """.strip()
+<ENVELOPE>
+ <HEADER>
+  <TALLYREQUEST>Export Data</TALLYREQUEST>
+ </HEADER>
+
+ <BODY>
+  <EXPORTDATA>
+   <REQUESTDESC>
+
+    <REPORTNAME>List of Accounts</REPORTNAME>
+
+    <STATICVARIABLES>
+     <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
+     {group_block}
+    </STATICVARIABLES>
+
+   </REQUESTDESC>
+  </EXPORTDATA>
+ </BODY>
+</ENVELOPE>
+""".strip()
 
 
 # ================================

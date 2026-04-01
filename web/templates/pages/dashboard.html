@@ -459,13 +459,23 @@
           <div class="ab-label">Get Template</div>
           <div class="ab-sub">Download .xlsx</div>
         </a>
-        <div class="action-btn" onclick="viewReports()">
-          <div class="ab-icon purple">📊</div>
-          <div class="ab-label">View Reports</div>
-          <div class="ab-sub">Audit & analytics</div>
-        </div>
+        <div class="action-btn" onclick="downloadConnector()">
+          <div class="ab-icon blue">🔌</div>
+          <div class="ab-label">Download Connector</div>
+          <div class="ab-sub">Install & auto connect</div>
+       </div>
       </div>
     </div>
+<!-- 🔌 Tally Connector Card -->
+<div class="card span-2">
+  <div class="card-title">
+    <span class="ti">🔌</span> Tally Connector
+  </div>
+
+  <p id="connectorStatus" style="margin-bottom:10px; color:#7a8fa8;">
+    ⏳ Checking status...
+  </p>
+</div>
 
     <!-- How It Works -->
     <div class="card">
@@ -564,8 +574,57 @@
 </div><!-- /shell -->
 
 <script>
-  function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
-  function viewReports()    { alert('📈 Opening reports dashboard (demo)'); }
+function navigateTo(page) {
+  alert(`🌐 Navigating to ${page} (demo)`);
+}
+
+function viewReports() {
+  alert('📈 Opening reports dashboard (demo)');
+}
+
+const USER_ID = "1";
+
+async function checkStatus() {
+  try {
+    const res = await fetch(`/api/tally/status/${USER_ID}`);
+    const data = await res.json();
+
+    const statusEl = document.getElementById("connectorStatus");
+    const btnText = document.getElementById("connectorBtnText");
+    const subText = document.getElementById("connectorSubText");
+
+    if (!statusEl) return;
+
+    if (data.status === "running") {
+      statusEl.innerHTML = "🟢 Connector Active";
+      statusEl.style.color = "#17b26a";
+
+      if (btnText) btnText.innerText = "Connector Running";
+      if (subText) subText.innerText = "Background service active";
+
+    } else {
+      statusEl.innerHTML = "🔴 Connector Not Running";
+      statusEl.style.color = "#e11d48";
+
+      if (btnText) btnText.innerText = "Download Connector";
+      if (subText) subText.innerText = "Install & start connector";
+    }
+
+  } catch {
+    const statusEl = document.getElementById("connectorStatus");
+    if (statusEl) {
+      statusEl.innerText = "❌ Error";
+      statusEl.style.color = "#e11d48";
+    }
+  }
+}
+
+setInterval(checkStatus, 5000);
+checkStatus();
+</script>
+function downloadConnector() {
+  window.location.href = "/static/downloads/TallyConnectorSetup.exe";
+}
 </script>
 </body>
 </html>

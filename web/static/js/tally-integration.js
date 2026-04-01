@@ -48,137 +48,148 @@ const API = {
     setInterval(checkStatus, 5000);
   }
 
-  // ───────── EVENTS ─────────
-  function bindEvents() {
-    document.getElementById("btnDebtors").onclick = () => {
+ function bindEvents() {
+  const btnDebtors = document.getElementById("btnDebtors");
+  const btnCreditors = document.getElementById("btnCreditors");
+
+  console.log({
+    fetchBtn,
+    fileInput,
+    sheetSelect,
+    btnDebtors,
+    btnCreditors
+  });
+
+  // ✅ Group buttons
+  if (btnDebtors) {
+    btnDebtors.onclick = () => {
       state.selectedGroup = "Sundry Debtors";
-      fetchLedgers();
       console.log("📦 Selected:", state.selectedGroup);
+      // 🔥 Re-run matching if file is already loaded
+      if (state.file) {
+        runMatching();
+      }
     };
+  }
 
-    document.getElementById("btnCreditors").onclick = () => {
+  if (btnCreditors) {
+    btnCreditors.onclick = () => {
       state.selectedGroup = "Sundry Creditors";
-      fetchLedgers();
       console.log("📦 Selected:", state.selectedGroup);
+      // 🔥 Re-run matching if file is already loaded
+      if (state.file) {
+        runMatching();
+      }
     };
+  }
 
+  // ✅ Fetch button (IMPORTANT FIX)
+  if (fetchBtn) {
     fetchBtn.onclick = fetchLedgers;
+  }
 
+  // ✅ File change
+  if (fileInput) {
     fileInput.addEventListener("change", () => {
       state.file = fileInput.files[0];
       if (state.file && state.ledgers.length > 0) {
         runMatching();
       }
     });
+  }
 
+  // ✅ Sheet change
+  if (sheetSelect) {
     sheetSelect.addEventListener("change", () => {
       if (state.file && state.ledgers.length > 0) {
         runMatching();
       }
     });
   }
+}
 
   // ───────── STATUS ─────────
-async function checkStatus() {
-  try {
-    const res = await fetch(API.STATUS);
+async function fetchLedgers() {
+  spinner.classList.remove("hidden");
+  ledgerCount.textContent = "";
 
-    if (!res.ok) {
-      console.error("API error:", res.status);
-      return;
-    }
+  try {
+    console.log("📤 Sending group:", state.selectedGroup);
+
+    const res = await fetch(
+      `${API.LEDGERS}?group=${encodeURIComponent(state.selectedGroup)}`
+    );
 
     const data = await res.json();
 
-    console.log("STATUS DATA:", data); // 👈 ADD HERE
+    if (data.status === "waiting") {
+      ledgerCount.textContent = "Waiting for connector...";
+      ledgerCount.className = "tally-ledger-count warning";
 
-    if (data.status === "running") {
-  statusDot.className = "tally-status-dot green";
-  statusLabel.textContent = "Connected to Tally";
-  statusCompany.textContent = data.company || "";
-  statusPill.textContent = "Online";
-  statusPill.className = "tally-status-pill green";
-  fetchBtn.disabled = false;
-
-} else if (data.status === "waiting") {
-  statusDot.className = "tally-status-dot yellow";
-  statusLabel.textContent = "Connecting...";
-  statusCompany.textContent = "Waiting for connector";
-  statusPill.textContent = "Connecting";
-  statusPill.className = "tally-status-pill yellow";
-  fetchBtn.disabled = true;
-
-} else {
-  statusDot.className = "tally-status-dot red";
-  statusLabel.textContent = "Tally not detected";
-  statusCompany.textContent = "Run Connector + Open Tally";
-  statusPill.textContent = "Offline";
-  statusPill.className = "tally-status-pill red";
-  fetchBtn.disabled = false;
-}
-    } catch {
-      statusDot.className = "tally-status-dot red";
-      statusLabel.textContent = "Connection failed";
-    }
-  }
-
-  // ───────── FETCH LEDGERS ─────────
-  async function fetchLedgers() {
-    spinner.classList.remove("hidden");
-    ledgerCount.textContent = "";
-
-    try {
-      const res = await fetch(`${API.LEDGERS}?group=${state.selectedGroup}`);
-      const data = await res.json();
-
-      if (data.status === "waiting") {
-       ledgerCount.textContent = "Waiting for connector...";
-       ledgerCount.className = "tally-ledger-count warning";
-
-      setTimeout(fetchLedgers, 2000); // retry
+      setTimeout(fetchLedgers, 2000);
       return;
     }
 
     state.ledgers = data.ledgers || [];
 
-      ledgerCount.textContent = `✓ ${state.ledgers.length} loaded`;
-      ledgerCount.className = "tally-ledger-count success";
+    ledgerCount.textContent = `✓ ${state.ledgers.length} loaded`;
+    ledgerCount.className = "tally-ledger-count success";
 
-      if (state.file) runMatching();
-    } catch (e) {
-      ledgerCount.textContent = "Error loading";
-      ledgerCount.className = "tally-ledger-count error";
-    }
+    if (state.file) runMatching();
 
-    spinner.classList.add("hidden");
+  } catch (e) {
+    ledgerCount.textContent = "Error loading";
+    ledgerCount.className = "tally-ledger-count error";
   }
 
+  spinner.classList.add("hidden");
+}
   // ───────── MATCHING ─────────
-  async function runMatching() {
-    if (!state.file) return;
+  console.log("🔁 runMatching called with state.selectedGroup:", state.selectedGroup);
+  console.log("📁 state.file:", state.file);
+async function runMatching(retries = 20, delay = 500) {
+  if (!state.file) {
+    console.warn("No file loaded");
+    return;
+  }
 
-    const formData = new FormData();
-    formData.append("file", state.file);
-    formData.append("tally_group", state.selectedGroup);
+  const sheetName = sheetSelect ? sheetSelect.value : "";
+  const formData = new FormData();
+  formData.append("file", state.file);
+  formData.append("tally_group", state.selectedGroup);
+  if (sheetName) formData.append("sheet_name", sheetName);
 
-    try {
-      const res = await fetch(API.MATCH, {
-        method: "POST",
-        body: formData,
-      });
+  console.log("🔁 Sending request with group:", state.selectedGroup);
 
-      const data = await res.json();
+  try {
+    const res = await fetch(API.MATCH, {
+      method: "POST",
+      body: formData,
+    });
+    const data = await res.json();
 
+    if (data.status === "waiting") {
+      if (retries > 0) {
+        setTimeout(() => runMatching(retries - 1, delay), delay);
+      } else {
+        showWarning("Matching timed out. Please try again.");
+      }
+      return;
+    }
+
+    if (data.status === "ok") {
       state.matchResults = data.match_results || [];
-
       renderTable();
       matchSection.classList.remove("hidden");
-
       checkWarnings();
-    } catch (e) {
-      showWarning("Matching failed");
+    } else {
+      showWarning(data.message || "Matching failed");
     }
+  } catch (e) {
+    console.error(e);
+    showWarning("Matching failed");
   }
+}
 
   // ───────── TABLE ─────────
   function renderTable() {
