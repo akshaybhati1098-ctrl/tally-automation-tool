@@ -70,6 +70,7 @@ from core.process_service import image_to_excel
 # APP
 # =========================================================
 app = FastAPI(title="Tally Automation Tool")
+
 @app.get("/check-static")
 def check_static():
     import os
