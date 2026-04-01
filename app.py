@@ -111,7 +111,16 @@ async def session_timeout_middleware(request: Request, call_next):
 # =========================================================
 # STATIC & TEMPLATES
 # =========================================================
-app.mount("/static", StaticFiles(directory="web/static"), name="static")
+import os
+from fastapi.staticfiles import StaticFiles
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+app.mount(
+    "/static",
+    StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")),
+    name="static"
+)
 templates = Jinja2Templates(directory="web/templates")
 
 # =========================================================
