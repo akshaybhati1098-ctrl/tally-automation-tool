@@ -582,6 +582,10 @@ function viewReports() {
   alert('📈 Opening reports dashboard (demo)');
 }
 
+function downloadConnector() {
+  window.location.href = "http://www.tallytool.com/static/downloads/TallyConnectorSetup.exe";
+}
+
 const USER_ID = "1";
 
 async function checkStatus() {
@@ -590,24 +594,15 @@ async function checkStatus() {
     const data = await res.json();
 
     const statusEl = document.getElementById("connectorStatus");
-    const btnText = document.getElementById("connectorBtnText");
-    const subText = document.getElementById("connectorSubText");
 
     if (!statusEl) return;
 
     if (data.status === "running") {
       statusEl.innerHTML = "🟢 Connector Active";
       statusEl.style.color = "#17b26a";
-
-      if (btnText) btnText.innerText = "Connector Running";
-      if (subText) subText.innerText = "Background service active";
-
     } else {
       statusEl.innerHTML = "🔴 Connector Not Running";
       statusEl.style.color = "#e11d48";
-
-      if (btnText) btnText.innerText = "Download Connector";
-      if (subText) subText.innerText = "Install & start connector";
     }
 
   } catch {
@@ -622,9 +617,6 @@ async function checkStatus() {
 setInterval(checkStatus, 5000);
 checkStatus();
 </script>
-function downloadConnector() {
-  window.location.href = "http://www.tallytool.com/static/downloads/TallyConnectorSetup.exe";
-}
 </script>
 </body>
 </html>
