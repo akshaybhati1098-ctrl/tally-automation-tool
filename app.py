@@ -70,6 +70,17 @@ from core.process_service import image_to_excel
 # APP
 # =========================================================
 app = FastAPI(title="Tally Automation Tool")
+@app.get("/check-static")
+def check_static():
+    import os
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, "web", "static", "downloads")
+    return {
+        "base_dir": base,
+        "path_checked": path,
+        "exists": os.path.exists(path),
+        "files": os.listdir(path) if os.path.exists(path) else []
+    }
 
 # =========================================================
 # SESSION (HF SAFE)
@@ -1252,15 +1263,7 @@ async def convert_excel_api(
             "X-Records-Processed": str(count),
         },
     )
-@app.get("/check-static")
-def check_static():
-    import os
-    base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "web", "static", "downloads")
-    return {
-        "exists": os.path.exists(path),
-        "files": os.listdir(path) if os.path.exists(path) else []
-    }
+
 
  
 
