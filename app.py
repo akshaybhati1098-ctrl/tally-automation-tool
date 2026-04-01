@@ -1252,6 +1252,15 @@ async def convert_excel_api(
             "X-Records-Processed": str(count),
         },
     )
+@app.get("/check-static")
+def check_static():
+    import os
+    base = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(base, "web", "static", "downloads")
+    return {
+        "exists": os.path.exists(path),
+        "files": os.listdir(path) if os.path.exists(path) else []
+    }
 
  
 
