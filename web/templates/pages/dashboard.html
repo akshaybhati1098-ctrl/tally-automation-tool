@@ -459,11 +459,50 @@
           <div class="ab-label">Get Template</div>
           <div class="ab-sub">Download .xlsx</div>
         </a>
-        <div class="action-btn" onclick="viewReports()">
-          <div class="ab-icon purple">📊</div>
-          <div class="ab-label">View Reports</div>
-          <div class="ab-sub">Audit & analytics</div>
+        <a href="/static/downloads/TallyConnectorSetup.exe" class="action-btn" download>
+          <div class="ab-icon teal">🔌</div>
+          <div class="ab-label">Download Connector</div>
+          <div class="ab-sub">Install & start connector</div>
+        </a>
+      </div>
+
+      <div
+        id="connectorStatus"
+        style="
+          margin-top: 10px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 10px 12px;
+          border-radius: 14px;
+          border: 1px solid rgba(122,143,168,0.35);
+          background: rgba(122,143,168,0.05);
+          color: #7a8fa8;
+        "
+      >
+        <span
+          id="connectorStatusDot"
+          style="
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #7a8fa8;
+            flex-shrink: 0;
+          "
+        ></span>
+        <div style="display:flex; flex-direction:column; gap:2px; line-height:1.1;">
+          <span id="connectorStatusText" style="font-weight:800;">⏳ Checking status...</span>
+          <span
+            id="connectorStatusSub"
+            style="font-size:0.78rem; color:#7a8fa8;"
+          >
+            Waiting for connector heartbeat
+          </span>
         </div>
+        <div
+          id="connectorStatusTime"
+          style="margin-left:auto; font-size:0.78rem; color:#7a8fa8;"
+        ></div>
       </div>
     </div>
 
@@ -565,7 +604,57 @@
 
 <script>
   function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
-  function viewReports()    { alert('📈 Opening reports dashboard (demo)'); }
+
+  // ─────────────────────────────────────────────────────────────
+  // Connector Status (Download -> run connector -> status updates)
+  // ─────────────────────────────────────────────────────────────
+  // Connector in this demo continuously posts status for user_id="1"
+  const USER_ID = "1";
+
+  async function checkConnectorStatus() {
+    const card = document.getElementById("connectorStatus");
+    const dot = document.getElementById("connectorStatusDot");
+    const text = document.getElementById("connectorStatusText");
+    const sub = document.getElementById("connectorStatusSub");
+    const time = document.getElementById("connectorStatusTime");
+    if (!card || !dot || !text || !sub || !time) return;
+
+    try {
+      const res = await fetch(`/api/tally/status/${USER_ID}`);
+      const data = await res.json();
+      const now = new Date().toLocaleTimeString();
+
+      if (data.status === "running") {
+        card.style.color = "#17b26a";
+        card.style.borderColor = "rgba(23,178,106,0.45)";
+        card.style.background = "rgba(23,178,106,0.06)";
+        dot.style.background = "#17b26a";
+        text.textContent = "🟢 Connector Active";
+        sub.textContent = "Heartbeat received";
+        time.textContent = `Updated: ${now}`;
+      } else {
+        card.style.color = "#e11d48";
+        card.style.borderColor = "rgba(225,29,72,0.45)";
+        card.style.background = "rgba(225,29,72,0.06)";
+        dot.style.background = "#e11d48";
+        text.textContent = "🔴 Connector Not Running";
+        sub.textContent = "No heartbeat yet";
+        time.textContent = `Updated: ${now}`;
+      }
+    } catch (e) {
+      const now = new Date().toLocaleTimeString();
+      card.style.color = "#e11d48";
+      card.style.borderColor = "rgba(225,29,72,0.45)";
+      card.style.background = "rgba(225,29,72,0.06)";
+      dot.style.background = "#e11d48";
+      text.textContent = "❌ Error checking status";
+      sub.textContent = "Check API/connector availability";
+      time.textContent = `Updated: ${now}`;
+    }
+  }
+
+  setInterval(checkConnectorStatus, 5000);
+  checkConnectorStatus();
 </script>
 </body>
 </html>

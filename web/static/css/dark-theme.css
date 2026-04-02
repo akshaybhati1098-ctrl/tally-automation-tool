@@ -1,0 +1,82 @@
+/* Dark theme improvements across pages.
+   Loaded via web/templates/index.html. We use `!important` to override
+   inline/template styles (e.g., navbar.html uses a <style> block).
+*/
+
+body.dark-theme {
+  background: #0f172a !important;
+  color: #e5e7eb !important;
+}
+
+/* Top nav (navbar.html has fixed light styles in its own <style> block) */
+body.dark-theme .top-nav {
+  background: linear-gradient(90deg, #1e3a8a 0%, #0b132b 100%) !important;
+  color: #ffffff !important;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.25) !important;
+}
+
+body.dark-theme .nav-link {
+  background: transparent !important;
+  color: #e5e7eb !important;
+}
+
+body.dark-theme .nav-link:hover {
+  background: rgba(255, 255, 255, 0.14) !important;
+}
+
+body.dark-theme .nav-link.active {
+  background: rgba(255, 255, 255, 0.18) !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .logo p {
+  color: rgba(229, 231, 235, 0.75) !important;
+}
+
+/* Dashboard quick actions (.action-btn is used in dashboard.html) */
+body.dark-theme .action-btn {
+  background: #1e293b !important;
+  border-color: rgba(51, 65, 85, 0.95) !important;
+  color: #e5e7eb !important;
+}
+
+body.dark-theme .action-btn:hover {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+  color: #ffffff !important;
+  transform: translateY(-2px) !important;
+}
+
+/* Quick action icon backgrounds (dashboard.html defines these for light theme) */
+body.dark-theme .ab-icon.blue {
+  background: rgba(37, 99, 235, 0.18) !important;
+}
+body.dark-theme .ab-icon.green {
+  background: rgba(16, 185, 129, 0.18) !important;
+}
+body.dark-theme .ab-icon.gold {
+  background: rgba(245, 158, 11, 0.18) !important;
+}
+body.dark-theme .ab-icon.purple {
+  background: rgba(139, 92, 246, 0.18) !important;
+}
+body.dark-theme .ab-icon.teal {
+  background: rgba(20, 184, 166, 0.18) !important;
+}
+body.dark-theme .ab-icon.red {
+  background: rgba(239, 68, 68, 0.18) !important;
+}
+
+/* Make muted subtitle readable */
+body.dark-theme .ab-sub {
+  color: rgba(229, 231, 235, 0.72) !important;
+}
+
+/* General cards used in dashboard.html (some components are not `.card`, so cover common containers) */
+body.dark-theme .main-grid .card,
+body.dark-theme .main-content .card {
+  background: #1e293b !important;
+  border-color: rgba(51, 65, 85, 0.9) !important;
+  color: #e5e7eb !important;
+}
+
