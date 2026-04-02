@@ -709,6 +709,7 @@ def get_job(user_id: str):
 
 @app.post("/api/submit-result/{user_id}")
 def submit_result(user_id: str, data: dict):
+    print("🔥 RESULT USER:", user_id)
     RESULTS[user_id] = data
     return {"ok": True}
 
@@ -1000,6 +1001,7 @@ async def match_party(
 
         print("🔄 Fetching Tally ledgers...")
         user_id = "1"
+        print("🔥 MATCH USER:", user_id)
 
         # 🔥 Send job to connector
         print("📦 MATCH using group:", tally_group)
