@@ -349,10 +349,13 @@ async def serve_ui(request: Request):
     if not user:
         return RedirectResponse("/login")
     return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "username": user}
-        "user_id": request.session.get("user_id")   
-    )
+    "index.html",
+    {
+        "request": request,
+        "username": user,
+        "user_id": request.session.get("user_id")
+    }
+)
 USER_STATUS = {}
 
 @app.post("/api/update-status/{user_id}")
