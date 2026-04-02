@@ -24,10 +24,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Optional
-from datetime import datetime, timezone
 from core.excel_service import (
     excel_to_xml,
     prepare_excel_party_matching,
@@ -111,16 +107,7 @@ async def session_timeout_middleware(request: Request, call_next):
 # =========================================================
 # STATIC & TEMPLATES
 # =========================================================
-import os
-from fastapi.staticfiles import StaticFiles
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")),
-    name="static"
-)
+app.mount("/static", StaticFiles(directory="web/static"), name="static")
 templates = Jinja2Templates(directory="web/templates")
 
 # =========================================================
@@ -436,7 +423,6 @@ async def logout(request: Request):
 async def api_me(request: Request):
     user = get_current_user(request)
     return {"authenticated": bool(user), "username": user}
-    
 
 # =========================================================
 # OTP ENDPOINTS (for email verification signup)
@@ -1252,7 +1238,5 @@ async def convert_excel_api(
             "X-Records-Processed": str(count),
         },
     )
-
-
  
 

@@ -459,24 +459,13 @@
           <div class="ab-label">Get Template</div>
           <div class="ab-sub">Download .xlsx</div>
         </a>
-        <a href="http://www.tallytool.online/static/downloads/TallyConnectorSetup.exe" class="action-btn" download>
-           <div class="ab-icon blue">🔌</div>
-           <div class="ab-label">Download Connector</div>
-           <div class="ab-sub">Install & auto connect</div>
-        </a>
-       </div>
+        <div class="action-btn" onclick="viewReports()">
+          <div class="ab-icon purple">📊</div>
+          <div class="ab-label">View Reports</div>
+          <div class="ab-sub">Audit & analytics</div>
+        </div>
       </div>
     </div>
-<!-- 🔌 Tally Connector Card -->
-<div class="card span-2">
-  <div class="card-title">
-    <span class="ti">🔌</span> Tally Connector
-  </div>
-
-  <p id="connectorStatus" style="margin-bottom:10px; color:#7a8fa8;">
-    ⏳ Checking status...
-  </p>
-</div>
 
     <!-- How It Works -->
     <div class="card">
@@ -575,49 +564,8 @@
 </div><!-- /shell -->
 
 <script>
-function navigateTo(page) {
-  alert(`🌐 Navigating to ${page} (demo)`);
-}
-
-function viewReports() {
-  alert('📈 Opening reports dashboard (demo)');
-}
-
-function downloadConnector() {
-  window.location.href = "http://www.tallytool.online/static/downloads/TallyConnectorSetup.exe";
-}
-
-const USER_ID = "1";
-
-async function checkStatus() {
-  try {
-    const res = await fetch(`/api/tally/status/${USER_ID}`);
-    const data = await res.json();
-
-    const statusEl = document.getElementById("connectorStatus");
-
-    if (!statusEl) return;
-
-    if (data.status === "running") {
-      statusEl.innerHTML = "🟢 Connector Active";
-      statusEl.style.color = "#17b26a";
-    } else {
-      statusEl.innerHTML = "🔴 Connector Not Running";
-      statusEl.style.color = "#e11d48";
-    }
-
-  } catch {
-    const statusEl = document.getElementById("connectorStatus");
-    if (statusEl) {
-      statusEl.innerText = "❌ Error";
-      statusEl.style.color = "#e11d48";
-    }
-  }
-}
-
-setInterval(checkStatus, 5000);
-checkStatus();
-</script>
+  function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
+  function viewReports()    { alert('📈 Opening reports dashboard (demo)'); }
 </script>
 </body>
 </html>

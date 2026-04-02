@@ -12,41 +12,6 @@ from auth import (
 import secrets
 
 app = FastAPI()
-@app.get("/check-static")
-def check_static():
-    base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "web", "static", "downloads")
-    return {
-        "exists": os.path.exists(path),
-        "files": os.listdir(path) if os.path.exists(path) else []
-    }
-
-# your other APIs below
-@app.get("/")
-def home():
-    return {"message": "ok"}
-
-@app.get("/check-static")
-def check_static():
-    import os
-    base = os.path.dirname(os.path.abspath(__file__))
-    path = os.path.join(base, "web", "static", "downloads")
-    return {
-        "base": base,
-        "path": path,
-        "exists": os.path.exists(path),
-        "files": os.listdir(path) if os.path.exists(path) else []
-    }
-import os
-from fastapi.staticfiles import StaticFiles
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-
-app.mount(
-    "/static",
-    StaticFiles(directory=os.path.join(BASE_DIR, "web", "static")),
-    name="static"
-)
 
 # Mount static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
