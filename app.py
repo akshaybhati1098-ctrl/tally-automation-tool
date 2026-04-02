@@ -709,7 +709,6 @@ def get_job(user_id: str):
 
 @app.post("/api/submit-result/{user_id}")
 def submit_result(user_id: str, data: dict):
-    print("🔥 RESULT USER:", user_id)
     RESULTS[user_id] = data
     return {"ok": True}
 
@@ -917,17 +916,101 @@ def api_tally_ledgers(request: Request, group: str = Query(None)):
 
     print("📤 XML SENT:\n", xml)  # 🔥 DEBUG
 
-    # 2. send job
+    # 2. send job (avoid stale results)
+    RESULTS.pop(user_id, None)
     JOBS.setdefault(user_id, []).append({"xml": xml})
 
-    # 3. check result
-    result = RESULTS.get(user_id)
+    # 3. wait for connector response (same pattern as /api/match-party)
+    result = None
+    import time
+
+    for _ in range(20):  # ~10 seconds max
+        result = RESULTS.get(user_id)
+        if result:
+            break
+        time.sleep(0.5)
 
     if not result:
         return {"status": "waiting"}
 
     # 4. parse result
-    ledgers = parse_ledgers(result.get("data", ""))
+    from core.tally_service import parse_ledgers_with_parent
+
+    group_norm = (group or "").strip()
+
+    raw_xml = result.get("data", "") or ""
+    # Quick debug to understand what Tally actually returned
+    try:
+        print(
+            f"📥 Tally raw XML stats: len={len(raw_xml)}, "
+            f"LEDGER={raw_xml.count('<LEDGER')}, "
+            f"LEDGERNAME={raw_xml.count('<LEDGERNAME')}, "
+            f"NAME={raw_xml.count('<NAME')}, "
+            f"LEDGERENTRIES={raw_xml.count('LEDGERENTRIES')}, "
+            f"PARENT={raw_xml.count('<PARENT')}, "
+            f"PARENTNAME={raw_xml.count('<PARENTNAME')}"
+        )
+    except Exception:
+        pass
+
+    if group_norm and group_norm.lower() != "all":
+        parsed = parse_ledgers_with_parent(result.get("data", ""))
+        group_norm_lower = group_norm.lower()
+        allowed = {
+            i["name"]
+            for i in parsed
+            if i.get("parent", "").strip().lower() == group_norm_lower
+        }
+        try:
+            parents = [i.get("parent", "") for i in parsed]
+            parents_clean = [p.strip() for p in parents if p and p.strip()]
+            uniq_parents = sorted(
+                list({p.lower() for p in parents_clean})
+            )[:10]
+            eq_count = sum(1 for p in parents_clean if p.lower() == group_norm.lower())
+            print(
+                f"🧩 parent debug: group={group_norm!r}, parsed={len(parsed)}, "
+                f"eq_count={eq_count}, uniq_parents_sample={uniq_parents}"
+            )
+        except Exception:
+            pass
+        try:
+            parents = [i.get("parent", "") for i in parsed]
+            uniq_parents = len(set(p.strip().lower() for p in parents if p.strip()))
+            sample_parent = next((p for p in parents if p and p.strip()), "")
+            print(
+                f"📌 Parent parse stats: parsed={len(parsed)}, uniq_parents={uniq_parents}, sample_parent={sample_parent!r}"
+            )
+        except Exception:
+            pass
+        if not allowed:
+            # Fallback: tolerate small formatting differences in parent name
+            allowed = {
+                i["name"]
+                for i in parsed
+                if group_norm_lower in i.get("parent", "").strip().lower()
+            }
+            print(
+                f"🔁 contains-parent fallback: group={group_norm!r}, allowed={len(allowed)}"
+            )
+
+        if allowed:
+            ledgers = [i["name"] for i in parsed if i["name"] in allowed]
+            print(
+                f"📦 Group filter fallback applied: group={group_norm}, total={len(parsed)}, allowed={len(allowed)}"
+            )
+        else:
+            # If Tally returns ledgers but we can't parse Parent fields reliably,
+            # fall back to returning names so UI doesn't become empty.
+            ledgers = parse_ledgers(result.get("data", ""))
+            print(
+                f"⚠️ Group filter fallback: group={group_norm}, total_parsed={len(parsed)}, unfiltered_names={len(ledgers)}"
+            )
+    else:
+        ledgers = parse_ledgers(result.get("data", ""))
+
+    # remove duplicates while preserving order
+    ledgers = list(dict.fromkeys(ledgers))
 
     return {"status": "ok", "ledgers": ledgers}
 
@@ -1001,7 +1084,6 @@ async def match_party(
 
         print("🔄 Fetching Tally ledgers...")
         user_id = "1"
-        print("🔥 MATCH USER:", user_id)
 
         # 🔥 Send job to connector
         print("📦 MATCH using group:", tally_group)
@@ -1025,7 +1107,78 @@ async def match_party(
             return {"status": "waiting"}
 
         # 🔥 Parse ledgers (FIXED)
-        ledgers, gst_map = parse_ledgers_with_gstin(result.get("data", ""))
+        raw_xml = result.get("data", "") or ""
+        ledgers, gst_map = parse_ledgers_with_gstin(raw_xml)
+
+        # Debug: understand what Tally returned for this collection export
+        try:
+            print(
+                f"📄 match-party Tally XML stats: len={len(raw_xml)}, "
+                f"LEDGER={raw_xml.count('<LEDGER')}, "
+                f"LEDGERNAME={raw_xml.count('<LEDGERNAME')}, "
+                f"NAME={raw_xml.count('<NAME')}, "
+                f"PARTYGSTIN={raw_xml.count('<PARTYGSTIN')}, "
+                f"GSTIN={raw_xml.count('<GSTIN')}"
+            )
+        except Exception:
+            pass
+
+        # Fallback: if Tally ignores CHILDOF/group filtering, filter by Parent in backend.
+        group_norm = (tally_group or "").strip()
+        if group_norm and group_norm.lower() != "all":
+            from core.tally_service import parse_ledgers_with_parent
+
+            parsed = parse_ledgers_with_parent(raw_xml)
+            group_norm_lower = group_norm.lower()
+            allowed = {
+                i["name"]
+                for i in parsed
+                if i.get("parent", "").strip().lower() == group_norm_lower
+            }
+
+            parents_clean = [
+                i.get("parent", "").strip()
+                for i in parsed
+                if i.get("parent", "").strip()
+            ]
+            eq_count = sum(1 for p in parents_clean if p.lower() == group_norm.lower())
+            uniq_parents_sample = sorted({p.lower() for p in parents_clean})[:10]
+
+            print(
+                f"🧩 match-party parent debug: group={group_norm!r}, "
+                f"parsed={len(parsed)}, eq_count={eq_count}, "
+                f"uniq_parents_sample={uniq_parents_sample}"
+            )
+
+            if allowed:
+                ledgers = [l for l in ledgers if l in allowed]
+                gst_map = {
+                    gstin: name
+                    for gstin, name in gst_map.items()
+                    if name in allowed
+                }
+                print(f"📦 match-party group filtered ledgers: kept={len(ledgers)}")
+            else:
+                allowed = {
+                    i["name"]
+                    for i in parsed
+                    if group_norm_lower in i.get("parent", "").strip().lower()
+                }
+                if allowed:
+                    ledgers = [l for l in ledgers if l in allowed]
+                    gst_map = {
+                        gstin: name
+                        for gstin, name in gst_map.items()
+                        if name in allowed
+                    }
+                    print(
+                        f"🔁 match-party contains-parent fallback: group={group_norm!r}, kept={len(ledgers)}"
+                    )
+                else:
+                    print(
+                        f"⚠️ Group filter fallback: match-party could not match parent for "
+                        f"group={group_norm}. Returning unfiltered ledgers."
+                    )
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
 

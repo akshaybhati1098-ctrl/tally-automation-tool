@@ -443,12 +443,14 @@
            Select
         ════════════════════════════════════════ */
       .form-group:has(#sheetSelect),
-      .form-group:has(#companySelect) {
+      .form-group:has(#companySelect),
+      .form-group:has(#ledgerTypeSelect) {
         position: relative;
       }
 
       .form-group:has(#sheetSelect)::after,
-      .form-group:has(#companySelect)::after {
+      .form-group:has(#companySelect)::after,
+      .form-group:has(#ledgerTypeSelect)::after {
         content: "▾";
         position: absolute;
         right: 1rem;
@@ -4875,6 +4877,11 @@
           const formData = new FormData();
           formData.append("file", file);
           formData.append("sheet_name", sheetName);
+          // Send selected tally group to backend (required for group-filtered ledgers)
+          const groupEl = document.getElementById("ledgerTypeSelect");
+          if (groupEl && groupEl.value) {
+            formData.append("tally_group", groupEl.value);
+          }
           formData.append(
             "manual_columns",
             JSON.stringify(window_manualColumns),
@@ -5348,13 +5355,26 @@
           const viewMatchedBtn = document.getElementById("viewMatchedBtn");
           const matchedSection = document.getElementById("matchedSection");
           if (viewMatchedBtn && matchedSection) {
-            viewMatchedBtn.addEventListener("click", () => {
-              const isHidden = matchedSection.style.display === "none";
-              matchedSection.style.display = isHidden ? "block" : "none";
+            // Use a single handler to avoid stacking multiple listeners after rerenders.
+            const syncButtonText = () => {
+              const isHidden =
+                matchedSection.style.display === "none" ||
+                window.getComputedStyle(matchedSection).display === "none";
               viewMatchedBtn.textContent = isHidden
-                ? "👁️ Hide Matched Invoices"
-                : "👁️ View Matched Invoices";
-            });
+                ? "👁️ View Matched Invoices"
+                : "👁️ Hide Matched Invoices";
+              return isHidden;
+            };
+
+            // Sync on every render so UI stays consistent after Apply Fix.
+            syncButtonText();
+
+            viewMatchedBtn.onclick = () => {
+              const isHidden = syncButtonText();
+              matchedSection.style.display = isHidden ? "block" : "none";
+              // Update text immediately after toggling
+              syncButtonText();
+            };
           }
         }
 

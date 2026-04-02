@@ -4,6 +4,7 @@ from __future__ import annotations
 import re
 import xml.etree.ElementTree as ET
 from typing import Dict, List, Optional, Tuple
+from xml.sax.saxutils import escape as xml_escape
 
 
 # ================================
@@ -64,32 +65,125 @@ def build_company_status_xml() -> str:
     """.strip()
 
 def build_ledger_xml(group: str = None) -> str:
-    group = (group or "").strip()
+    """
+    Build XML to fetch ledgers using the report 'List of Accounts'.
 
-    group_block = f"<GROUPNAME>{group}</GROUPNAME>" if group else ""
+    This is the most reliable pattern for your Tally setup (matches your demo
+    code): filter using STATICVARIABLES->GROUPNAME.
+    """
+
+    group_norm = (group or "").strip()
+    group_block = (
+        # Important: keep group text exactly as provided (same pattern as your demo code).
+        # Tally expects the literal group name; escaping can sometimes break the lookup.
+        f"<GROUPNAME>{group_norm}</GROUPNAME>"
+        if group_norm and group_norm.lower() != "all"
+        else ""
+    )
 
     return f"""
 <ENVELOPE>
  <HEADER>
   <TALLYREQUEST>Export Data</TALLYREQUEST>
  </HEADER>
-
  <BODY>
   <EXPORTDATA>
    <REQUESTDESC>
-
     <REPORTNAME>List of Accounts</REPORTNAME>
-
     <STATICVARIABLES>
      <SVEXPORTFORMAT>$$SysName:XML</SVEXPORTFORMAT>
      {group_block}
     </STATICVARIABLES>
-
    </REQUESTDESC>
   </EXPORTDATA>
  </BODY>
 </ENVELOPE>
 """.strip()
+
+
+def parse_ledgers_with_parent(raw_xml: str) -> List[Dict[str, str]]:
+    """
+    Parse LEDGER elements and return name + parent group.
+
+    Note: Tally tag names can vary by version; we try multiple common fields.
+    """
+    root = _parse_xml(raw_xml)
+
+    items: List[Dict[str, str]] = []
+
+    ledgers = root.findall(".//LEDGER")
+    if ledgers:
+        for ledger in ledgers:
+            name = (
+                ledger.attrib.get("NAME")
+                or ledger.findtext("NAME")
+                or ledger.findtext(".//NAME")
+                or ledger.findtext("LEDGERNAME")
+                or ledger.findtext(".//LEDGERNAME")
+            )
+            if not name:
+                continue
+            name = name.strip()
+            if not name:
+                continue
+
+            parent = (
+                ledger.findtext("PARENT")
+                or ledger.findtext(".//PARENT")
+                or ledger.findtext("PARENTNAME")
+                or ledger.findtext(".//PARENTNAME")
+                or ledger.findtext("PARENTGROUP")
+                or ledger.findtext(".//PARENTGROUP")
+                or ledger.findtext("GROUPNAME")
+                or ledger.findtext(".//GROUPNAME")
+            )
+            if parent:
+                parent = parent.strip()
+
+            items.append({"name": name, "parent": parent or ""})
+    else:
+        # Fallback: if no <LEDGER> wrapper exists, we can at least return names.
+        ledger_names = [
+            (n.text or "").strip()
+            for n in root.findall(".//LEDGERNAME")
+            if n is not None and (n.text or "").strip()
+        ]
+        if not ledger_names:
+            ledger_names = [
+                (n.text or "").strip()
+                for n in root.findall(".//NAME")
+                if n is not None and (n.text or "").strip()
+            ]
+
+        parent_values = [
+            (n.text or "").strip()
+            for n in root.findall(".//PARENTNAME")
+            if n is not None and (n.text or "").strip()
+        ]
+        if not parent_values:
+            parent_values = [
+                (n.text or "").strip()
+                for n in root.findall(".//PARENT")
+                if n is not None and (n.text or "").strip()
+            ]
+        if not parent_values:
+            parent_values = [
+                (n.text or "").strip()
+                for n in root.findall(".//PARENTGROUP")
+                if n is not None and (n.text or "").strip()
+            ]
+        if not parent_values:
+            parent_values = [
+                (n.text or "").strip()
+                for n in root.findall(".//GROUPNAME")
+                if n is not None and (n.text or "").strip()
+            ]
+
+        for idx, nm in enumerate(ledger_names):
+            parent = parent_values[idx] if idx < len(parent_values) else ""
+            items.append({"name": nm, "parent": parent})
+
+    return items
 
 
 # ================================
@@ -118,17 +212,36 @@ def parse_ledgers(raw_xml: str) -> List[str]:
 
     names: List[str] = []
 
-    for ledger in root.findall(".//LEDGER"):
-        name = (
-            ledger.attrib.get("NAME")
-            or ledger.findtext("NAME")
-            or ledger.findtext(".//NAME")
-        )
+    ledgers = root.findall(".//LEDGER")
+    if ledgers:
+        for ledger in ledgers:
+            name = (
+                ledger.attrib.get("NAME")
+                or ledger.findtext("NAME")
+                or ledger.findtext(".//NAME")
+                or ledger.findtext("LEDGERNAME")
+                or ledger.findtext(".//LEDGERNAME")
+            )
 
-        if name:
-            name = name.strip()
             if name:
-                names.append(name)
+                name = name.strip()
+                if name:
+                    names.append(name)
+    else:
+        # Some Tally collection responses may not wrap each item inside a <LEDGER> node.
+        for n in root.findall(".//LEDGERNAME"):
+            if n is not None and n.text:
+                t = n.text.strip()
+                if t:
+                    names.append(t)
+
+        # Last-resort fallback: sometimes ledger names are returned under <NAME>
+        if not names:
+            for n in root.findall(".//NAME"):
+                if n is not None and n.text:
+                    t = n.text.strip()
+                    if t:
+                        names.append(t)
 
     # remove duplicates
     return list(dict.fromkeys(names))
@@ -140,32 +253,79 @@ def parse_ledgers_with_gstin(raw_xml: str) -> Tuple[List[str], Dict[str, str]]:
     names: List[str] = []
     gstin_map: Dict[str, str] = {}
 
-    for ledger in root.findall(".//LEDGER"):
-        name = (
-            ledger.attrib.get("NAME")
-            or ledger.findtext("NAME")
-            or ledger.findtext(".//NAME")
-        )
+    ledgers = root.findall(".//LEDGER")
+    if ledgers:
+        for ledger in ledgers:
+            name = (
+                ledger.attrib.get("NAME")
+                or ledger.findtext("NAME")
+                or ledger.findtext(".//NAME")
+                or ledger.findtext("LEDGERNAME")
+                or ledger.findtext(".//LEDGERNAME")
+            )
 
-        if not name:
-            continue
+            if not name:
+                continue
 
-        name = name.strip()
-        if not name:
-            continue
+            name = name.strip()
+            if not name:
+                continue
 
-        names.append(name)
+            names.append(name)
 
-        gstin = (
-            ledger.findtext("PARTYGSTIN")
-            or ledger.findtext(".//PARTYGSTIN")
-            or ledger.findtext("GSTIN")
-            or ledger.findtext(".//GSTIN")
-        )
+            gstin = (
+                ledger.findtext("PARTYGSTIN")
+                or ledger.findtext(".//PARTYGSTIN")
+                or ledger.findtext("GSTIN")
+                or ledger.findtext(".//GSTIN")
+            )
 
-        if gstin:
-            gstin = gstin.strip().upper()
-            if gstin and gstin not in gstin_map:
-                gstin_map[gstin] = name
+            if gstin:
+                gstin = gstin.strip().upper()
+                if gstin and gstin not in gstin_map:
+                    gstin_map[gstin] = name
+    else:
+        # Best-effort fallback if no <LEDGER> wrapper exists:
+        ledger_names = [
+            (n.text or "").strip()
+            for n in root.findall(".//LEDGERNAME")
+            if n is not None and (n.text or "").strip()
+        ]
+
+        # If LEDGERNAME isn't returned, try the generic <NAME> tag.
+        if not ledger_names:
+            ledger_names = [
+                (n.text or "").strip()
+                for n in root.findall(".//NAME")
+                if n is not None and (n.text or "").strip()
+            ]
+
+        if not ledger_names:
+            ledger_names = [
+                (n.text or "").strip()
+                for n in root.findall(".//NAME")
+                if n is not None and (n.text or "").strip()
+            ]
+
+        party_gstins = [
+            (n.text or "").strip().upper()
+            for n in root.findall(".//PARTYGSTIN")
+            if n is not None and (n.text or "").strip()
+        ]
+
+        # If PARTYGSTIN not available, try GSTIN
+        if not party_gstins:
+            party_gstins = [
+                (n.text or "").strip().upper()
+                for n in root.findall(".//GSTIN")
+                if n is not None and (n.text or "").strip()
+            ]
+
+        for idx, nm in enumerate(ledger_names):
+            names.append(nm)
+            if idx < len(party_gstins):
+                g = party_gstins[idx]
+                if g and g not in gstin_map:
+                    gstin_map[g] = nm
 
     return list(dict.fromkeys(names)), gstin_map
