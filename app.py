@@ -351,6 +351,7 @@ async def serve_ui(request: Request):
     return templates.TemplateResponse(
         "index.html",
         {"request": request, "username": user}
+        "user_id": request.session.get("user_id")   
     )
 USER_STATUS = {}
 
