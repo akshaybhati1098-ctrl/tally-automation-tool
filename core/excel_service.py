@@ -53,6 +53,13 @@ def prepare_excel_party_matching(
     sheet_name: str,
     ledger_group: Optional[str] = None,
 ) -> dict:
+    """
+    NOTE: Legacy helper.
+
+    Party matching is now performed via the `/api/match-party` endpoint using the
+    connector → Tally flow. This helper previously relied on direct Tally fetch
+    helpers that no longer exist in this codebase.
+    """
     df = load_excel_dataframe(file_bytes, sheet_name)
     df.columns = [str(c).strip() for c in df.columns]
     df = df.fillna("")
@@ -63,38 +70,18 @@ def prepare_excel_party_matching(
 
     gstin_col = detect_gstin_column(df)
 
-    if ledger_group and ledger_group.lower() not in {"all", "both", "any"}:
-        ledgers, gstin_map = fetch_tally_with_gstin(group=ledger_group)
-    else:
-        led1, gst1 = fetch_tally_with_gstin("Sundry Debtors")
-        led2, gst2 = fetch_tally_with_gstin("Sundry Creditors")
-        ledgers = list(dict.fromkeys(led1 + led2))
-        gstin_map = {**gst1, **gst2}
-
-    match_results = match_party_names(
-        df=df,
-        tally_ledgers=ledgers,
-        tally_gstin_map=gstin_map,
-        party_col=party_col,
-        gstin_col=gstin_col,
+    raise NotImplementedError(
+        "prepare_excel_party_matching() is deprecated. Use /api/match-party instead."
     )
-
-    reviewed_df = apply_match_results_to_dataframe(
-        df=df,
-        match_results=match_results,
-        party_col=party_col,
-    )
-
-    unmatched_rows = get_unmatched_rows(match_results)
 
     return {
-        "dataframe": reviewed_df,
-        "match_results": match_results,
+        "dataframe": df,
+        "match_results": [],
         "party_col": party_col,
         "gstin_col": gstin_col,
-        "ledger_list": ledgers,
-        "gstin_map": gstin_map,
-        "unmatched_rows": unmatched_rows,
+        "ledger_list": [],
+        "gstin_map": {},
+        "unmatched_rows": [],
     }
 
 
@@ -140,20 +127,6 @@ def excel_to_xml(
         gstin_col = detect_gstin_column(df)
 
         if party_col:
-            led1, gst1 = fetch_tally_ledgers_with_gstin("Sundry Debtors")
-            led2, gst2 = fetch_tally_ledgers_with_gstin("Sundry Creditors")
-
-            all_ledgers = list(dict.fromkeys(led1 + led2))
-            gst_map = {**gst1, **gst2}
-
-            match_results = match_party_names(
-                df=df,
-                tally_ledgers=all_ledgers,
-                tally_gstin_map=gst_map,
-                party_col=party_col,
-                gstin_col=gstin_col,
-            )
-
             # ✅ APPLY CORRECTIONS (FINAL FIX)
             corrected = {
                 int(k): v
@@ -161,28 +134,7 @@ def excel_to_xml(
                 if str(v).strip()
             }
 
-            # ================================
-            # ✅ STEP 1: APPLY AUTO MATCH FIRST
-            # ================================
-            for m in match_results:
-                row_index = m["row_index"]
-
-                if row_index not in df.index:
-                    continue
-
-                if m.get("status") == "matched":
-                    matched_value = (
-                        m.get("matched")
-                        or m.get("suggested")
-                        or m.get("final")
-                    )
-
-                    if matched_value:
-                        df.at[row_index, party_col] = matched_value
-
-            # ================================
-            # ✅ STEP 2: APPLY MANUAL OVERRIDE
-            # ================================
+            # Apply manual overrides from UI (match-party step).
             for idx, value in corrected.items():
                 if idx in df.index:
                     df.at[idx, party_col] = value
