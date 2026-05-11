@@ -118,7 +118,10 @@ if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set")
 
 def get_db_connection():
-    return psycopg2.connect(DATABASE_URL)
+    return psycopg2.connect(
+        DATABASE_URL,
+        sslmode="require"
+    )
 
 def init_user_db():
     """Create users and pending_users tables if they don't exist."""
