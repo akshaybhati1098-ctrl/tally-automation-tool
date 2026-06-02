@@ -4617,7 +4617,11 @@
         // ===============================
         async function refreshTallyStatus() {
           try {
-            const res = await fetch("/api/tally/status");
+            const res =
+              typeof window.fetchConnectorStatus === "function"
+                ? await window.fetchConnectorStatus()
+                : null;
+            if (!res) return;
             const data = await res.json();
             console.log("Tally API Response:", data);
 
@@ -5645,7 +5649,9 @@
             console.log("UPDATED:", window.tallyCorrections);
           }
         });
+         const USER_ID = "{{ user_id or '' }}";
       })();
     </script>
   </body>
 </html>
+
