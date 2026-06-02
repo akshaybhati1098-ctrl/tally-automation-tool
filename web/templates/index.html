@@ -108,6 +108,14 @@
     <!-- =========================
          APP SCRIPTS
     ========================== -->
+    <script src="/static/js/device.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            if (typeof window.initDeviceId === "function") {
+                window.initDeviceId();
+            }
+        });
+    </script>
     <script src="/static/js/base.js"></script>
     <script src="/static/js/dashboard.js"></script>
     <script src="/static/js/auth.js"></script>

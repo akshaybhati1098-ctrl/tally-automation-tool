@@ -3,13 +3,11 @@
   "use strict";
 
   // ───────── CONFIG ─────────
-const USER_ID = window.USER_ID; // comes from HTML
-
 const API = {
-  STATUS: `/api/tally/status/${USER_ID}`,
   LEDGERS: "/api/tally/ledgers",
   MATCH: "/api/match-party",
 };
+
 
   const state = {
     ledgers: [],
@@ -109,6 +107,31 @@ const API = {
 }
 
   // ───────── STATUS ─────────
+  async function checkStatus() {
+    if (!statusLabel) return;
+    try {
+      const res =
+        typeof window.fetchConnectorStatus === "function"
+          ? await window.fetchConnectorStatus()
+          : null;
+      if (!res) return;
+      const data = await res.json();
+      if (data.status === "running") {
+        if (statusDot) statusDot.classList.add("online");
+        if (statusLabel) statusLabel.textContent = "Tally running";
+        if (statusCompany) statusCompany.textContent = data.company || "—";
+        if (statusPill) statusPill.textContent = "Online";
+      } else {
+        if (statusDot) statusDot.classList.remove("online");
+        if (statusLabel) statusLabel.textContent = "Tally not running";
+        if (statusCompany) statusCompany.textContent = "—";
+        if (statusPill) statusPill.textContent = "Offline";
+      }
+    } catch (e) {
+      if (statusLabel) statusLabel.textContent = "Status unavailable";
+    }
+  }
+
 async function fetchLedgers() {
   spinner.classList.remove("hidden");
   ledgerCount.textContent = "";

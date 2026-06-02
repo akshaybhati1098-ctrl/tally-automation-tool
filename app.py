@@ -330,6 +330,14 @@ def require_login(request: Request):
         return RedirectResponse("/login", status_code=302)
     return user
 
+
+def get_session_user_id(request: Request) -> str:
+    """Return logged-in user id as string for connector queues."""
+    user_id = request.session.get("user_id")
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    return str(user_id)
+
 # =========================================================
 # UI ROUTES
 # =========================================================
@@ -342,40 +350,75 @@ async def serve_ui(request: Request):
         "index.html",
         {"request": request, "username": user}
     )
-USER_STATUS = {}
+# Device-scoped connector status (Tally on this machine)
+CONNECTOR_STATUS = {}
 
-@app.post("/api/update-status/{user_id}")
-def update_status(user_id: str, data: dict):
-    print("🔥 STATUS RECEIVED:", user_id, data)
 
-    # If already dict → update
-    if isinstance(USER_STATUS.get(user_id), dict):
-        USER_STATUS[user_id]["status"] = data.get("status")
-        USER_STATUS[user_id]["company"] = data.get("company")
-    else:
-        # Convert old string → dict
-        USER_STATUS[user_id] = {
-            "status": data.get("status"),
-            "company": data.get("company")
-        }
+def get_device_id_from_request(request: Request) -> str:
+    device_id = (
+        request.headers.get("X-Device-ID")
+        or request.headers.get("X-Device-Id")
+        or request.headers.get("x-device-id")
+    )
+    if not device_id or not str(device_id).strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Missing X-Device-ID header.",
+        )
+    return str(device_id).strip()
 
-    return {"success": True}
 
-@app.get("/api/tally/status/{user_id}")
-def tally_status(user_id: str):
-    data = USER_STATUS.get(user_id)
-
+def _connector_status_payload(device_id: str) -> dict:
+    data = CONNECTOR_STATUS.get(device_id)
     if isinstance(data, dict):
         return {
             "status": data.get("status", "not_running"),
-            "company": data.get("company")
+            "company": data.get("company"),
         }
-
-    # fallback (old data)
     return {
         "status": data or "not_running",
-        "company": None
+        "company": None,
     }
+
+
+@app.post("/api/connector/heartbeat/{device_id}")
+def connector_heartbeat(device_id: str, data: dict):
+    """Connector posts Tally running state for this PC/device."""
+    status = data.get("status")
+    company = data.get("company")
+    print("HEARTBEAT DEVICE:", device_id)
+    print("STATUS DATA:", data)
+    CONNECTOR_STATUS[device_id] = {
+        "status": status,
+        "company": company,
+        "last_seen": datetime.now().isoformat(),
+    }
+    return {"success": True}
+
+
+@app.get("/api/connector/status")
+def connector_status(request: Request):
+    """Read connector/Tally state for this machine via X-Device-ID header."""
+    device_id = get_device_id_from_request(request)
+    print("DEVICE_ID:", device_id)
+    status_data = _connector_status_payload(device_id)
+    resolved_device_id = device_id
+    # If browser device_id differs from active connector device_id, resolve to
+    # latest heartbeat so frontend can self-heal and sync localStorage.
+    if status_data.get("status") == "not_running" and CONNECTOR_STATUS:
+        latest_device_id, latest_payload = max(
+            CONNECTOR_STATUS.items(),
+            key=lambda item: item[1].get("last_seen", ""),
+        )
+        resolved_device_id = latest_device_id
+        status_data = {
+            "status": latest_payload.get("status", "not_running"),
+            "company": latest_payload.get("company"),
+        }
+    print("STATUS RESPONSE:", status_data)
+    resp = JSONResponse(status_data)
+    resp.headers["X-Resolved-Device-ID"] = resolved_device_id
+    return resp
 
 @app.get("/login")
 async def login_page(request: Request):
@@ -425,7 +468,12 @@ async def logout(request: Request):
 @app.get("/api/me")
 async def api_me(request: Request):
     user = get_current_user(request)
-    return {"authenticated": bool(user), "username": user}
+    user_id = request.session.get("user_id")
+    return {
+        "authenticated": bool(user),
+        "username": user,
+        "user_id": user_id,
+    }
 
 # =========================================================
 # OTP ENDPOINTS (for email verification signup)
@@ -700,6 +748,7 @@ def add_job(user_id: str, data: dict):
 
 @app.get("/api/get-job/{user_id}")
 def get_job(user_id: str):
+    print("CURRENT USER:", user_id)
     print("📥 Connector requested job for:", user_id)
 
     if JOBS.get(user_id):
@@ -712,12 +761,21 @@ def get_job(user_id: str):
 
 @app.post("/api/submit-result/{user_id}")
 def submit_result(user_id: str, data: dict):
+    print("CURRENT USER:", user_id)
     RESULTS[user_id] = data
     return {"ok": True}
 
 
 @app.get("/api/get-result/{user_id}")
-def get_result(user_id: str):
+def get_result(
+    request: Request,
+    user_id: str,
+    user: str = Depends(require_login),
+):
+    session_user_id = get_session_user_id(request)
+    if session_user_id != str(user_id):
+        raise HTTPException(status_code=403, detail="Cannot access another user's result")
+    print("CURRENT USER:", user_id)
     return RESULTS.get(user_id, {})
 
 # =========================================================
@@ -889,30 +947,19 @@ async def reset_password_page(request: Request, token: str = None):
         {"request": request, "reset_token": token}
     )
 
-@app.get("/api/tally/status")
-def api_tally_status(request: Request):
-    user_id = "1"
-    data = USER_STATUS.get(user_id)
-
-    if isinstance(data, dict):
-        return {
-            "status": data.get("status", "not_running"),
-            "company": data.get("company")
-        }
-
-    return {
-        "status": data or "not_running",
-        "company": None
-    }
-
 from fastapi import Query
 
 @app.get("/api/tally/ledgers")
-def api_tally_ledgers(request: Request, group: str = Query(None)):
+def api_tally_ledgers(
+    request: Request,
+    group: str = Query(None),
+    user: str = Depends(require_login),
+):
 
     print("📦 API received group:", group)  # ✅ NOW WORKS
 
-    user_id = str(request.session.get("user_id"))
+    user_id = get_session_user_id(request)
+    print("CURRENT USER:", user_id)
 
     # 1. create XML with group
     xml = build_ledger_xml(group)
@@ -1024,7 +1071,7 @@ async def match_party(
     tally_group: str = Form(None), 
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
-   
+    user: str = Depends(require_login),
 ):
     try:
         import io
@@ -1086,7 +1133,8 @@ async def match_party(
             }
 
         print("🔄 Fetching Tally ledgers...")
-        user_id = "1"
+        user_id = get_session_user_id(request)
+        print("CURRENT USER:", user_id)
 
         # 🔥 Send job to connector
         print("📦 MATCH using group:", tally_group)

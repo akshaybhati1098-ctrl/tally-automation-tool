@@ -608,9 +608,6 @@
   // ─────────────────────────────────────────────────────────────
   // Connector Status (Download -> run connector -> status updates)
   // ─────────────────────────────────────────────────────────────
-  // Connector in this demo continuously posts status for user_id="1"
-  const USER_ID = "1";
-
   async function checkConnectorStatus() {
     const card = document.getElementById("connectorStatus");
     const dot = document.getElementById("connectorStatusDot");
@@ -620,7 +617,11 @@
     if (!card || !dot || !text || !sub || !time) return;
 
     try {
-      const res = await fetch(`/api/tally/status/${USER_ID}`);
+      const res =
+        typeof window.fetchConnectorStatus === "function"
+          ? await window.fetchConnectorStatus()
+          : null;
+      if (!res) return;
       const data = await res.json();
       const now = new Date().toLocaleTimeString();
 
