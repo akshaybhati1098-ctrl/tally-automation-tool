@@ -381,6 +381,37 @@ def _connector_status_payload(device_id: str) -> dict:
     }
 
 
+def _parse_last_seen(value) -> Optional[datetime]:
+    """Parse heartbeat timestamp; missing/invalid values sort as oldest."""
+    if value is None:
+        return None
+    if isinstance(value, datetime):
+        return value
+    text = str(value).strip()
+    if not text:
+        return None
+    try:
+        return datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _connector_last_seen_sort_key(item: tuple) -> datetime:
+    """Never use raw string max() — missing last_seen must not win over real heartbeats."""
+    _device_id, payload = item
+    if not isinstance(payload, dict):
+        return datetime.min
+    parsed = _parse_last_seen(payload.get("last_seen"))
+    return parsed if parsed is not None else datetime.min
+
+
+def _get_latest_connector_entry() -> tuple[Optional[str], Optional[dict]]:
+    if not CONNECTOR_STATUS:
+        return None, None
+    device_id, payload = max(CONNECTOR_STATUS.items(), key=_connector_last_seen_sort_key)
+    return device_id, payload if isinstance(payload, dict) else None
+
+
 @app.post("/api/connector/heartbeat/{device_id}")
 def connector_heartbeat(device_id: str, data: dict):
     """Connector posts Tally running state for this PC/device."""
@@ -406,15 +437,13 @@ def connector_status(request: Request):
     # If browser device_id differs from active connector device_id, resolve to
     # latest heartbeat so frontend can self-heal and sync localStorage.
     if status_data.get("status") == "not_running" and CONNECTOR_STATUS:
-        latest_device_id, latest_payload = max(
-            CONNECTOR_STATUS.items(),
-            key=lambda item: item[1].get("last_seen", ""),
-        )
-        resolved_device_id = latest_device_id
-        status_data = {
-            "status": latest_payload.get("status", "not_running"),
-            "company": latest_payload.get("company"),
-        }
+        latest_device_id, latest_payload = _get_latest_connector_entry()
+        if latest_device_id and latest_payload:
+            resolved_device_id = latest_device_id
+            status_data = {
+                "status": latest_payload.get("status", "not_running"),
+                "company": latest_payload.get("company"),
+            }
     print("STATUS RESPONSE:", status_data)
     resp = JSONResponse(status_data)
     resp.headers["X-Resolved-Device-ID"] = resolved_device_id
