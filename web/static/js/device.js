@@ -41,8 +41,7 @@
     }).then((res) => {
       const resolvedDeviceId = res.headers.get("X-Resolved-Device-ID");
       if (resolvedDeviceId && resolvedDeviceId !== deviceId) {
-        localStorage.setItem(STORAGE_KEY, resolvedDeviceId);
-        window.DEVICE_ID = resolvedDeviceId;
+        console.log("Resolved connector device:", resolvedDeviceId);
       }
       return res;
     });

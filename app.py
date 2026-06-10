@@ -431,22 +431,11 @@ def connector_heartbeat(device_id: str, data: dict):
 def connector_status(request: Request):
     """Read connector/Tally state for this machine via X-Device-ID header."""
     device_id = get_device_id_from_request(request)
-    print("DEVICE_ID:", device_id)
+    print("REQUEST DEVICE:", device_id)
+    print("AVAILABLE DEVICES:", list(CONNECTOR_STATUS.keys()))
     status_data = _connector_status_payload(device_id)
-    resolved_device_id = device_id
-    # If browser device_id differs from active connector device_id, resolve to
-    # latest heartbeat so frontend can self-heal and sync localStorage.
-    if status_data.get("status") == "not_running" and CONNECTOR_STATUS:
-        latest_device_id, latest_payload = _get_latest_connector_entry()
-        if latest_device_id and latest_payload:
-            resolved_device_id = latest_device_id
-            status_data = {
-                "status": latest_payload.get("status", "not_running"),
-                "company": latest_payload.get("company"),
-            }
     print("STATUS RESPONSE:", status_data)
     resp = JSONResponse(status_data)
-    resp.headers["X-Resolved-Device-ID"] = resolved_device_id
     return resp
 
 @app.get("/login")
