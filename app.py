@@ -758,6 +758,20 @@ async def update_company_mapping(
 # 🔌 CONNECTOR APIs
 # ================================
 
+@app.post("/api/resolve-username")
+def resolve_username(data: dict):
+    """Resolve username to user_id for connector setup."""
+    username = data.get("username", "").strip()
+    if not username:
+        raise HTTPException(status_code=400, detail="Username required")
+    
+    user = get_user(username)
+    if not user:
+        raise HTTPException(status_code=404, detail="Username not found")
+    
+    return {"user_id": user['id']}
+
+
 @app.post("/api/add-job/{user_id}")
 def add_job(user_id: str, data: dict):
     JOBS.setdefault(user_id, []).append(data)
