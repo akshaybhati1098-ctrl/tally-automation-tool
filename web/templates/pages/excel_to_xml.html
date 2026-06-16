@@ -4930,6 +4930,12 @@
             matchSessionId = data.session_id;
             tallyLedgers = data.ledger_list || tallyLedgers || [];
             window.tallyCorrections = {};
+            matchRows.forEach((row) => {
+              if (row.status === "matched" && row.matched) {
+                window.tallyCorrections[row.row_index] = row.matched;
+              }
+            });
+            console.log("✅ Auto-matched ledgers queued for XML:", window.tallyCorrections);
 
             renderMatchTable();
 
