@@ -608,10 +608,7 @@ def connector_heartbeat(device_id: str, data: dict):
 def connector_status(request: Request):
     """Read connector/Tally state for this machine via X-Device-ID header."""
     device_id = get_device_id_from_request(request)
-    print("REQUEST DEVICE:", device_id)
-    print("AVAILABLE DEVICES:", list(CONNECTOR_STATUS.keys()))
     status_data = _connector_status_payload(device_id)
-    print("STATUS RESPONSE:", status_data)
     resp = JSONResponse(status_data)
     return resp
 
