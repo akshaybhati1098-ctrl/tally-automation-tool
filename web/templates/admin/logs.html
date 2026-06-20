@@ -1,0 +1,47 @@
+ {% extends "admin/base.html" %}
+{% block page_title %}Saas Structural Log History Grid Tracer{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex gap-2">
+        <a class="btn btn-sm btn-outline-secondary {% if not current_filter %}active{% endif %}" href="/admin/logs">All Global Logs Streams</a>
+        <a class="btn btn-sm btn-outline-primary {% if current_filter == 'convert_xml' %}active{% endif %}" href="/admin/logs?event_filter=convert_xml">Transformations</a>
+        <a class="btn btn-sm btn-outline-warning {% if current_filter == 'match_party' %}active{% endif %}" href="/admin/logs?event_filter=match_party">Party Match Engines</a>
+    </div>
+</div>
+<div class="data-table-container p-4">
+    <div class="table-responsive">
+        <table class="table table-hover mb-0 text-center small">
+            <thead>
+                <tr>
+                    <th>Timestamp Trace</th>
+                    <th>Account Node</th>
+                    <th>Action Class</th>
+                    <th>Endpoint Path Context</th>
+                    <th>System Verification Value</th>
+                    <th>Latency Duration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for l in logs %}
+                <tr>
+                    <td class="text-muted">{{ l.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td><strong>{{ l.username }}</strong></td>
+                    <td><span class="badge bg-light text-dark font-monospace">{{ l.event_type }}</span></td>
+                    <td class="text-start font-monospace text-muted">{{ l.endpoint or '-' }}</td>
+                    <td><span class="badge {% if l.status == 'success' %}bg-success{% else %}bg-danger{% endif %}">{{ l.status }}</span></td>
+                    <td><strong>{{ l.execution_time_ms or 0 }}ms</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <nav class="d-flex justify-content-between align-items-center mt-3 p-2">
+        <span class="small text-muted">Viewing Page Context <strong>{{ page }}</strong> of Total Range Matrix Layer Array: {{ total_pages }}</span>
+        <div class="btn-group">
+            <a class="btn btn-sm btn-outline-secondary {% if page <= 1 %}disabled{% endif %}" href="/admin/logs?page={{ page - 1 }}{% if current_filter %}&event_filter={{ current_filter }}{% endif %}">Previous Segment</a>
+            <a class="btn btn-sm btn-outline-secondary {% if page >= total_pages %}disabled{% endif %}" href="/admin/logs?page={{ page + 1 }}{% if current_filter %}&event_filter={{ current_filter }}{% endif %}">Next Segment</a>
+        </div>
+    </nav>
+</div>
+{% endblock %}
+{% block scripts %}<script>document.getElementById('nav-logs').classList.add('active');</script>{% endblock %}

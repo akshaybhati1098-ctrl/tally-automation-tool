@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Platform Administration Panel</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body { background-color: #f4f6f9; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .navbar-brand { font-weight: 700; letter-spacing: 0.5px; }
+        .card { border: none; box-shadow: 0 4px 6px rgba(0,0,0,0.05); border-radius: 10px; transition: transform 0.2s; }
+        .card:hover { transform: translateY(-2px); }
+        .stat-icon { font-size: 2.5rem; opacity: 0.8; }
+        .table-responsive { background: white; border-radius: 10px; padding: 15px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .status-badge { font-size: 0.85rem; padding: 5px 10px; border-radius: 20px; }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand" href="#"><i class="bi bi-shield-lock-fill me-2 text-warning"></i>Tally Automation Admin</a>
+            <div class="d-flex align-items-center">
+                <span class="text-light me-3"><i class="bi bi-person-circle me-1"></i> {{ username }}</span>
+                <a href="/" class="btn btn-outline-light btn-sm me-2"><i class="bi bi-house-door"></i> Back to Main App</a>
+                <a href="/logout" class="btn btn-danger btn-sm"><i class="bi bi-box-arrow-right"></i> Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid p-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="h3 mb-0 text-gray-800">Operational System Telemetry</h2>
+            <button class="btn btn-primary" onclick="loadTelemetryMetrics()"><i class="bi bi-arrow-clockwise"></i> Refresh Dashboard</button>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-md-4">
+                <div class="card bg-white p-3 border-start border-primary border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted text-uppercase small">Total Registrations</h6>
+                            <h3 class="mb-0 font-weight-bold text-dark" id="metric-total-users">--</h3>
+                        </div>
+                        <div class="text-primary stat-icon"><i class="bi bi-people-fill"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card bg-white p-3 border-start border-success border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted text-uppercase small">Active Tally Connectors (5m)</h6>
+                            <h3 class="mb-0 font-weight-bold text-dark" id="metric-active-connectors">--</h3>
+                        </div>
+                        <div class="text-success stat-icon"><i class="bi bi-cpu-fill"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-4">
+                <div class="card bg-white p-3 border-start border-warning border-4">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-muted text-uppercase small">Pending Jobs Queued</h6>
+                            <h3 class="mb-0 font-weight-bold text-dark" id="metric-pending-jobs">--</h3>
+                        </div>
+                        <div class="text-warning stat-icon"><i class="bi bi-layers-half"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-12">
+                <div class="card p-4">
+                    <h5 class="card-title mb-3 text-dark font-weight-bold"><i class="bi bi-table me-2"></i>User Account Records Registry</h5>
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="users-data-table">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Username</th>
+                                    <th>Email Address</th>
+                                    <th>Role Access Clearance</th>
+                                    <th>Account Created At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-4">
+                                        <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                        Fetching system telemetry streams...
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadTelemetryMetrics() {
+            try {
+                const response = await fetch('/api/admin/metrics');
+                if (!response.ok) {
+                    if (response.status === 403 || response.status === 401) {
+                        alert("Access Denied: Administrative Clearance Required.");
+                        window.location.href = '/login';
+                        return;
+                    }
+                    throw new Error("Telemetry database reporting failure.");
+                }
+
+                const data = await response.json();
+
+                // Hydrate Telemetry Metric Data Elements
+                document.getElementById('metric-total-users').innerText = data.total_users ?? 0;
+                document.getElementById('metric-active-connectors').innerText = data.active_connectors ?? 0;
+                document.getElementById('metric-pending-jobs').innerText = data.pending_jobs_count ?? 0;
+
+                // Build out User Records Registry Row Element Matrix
+                const tableBody = document.querySelector('#users-data-table tbody');
+                tableBody.innerHTML = '';
+
+                if (!data.users || data.users.length === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="5" class="text-center py-3 text-muted">No accounts found.</td></tr>`;
+                    return;
+                }
+
+                data.users.forEach(user => {
+                    const createdDate = user.created_at ? new Date(user.created_at).toLocaleString() : 'N/A';
+                    const roleBadge = user.is_admin 
+                        ? `<span class="badge bg-danger status-badge"><i class="bi bi-shield-check"></i> Platform Admin</span>` 
+                        : `<span class="badge bg-secondary status-badge">Standard User</span>`;
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td><strong>#${user.id}</strong></td>
+                        <td>${escapeHtml(user.username)}</td>
+                        <td>${escapeHtml(user.email)}</td>
+                        <td>${roleBadge}</td>
+                        <td class="text-muted small">${createdDate}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+            } catch (error) {
+                console.error("Dashboard error:", error);
+                alert("Failed to sync structural monitoring values.");
+            }
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        // Run metric parsing cycle immediately on structural page layout mount
+        document.addEventListener('DOMContentLoaded', loadTelemetryMetrics);
+    </script>
+</body>
+</html>

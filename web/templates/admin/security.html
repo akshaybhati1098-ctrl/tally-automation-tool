@@ -1,0 +1,37 @@
+ {% extends "admin/base.html" %}
+{% block page_title %}Security Assertion Guard Tracking Logs Platform Registry{% endblock %}
+{% block content %}
+<div class="data-table-container p-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-center small">
+            <thead>
+                <tr>
+                    <th>Timestamp Identity Trace</th>
+                    <th>Account Verification Scope</th>
+                    <th>Assertion Validation Routine Action</th>
+                    <th>Framework Request Path Location</th>
+                    <th>Security Protocol Resolution</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in events %}
+                <tr>
+                    <td class="text-muted">{{ e.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td><strong>{{ e.username }}</strong></td>
+                    <td><span class="badge bg-dark-subtle text-dark font-monospace text-uppercase">{{ e.action }}</span></td>
+                    <td class="text-start font-monospace text-muted">{{ e.endpoint or '-' }}</td>
+                    <td>
+                        {% if e.status == 'success' %}
+                        <span class="badge bg-success-subtle text-success border border-success px-3 py-1 rounded-pill"><i class="bi bi-shield-check me-1"></i> Passed</span>
+                        {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill"><i class="bi bi-shield-exclamation me-1"></i> Flagged / Alert</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}<script>document.getElementById('nav-sec').classList.add('active');</script>{% endblock %}

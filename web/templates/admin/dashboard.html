@@ -1,0 +1,268 @@
+ {% extends "admin/base.html" %}
+{% block title %}Dashboard | Executive Management Core{% endblock %}
+{% block page_title %}System Control Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4" style="background-color: #f8f9fa; min-height: 100vh;">
+    
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 border-start border-4 border-primary shadow-sm rounded-3 transition-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted font-monospace small tracking-wider fw-bold">Platform Registry</span>
+                        <h2 class="display-6 fw-bold text-dark mt-1 mb-0">{{ kpis.total_users | default(0) }}</h2>
+                        <span class="text-muted small">Registered Accounts</span>
+                    </div>
+                    <div class="bg-primary bg-opacity-10 p-3 rounded-3 text-primary">
+                        <i class="bi bi-people-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 border-start border-4 border-success shadow-sm rounded-3 transition-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted font-monospace small tracking-wider fw-bold">Live Connections</span>
+                        <h2 class="display-6 fw-bold text-dark mt-1 mb-0">{{ kpis.active_connectors or kpis.online_connectors or 0 }}</h2>
+                        <span class="text-muted small">Active Node Relays</span>
+                    </div>
+                    <div class="bg-success bg-opacity-10 p-3 rounded-3 text-success">
+                        <i class="bi bi-hdd-network-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 border-start border-4 border-info shadow-sm rounded-3 transition-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted font-monospace small tracking-wider fw-bold">Database Volume</span>
+                        <h2 class="display-6 fw-bold text-dark mt-1 mb-0" style="font-size: 2rem;">{{ kpis.db_size | default('0 MB') }}</h2>
+                        <span class="text-muted small">Relational File Metrics</span>
+                    </div>
+                    <div class="bg-info bg-opacity-10 p-3 rounded-3 text-info">
+                        <i class="bi bi-database-fill-gear fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-sm-6 col-xl-3">
+            <div class="card h-100 border-0 border-start border-4 border-warning shadow-sm rounded-3 transition-hover">
+                <div class="card-body p-4 d-flex align-items-center justify-content-between">
+                    <div>
+                        <span class="text-uppercase text-muted font-monospace small tracking-wider fw-bold">Task Queue</span>
+                        <h2 class="display-6 fw-bold text-dark mt-1 mb-0">{{ pending_jobs | default(0) }}</h2>
+                        <span class="text-muted small">Awaiting Processing</span>
+                    </div>
+                    <div class="bg-warning bg-opacity-10 p-3 rounded-3 text-warning">
+                        <i class="bi bi-lightning-charge-fill fs-3"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-12 col-lg-8">
+            <div class="card border-0 shadow-sm rounded-3 h-100">
+                <div class="card-header bg-white border-0 py-3 d-flex align-items-center justify-content-between">
+                    <h5 class="card-title text-dark mb-0 fw-bold">
+                        <i class="bi bi-activity text-primary me-2"></i>Network Traffic Flow Log
+                    </h5>
+                    <span class="badge bg-light text-secondary border px-2 py-1 small font-monospace">Rolling 7 Days</span>
+                </div>
+                <div class="card-body p-4 d-flex align-items-center justify-content-center" style="position: relative; min-height: 350px;">
+                    <canvas id="adminLiveTrafficChartCanvas"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-4">
+            <div class="d-flex flex-column gap-4 h-100">
+                
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="card-title text-dark mb-0 fw-bold">
+                            <i class="bi bi-cpu-fill text-success me-2"></i>Subsystem Cluster Status
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 pt-2">
+                        <div class="d-flex flex-column gap-3">
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-server text-muted"></i>
+                                    <span class="fw-medium text-secondary">Database Engine</span>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                    <span class="pulse-indicator bg-success"></span>Connected
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-router text-muted"></i>
+                                    <span class="fw-medium text-secondary">Connector Service</span>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                    <span class="pulse-indicator bg-success"></span>Running
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-eye text-muted"></i>
+                                    <span class="fw-medium text-secondary">OCR Engine</span>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                    <span class="pulse-indicator bg-success"></span>Ready
+                                </span>
+                            </div>
+
+                            <div class="d-flex align-items-center justify-content-between p-2 rounded-3 hover-bg-light">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi bi-filetype-xml text-muted"></i>
+                                    <span class="fw-medium text-secondary">XML Generator</span>
+                                </div>
+                                <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-3 py-1.5 fw-bold d-inline-flex align-items-center gap-1.5">
+                                    <span class="pulse-indicator bg-success"></span>Ready
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card border-0 shadow-sm rounded-3 flex-grow-1">
+                    <div class="card-header bg-white border-0 py-3">
+                        <h5 class="card-title text-dark mb-0 fw-bold">
+                            <i class="bi bi-bell-fill text-warning me-2"></i>Incident Attention Hub
+                        </h5>
+                    </div>
+                    <div class="card-body p-4 pt-1 d-flex flex-column justify-content-center">
+                        {% if kpis.error_count_24h and kpis.error_count_24h > 0 %}
+                            <div class="alert alert-danger border-0 shadow-sm rounded-3 p-3 mb-0 d-flex align-items-start gap-3">
+                                <i class="bi bi-exclamation-octagon-fill fs-4 text-danger mt-1"></i>
+                                <div>
+                                    <h6 class="alert-heading fw-bold text-danger mb-1">Anomalies Logged</h6>
+                                    <p class="mb-0 small text-secondary">
+                                        There were <strong>{{ kpis.error_count_24h }} server failures</strong> intercepted over the last 24-hour cycle. Verify system diagnostic trails.
+                                    </p>
+                                </div>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-success border-0 bg-success bg-opacity-10 rounded-3 p-3 mb-0 d-flex align-items-center gap-3">
+                                <i class="bi bi-check-circle-fill fs-4 text-success"></i>
+                                <div>
+                                    <h6 class="alert-heading fw-bold text-success mb-1">All Operational Vectors Stable</h6>
+                                    <p class="mb-0 small text-muted">Zero microservice structural failures caught inside current cluster limits.</p>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .transition-hover {
+        transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    }
+    .transition-hover:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 .5rem 1.5rem rgba(0,0,0,.08) !important;
+    }
+    .hover-bg-light:hover {
+        background-color: #f8f9fa;
+    }
+    .tracking-wider {
+        letter-spacing: 0.8px;
+    }
+    /* Blinking Pulse Ring CSS Design Animation */
+    .pulse-indicator {
+        width: 7px;
+        height: 7px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 0 rgba(25, 135, 84, 0.7);
+        animation: indicatorPulseLoop 1.5s infinite cubic-bezier(0.66, 0, 0, 1);
+    }
+    @keyframes indicatorPulseLoop {
+        to {
+            box-shadow: 0 0 0 8px rgba(25, 135, 84, 0);
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        // Highlight active side navigation flag if target exists
+        const navElem = document.getElementById('nav-dash') || document.getElementById('nav-dashboard');
+        if(navElem) navElem.classList.add('active');
+
+        // Fetch metrics chart payload from backend API pipeline route asynchronously
+        const canvasContext = document.getElementById('adminLiveTrafficChartCanvas').getContext('2d');
+        
+        fetch('/admin/api/charts/traffic')
+            .then(res => {
+                if(!res.ok) throw new Error("API Route unreachable.");
+                return res.json();
+            })
+            .then(chartData => {
+                new Chart(canvasContext, {
+                    type: 'line',
+                    data: {
+                        labels: chartData.labels || ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                        datasets: [{
+                            label: 'API Request Load Transactions',
+                            data: chartData.api_data || [0, 0, 0, 0, 0, 0, 0],
+                            borderColor: '#0d6efd',
+                            backgroundColor: 'rgba(13, 110, 253, 0.04)',
+                            borderWidth: 2.5,
+                            fill: true,
+                            tension: 0.35,
+                            pointBackgroundColor: '#0d6efd',
+                            pointHoverRadius: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false }
+                        },
+                        scales: {
+                            y: {
+                                grid: { color: '#f1f3f5' },
+                                ticks: { font: { family: 'monospace' }, color: '#6c757d' },
+                                beginAtZero: true
+                            },
+                            x: {
+                                grid: { display: false },
+                                ticks: { font: { family: 'sans-serif' }, color: '#6c757d' }
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(err => {
+                console.error("Traffic Graph Sync Failure:", err);
+                // Render placeholder row state in case API route drops out
+                canvasContext.font = "14px sans-serif";
+                canvasContext.fillStyle = "#6c757d";
+                canvasContext.textAlign = "center";
+                canvasContext.fillText("Metrics telemetry chart currently preparing records...", canvasContext.canvas.width / 2, canvasContext.canvas.height / 2);
+            });
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,229 @@
+ {% extends "admin/base.html" %}
+{% block page_title %}SaaS Customer Account Registry Matrix{% endblock %}
+
+{% block content %}
+<div class="data-table-container p-4">
+    <!-- Header Title & Filter Section -->
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+        <div>
+            <h2 class="h3 text-gray-800 mb-0"><i class="bi bi-people me-2"></i>User Management Matrix</h2>
+            <p class="text-muted small mb-0">Monitor platform workspace node authorization footprints.</p>
+        </div>
+        
+        <!-- Live Action Search Engine Component -->
+        <div style="width: 100%; max-width: 400px;">
+            <div class="input-group shadow-sm">
+                <span class="input-group-text bg-white border-end-0 text-muted">
+                    <i class="bi bi-search"></i>
+                </span>
+                <input type="text" 
+                       id="matrixUserSearchBox"
+                       class="form-control border-start-0 ps-0" 
+                       placeholder="Search username or email address..." 
+                       autocomplete="off">
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0 text-center">
+                <thead class="table-light">
+                    <tr>
+                        <th class="text-start ps-4">Account ID</th>
+                        <th>User Handle</th>
+                        <th>Email Address Identity</th>
+                        <th>Load Multipliers (C / O / M)</th>
+                        <th class="text-start">Dynamic History Diagnostics</th>
+                        <th class="text-end pe-4">Account Authorization Flags</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in users %}
+                    <tr>
+                        <td class="text-start ps-4"><strong>#{{ u.id }}</strong></td>
+                        <td>
+    <div class="d-flex align-items-center justify-content-center gap-2">
+        <span class="fw-bold text-dark">{{ u.username }}</span>
+        
+        {% if u.is_admin %}
+            <span class="badge bg-primary-light text-primary border border-primary px-2 py-0.5 rounded-pill" style="font-size: 0.72rem;">
+                <i class="bi bi-shield-lock-fill me-1"></i>Admin
+            </span>
+        {% endif %}
+        
+        {% if u.conn_status == 'online' %}
+            <span class="badge rounded-pill bg-success bg-opacity-10 text-success px-2 border-0 fw-semibold d-flex align-items-center gap-1" style="font-size: 0.72rem; padding-top: 0.35rem; padding-bottom: 0.35rem;" title="Connector is Online">
+                <span class="d-inline-block bg-success rounded-circle" style="width: 6px; height: 6px; box-shadow: 0 0 4px rgba(25, 135, 84, 0.5);"></span>
+                Online
+            </span>
+        {% else %}
+            <span class="badge rounded-pill bg-secondary bg-opacity-10 text-secondary px-2 border-0 fw-semibold d-flex align-items-center gap-1" style="font-size: 0.72rem; padding-top: 0.35rem; padding-bottom: 0.35rem;" title="Connector is Offline">
+                <span class="d-inline-block bg-secondary rounded-circle" style="width: 6px; height: 6px;"></span>
+                Offline
+            </span>
+        {% endif %}
+    </div>
+</td>
+                        <td><span class="text-muted">{{ u.email }}</span></td>
+                        <td class="small">
+                            <span class="badge bg-light text-primary border px-2 py-1 me-1">Conversions: <strong>{{ u.conversions }}</strong></span>
+                            <span class="badge bg-light text-info border px-2 py-1 me-1">OCR: <strong>{{ u.ocr_jobs }}</strong></span>
+                            <span class="badge bg-light text-success border px-2 py-1">Matches: <strong>{{ u.match_jobs }}</strong></span>
+                        </td>
+                        <td class="text-start py-3" style="font-size: 0.82rem; line-height: 1.5;">
+                            <!-- Last Activity Date Stack -->
+                            <div class="text-muted mb-1">
+                                <i class="bi bi-lightning-charge me-1 text-warning"></i>Last Activity: 
+                                {% if u.last_activity and u.last_activity != 'Never' and ' ' in u.last_activity %}
+                                    {% set date_part = u.last_activity.split(' ')[0] %}
+                                    {% set time_part = u.last_activity.split(' ')[1] + ' ' + u.last_activity.split(' ')[2] if u.last_activity.split(' ')|length > 2 else u.last_activity.split(' ')[1] %}
+                                    {% set date_pieces = date_part.split('-') %}
+                                    <span class="fw-bold text-dark">{{ date_pieces[2] }}/{{ date_pieces[1] }}/{{ date_pieces[0] }}</span> 
+                                    <span class="text-muted fw-mono ms-1" style="font-size: 0.75rem;">{{ time_part }}</span>
+                                {% else %}
+                                    <span class="text-secondary font-monospace">{{ u.last_activity }}</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Match Precision Indicator -->
+                            <div class="text-muted mb-1">
+                                <i class="bi bi-check2-circle me-1 text-success"></i>Last Match Precision: 
+                                <span class="fw-bold text-success">{{ u.last_match_pct | round(1) }}%</span>
+                            </div>
+
+                            <!-- Last Conversion Date Stack -->
+                            <div class="text-muted mb-1">
+                                <i class="bi bi-file-earmark-arrow-up me-1 text-primary"></i>Last Conversion: 
+                                {% if u.last_conversion_date and u.last_conversion_date != 'Never' and ' ' in u.last_conversion_date %}
+                                    {% set c_date_part = u.last_conversion_date.split(' ')[0] %}
+                                    {% set c_time_part = u.last_conversion_date.split(' ')[1] + ' ' + u.last_conversion_date.split(' ')[2] if u.last_conversion_date.split(' ')|length > 2 else u.last_conversion_date.split(' ')[1] %}
+                                    {% set c_date_pieces = c_date_part.split('-') %}
+                                    <span class="fw-bold text-dark">{{ c_date_pieces[2] }}/{{ c_date_pieces[1] }}/{{ c_date_pieces[0] }}</span>
+                                    <span class="text-muted fw-mono ms-1" style="font-size: 0.75rem;">{{ c_time_part }}</span>
+                                {% else %}
+                                    <span class="text-secondary font-monospace">{{ u.last_conversion_date }}</span>
+                                {% endif %}
+                            </div>
+
+                            <!-- Error Message Display -->
+                            <div class="text-truncate text-danger" style="max-width: 280px;" title="{{ u.last_error or 'None' }}">
+                                <i class="bi bi-exclamation-circle me-1"></i>Last Error: 
+                                <span class="small font-monospace">{{ u.last_error or 'None' }}</span>
+                            </div>
+                        </td>
+                         <td class="text-end pe-4">
+    {% if u.is_admin %}
+        <button class="btn btn-sm btn-light text-muted border fw-bold px-3 cursor-not-allowed" disabled title="Administrator accounts cannot be suspended.">
+            <i class="bi bi-shield-lock-fill me-1 text-primary"></i> Protected Node
+        </button>
+    {% else %}
+        <button id="btn-toggle-{{ u.id }}" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-success{% endif %} fw-bold px-3" onclick="executeAccountStateInversion({{ u.id }})">
+            {% if u.is_active %}
+                <i class="bi bi-slash-circle me-1"></i> Suspend Account
+            {% else %}
+                <i class="bi bi-check-circle me-1"></i> Activate Node
+            {% endif %}
+        </button>
+    {% endif %}
+</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-people fs-2 d-block mb-2 text-secondary"></i>
+                            No platform user records compiled.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                    
+                    <!-- Dynamic client fallback row shown when searches yield 0 table elements -->
+                    <tr id="noMatchesFallbackRow" class="d-none">
+                        <td colspan="6" class="text-center py-5 text-muted">
+                            <i class="bi bi-search fs-3 d-block mb-2 text-warning"></i>
+                            No platform accounts match your search text value criteria.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-primary-light { background-color: rgba(78, 115, 223, 0.12); }
+    .bg-secondary-light { background-color: rgba(108, 117, 125, 0.1); }
+    .input-group :focus { border-color: #dee2e6 !important; box-shadow: none !important; }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.getElementById('nav-users').classList.add('active');
+    
+    // 1. Client-Side Realtime Search Filtering Engine
+    document.addEventListener("DOMContentLoaded", function () {
+        const searchBox = document.getElementById("matrixUserSearchBox");
+        const fallbackRow = document.getElementById("noMatchesFallbackRow");
+        
+        if (searchBox) {
+            searchBox.addEventListener("input", function () {
+                const criteria = this.value.toLowerCase().trim();
+                const tableRows = document.querySelectorAll("table tbody tr:not(#noMatchesFallbackRow)");
+                let trackingMatchCounter = 0;
+
+                tableRows.forEach(row => {
+                    const usernameText = row.cells[1] ? row.cells[1].innerText.toLowerCase() : "";
+                    const emailText = row.cells[2] ? row.cells[2].innerText.toLowerCase() : "";
+
+                    if (usernameText.includes(criteria) || emailText.includes(criteria)) {
+                        row.classList.remove("d-none");
+                        trackingMatchCounter++;
+                    } else {
+                        row.classList.add("d-none");
+                    }
+                });
+
+                // Display custom "No matches found" row context if search fails to find users
+                if (trackingMatchCounter === 0 && criteria !== "") {
+                    fallbackRow.classList.remove("d-none");
+                } else {
+                    fallbackRow.classList.add("d-none");
+                }
+            });
+        }
+    });
+
+    // 2. Account Suspension/Reactivation Toggle Operations Handler
+    async function executeAccountStateInversion(userId) {
+        if(!confirm("Are you sure you want to toggle the access policy for this platform node?")) return;
+        
+        try {
+            // 🔥 URL FIX: Hits the correct base application route path layout cleanly
+            const fireRequest = await fetch(`/admin/users/${userId}/toggle`, { 
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            });
+            
+            if (!fireRequest.ok) {
+                throw new Error(`Server returned HTTP status code ${fireRequest.status}`);
+            }
+            
+            const res = await fireRequest.json();
+            if(res.success) {
+                location.reload(); // Refresh to reflect changes instantly!
+            } else {
+                alert(`Execution failed processing changes: ${res.error || 'Unknown Error'}`);
+            }
+        } catch (err) {
+            console.error("Critical Toggle Failure:", err);
+            alert(`Network error tracking request: ${err.message}`);
+        }
+    }
+    setInterval(() => {
+    location.reload();
+}, 5000);
+</script>
+{% endblock %}

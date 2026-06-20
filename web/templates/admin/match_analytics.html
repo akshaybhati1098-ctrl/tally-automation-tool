@@ -1,0 +1,443 @@
+ {% extends "admin/base.html" %}
+{% block page_title %}Match Party Analytics Center{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="h3 mb-0 text-gray-800"><i class="bi bi-intersect me-2 text-primary"></i>Match Party Analytics</h2>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb mb-0">
+                <li class="breadcrumb-item"><a href="/admin/dashboard">Admin</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Match Analytics</li>
+            </ol>
+        </nav>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body bg-light">
+            <form method="GET" action="/admin/match-analytics" class="row g-3 align-items-end">
+                  <div class="col-md-3">
+    <label class="form-label small fw-bold text-muted">User Account Identity</label>
+    <div class="dropdown" id="searchableUserDropdown">
+        <input type="hidden" name="user" id="hiddenUserField" value="{{ selected_user }}">
+        
+        <input type="text" 
+               class="form-control dropdown-toggle" 
+               id="userSearchInput" 
+               placeholder="🔍 Search or select user..." 
+               autocomplete="off"
+               data-bs-toggle="dropdown" 
+               aria-expanded="false"
+               value="{% if selected_user != 'all' %}{{ selected_user }}{% endif %}">
+               
+        <ul class="dropdown-menu w-100 shadow-sm" aria-labelledby="userSearchInput" style="max-height: 280px; overflow-y: auto;">
+            <li>
+                <button type="button" class="dropdown-item user-select-option text-primary fw-bold" data-value="all">
+                    Show All System Users
+                </button>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            {% for u in filter_users %}
+            <li>
+                <button type="button" class="dropdown-item user-select-option {% if selected_user == u %}active{% endif %}" data-value="{{ u }}">
+                    {{ u }}
+                </button>
+            </li>
+            {% endfor %}
+            <li id="noUsersFoundMessage" class="dropdown-item text-muted small d-none text-center py-2">
+                No system users match your search.
+            </li>
+        </ul>
+    </div>
+</div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Execution Status</label>
+                    <select name="status" class="form-select">
+                        <option value="all" {% if selected_status == 'all' %}selected{% endif %}>All Outcomes</option>
+                        <option value="success" {% if selected_status == 'success' %}selected{% endif %}>Success Only</option>
+                        <option value="error" {% if selected_status == 'error' %}selected{% endif %}>Errors Only</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">Start Date Bound</label>
+                    <input type="date" name="start_date" class="form-select" value="{{ start_date }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small fw-bold text-muted">End Date Bound</label>
+                    <input type="date" name="end_date" class="form-select" value="{{ end_date }}">
+                </div>
+                <div class="col-md-3 d-flex gap-2">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold"><i class="bi bi-funnel me-1"></i> Apply Filters</button>
+                    <a href="/admin/match-analytics" class="btn btn-outline-secondary w-50"><i class="bi bi-arrow-counterclockwise"></i> Clear</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-2-4 col-sm-6">
+            <div class="card border-0 shadow-sm bg-white h-100 py-2 border-start border-primary border-3">
+                <div class="card-body py-1">
+                    <div class="text-xs font-weight-bold text-primary text-uppercase mb-1 small fw-bold">Total Match Jobs</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 fw-bold">{{ analytics_kpis.total_jobs | default(0) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2-4 col-sm-6">
+            <div class="card border-0 shadow-sm bg-white h-100 py-2 border-start border-info border-3">
+                <div class="card-body py-1">
+                    <div class="text-xs font-weight-bold text-info text-uppercase mb-1 small fw-bold">Rows Evaluated</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 fw-bold">{{ analytics_kpis.total_rows | default(0) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2-4 col-sm-6">
+            <div class="card border-0 shadow-sm bg-white h-100 py-2 border-start border-success border-3">
+                <div class="card-body py-1">
+                    <div class="text-xs font-weight-bold text-success text-uppercase mb-1 small fw-bold">Matched Rows</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 fw-bold text-success">{{ analytics_kpis.total_matched | default(0) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2-4 col-sm-6">
+            <div class="card border-0 shadow-sm bg-white h-100 py-2 border-start border-danger border-3">
+                <div class="card-body py-1">
+                    <div class="text-xs font-weight-bold text-danger text-uppercase mb-1 small fw-bold">Unmatched Elements</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 fw-bold text-danger">{{ analytics_kpis.total_unmatched | default(0) }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2-4 col-sm-12">
+            <div class="card border-0 shadow-sm bg-white h-100 py-2 border-start border-warning border-3">
+                <div class="card-body py-1">
+                    <div class="text-xs font-weight-bold text-warning text-uppercase mb-1 small fw-bold">Mean Match Efficiency</div>
+                    <div class="h5 mb-0 font-weight-bold text-gray-800 fw-bold">{{ analytics_kpis.avg_match_rate | default(0.0) }}%</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-0 py-3 fw-bold text-muted small uppercase">
+                    <i class="bi bi-graph-up me-2"></i>Match Execution Trend
+
+                    <i class="bi bi-bar-chart-line me-2"></i>Success Trend vs. Failed Trend
+                </div>
+                <div class="card-body">
+                    <div style="position: relative; height:220px; width:100%">
+                        <canvas id="matchTrendChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4">
+            <div class="card shadow-sm border-0 h-100">
+                <div class="card-header bg-white border-0 py-3 fw-bold text-muted small uppercase">
+                    <i class="bi bi-trophy me-2"></i>Top Matching Consumers
+                </div>
+                <div class="card-body p-0">
+                    <ul class="list-group list-group-flush">
+                        {% for tu in top_users %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center py-3">
+                            <span class="fw-bold text-gray-700"><i class="bi bi-person-circle me-2 text-secondary"></i>{{ tu.username }}</span>
+                            <span class="badge bg-primary rounded-pill">{{ tu.job_count }} Match Executions</span>
+                        </li>
+                        {% else %}
+                        <li class="list-group-item text-center py-5 text-muted small">No distinct consumer footprints parsed.</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-start ps-4">Timestamp</th>
+                            <th>Username Context</th>
+                            <th>Execution Status</th>
+                            <th>Metrics Load (M / UM)</th>
+                            <th style="width: 240px;">System Match Precision</th>
+                            <th>Compute Time</th>
+                            <th class="text-end pe-4">Diagnostic Verification</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in matches %}
+                        <tr>
+                    <td class="text-start ps-4 small">
+                        <div class="fw-bold text-dark mb-0">
+                            {% if ' ' in m.created_at %}
+                              {% set date_part = m.created_at.split(' ')[0] %}
+                              {% if '-' in date_part %}
+                                 {% set date_pieces = date_part.split('-') %}
+                                 {{ date_pieces[2] }}/{{ date_pieces[1] }}/{{ date_pieces[0] }}
+                    {% else %}
+                      {{ date_part }}
+                    {% endif %}
+                {% else %}
+            {{ m.created_at }}
+        {% endif %}
+    </div>
+    <div class="text-muted fw-mono mt-1" style="font-size: 0.785rem;">
+        {{ m.created_at.split(' ')[1] + ' ' + m.created_at.split(' ')[2] if m.created_at.split(' ')|length > 2 else (m.created_at.split(' ')[1] if ' ' in m.created_at else '') }}
+    </div>
+</td>
+                            <td><span class="fw-bold text-dark">{{ m.username }}</span></td>
+                            <td>
+                                {% if m.status == 'success' %}
+                                <span class="badge bg-success-light text-success border border-success px-2 py-1 rounded-pill"><i class="bi bi-check-circle-fill me-1"></i>Success</span>
+                                {% else %}
+                                <span class="badge bg-danger-light text-danger border border-danger px-2 py-1 rounded-pill"><i class="bi bi-exclamation-triangle-fill me-1"></i>Error</span>
+                                {% endif %}
+                            </td>
+                            <td class="small">
+                                <span class="text-success fw-bold">{{ m.matched }}</span>
+                                <span class="text-muted mx-1">/</span>
+                                <span class="text-danger fw-bold">{{ m.unmatched }}</span>
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-between px-2">
+                                    <span class="me-2 fw-mono small fw-bold">{{ m.match_percentage }}%</span>
+                                    <div class="progress flex-grow-1 mx-1" style="height: 10px; border-radius: 4px;">
+                                        <div class="progress-bar 
+                                            {% if m.match_percentage == 100 %}bg-success
+                                            {% elif m.match_percentage >= 90 %}bg-info
+                                            {% elif m.match_percentage >= 70 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                            role="progressbar" 
+                                            style="width: {{ m.match_percentage }}%;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                               <span class="badge bg-light text-dark border font-monospace">
+                                   {{ (m.duration_ms / 1000) | round(1) }}s
+                                </span>
+                            </td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-outline-primary fw-bold" 
+                                        onclick="displayVerificationModal({{ m | tojson | forceescape }})">
+                                    <i class="bi bi-eye me-1"></i> View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-clipboard-x fs-1 d-block mb-2 text-secondary"></i>
+                                No telemetry logs matching these criteria exist in the database.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="diagnosticsInspectorModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-dark text-white py-3">
+                <h5 class="modal-title fw-bold"><i class="bi bi-braces-asterisk me-2"></i>Business Telemetry Diagnostic Inspector</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <label class="text-muted small uppercase fw-bold d-block">User Reference Context</label>
+                        <span id="lbl_mod_username" class="h6 fw-bold text-dark">-</span>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small uppercase fw-bold d-block">Log Timestamp Coordinate</label>
+                        <span id="lbl_mod_date" class="h6 font-monospace">-</span>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="text-muted small uppercase fw-bold d-block text-success">Matched Rows</label>
+                        <span id="lbl_mod_matched" class="h5 fw-bold text-success">-</span>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="text-muted small uppercase fw-bold d-block text-danger">Unmatched Elements</label>
+                        <span id="lbl_mod_unmatched" class="h5 fw-bold text-danger">-</span>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="text-muted small uppercase fw-bold d-block">Success Rate</label>
+                        <span id="lbl_mod_rate" class="h5 fw-bold text-dark">-</span>
+                    </div>
+                    <div class="col-md-3 col-sm-6">
+                        <label class="text-muted small uppercase fw-bold d-block">Compute Pipeline Latency</label>
+                        <span id="lbl_mod_duration" class="h5 fw-bold text-dark">-</span>
+                    </div>
+                </div>
+                <div class="mb-0">
+                    <label class="text-muted small uppercase fw-bold mb-2 d-block"><i class="bi bi-file-earmark-code me-1"></i>Privacy-Isolated Metadata Dictionary Packet (`details` JSONB)</label>
+                    <pre class="bg-dark text-info p-3 rounded font-monospace small mb-0" style="max-height: 250px; overflow-y: auto;"><code id="lbl_mod_json">{}</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .bg-success-light { background-color: rgba(40, 167, 69, 0.12); }
+    .bg-danger-light { background-color: rgba(220, 53, 69, 0.12); }
+    .col-md-2-4 { flex: 0 0 20%; max-width: 20%; }
+    @media (max-width: 768px) { .col-md-2-4 { flex: 0 0 50%; max-width: 50%; } }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.getElementById('nav-match-analytics').classList.add('active');
+
+    // 1. Diagnostics Inspector Modal Controller 
+    const inspectorModal = new bootstrap.Modal(document.getElementById('diagnosticsInspectorModal'));
+    
+    function displayVerificationModal(packet) {
+        document.getElementById('lbl_mod_username').innerText = packet.username || 'N/A';
+        document.getElementById('lbl_mod_date').innerText = packet.created_at ? packet.created_at.replace('T', ' ') : 'N/A';
+        document.getElementById('lbl_mod_matched').innerText = packet.matched ?? 0;
+        document.getElementById('lbl_mod_unmatched').innerText = packet.unmatched ?? 0;
+        document.getElementById('lbl_mod_rate').innerText = (packet.match_percentage ?? 0) + '%';
+        const seconds = packet.duration_ms ? (packet.duration_ms / 1000).toFixed(1) : '0.0';
+        document.getElementById('lbl_mod_duration').innerText = seconds + 's';
+        document.getElementById('lbl_mod_json').innerText = packet.raw_json || '{\n  "status": "No structured analytic parameters available."\n}';
+        
+        inspectorModal.show();
+    }
+
+    // 2. Chart.js Grouped Bar Renderer - Fixes Single-Date Overlapping
+    const ctx = document.getElementById('matchTrendChart').getContext('2d');
+    const trendLabels = {{ trend_labels | tojson }};
+    const trendSuccessData = {{ trend_success_data | tojson if trend_success_data else '[]' }};
+    const trendFailureData = {{ trend_failure_data | tojson if trend_failure_data else '[]' }};
+
+    new Chart(ctx, {
+        type: 'bar', // 🔥 Changed to bar to separate the single date metrics horizontally
+        data: {
+            labels: trendLabels,
+            datasets: [
+                {
+                    label: 'Successful Executions',
+                    data: trendSuccessData,
+                    backgroundColor: '#2de37c', // Clean green bar
+                    borderRadius: 4,
+                    maxBarThickness: 40
+                },
+                {
+                    label: 'Failed Executions',
+                    data: trendFailureData,
+                    backgroundColor: '#ea4335', // Clean red bar
+                    borderRadius: 4,
+                    maxBarThickness: 40
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { 
+                legend: { 
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        boxWidth: 12,
+                        font: { weight: 'bold', size: 11 }
+                    }
+                }
+            },
+            scales: {
+                y: { 
+                    beginAtZero: true, 
+                    grid: { color: '#eaecf4' }, 
+                    ticks: { 
+                        stepSize: 2,
+                        precision: 0 
+                    } 
+                },
+                x: { 
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+    document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("userSearchInput");
+    const hiddenField = document.getElementById("hiddenUserField");
+    const options = document.querySelectorAll(".user-select-option");
+    const noResults = document.getElementById("noUsersFoundMessage");
+
+    // 1. Live Filter list items as the administrator types inside the input field
+    searchInput.addEventListener("input", function () {
+        const query = searchInput.value.toLowerCase().trim();
+        let visibleCount = 0;
+
+        options.forEach(option => {
+            const username = option.getAttribute("data-value").toLowerCase();
+            
+            if (username === "all" || username.includes(query)) {
+                option.parentElement.classList.remove("d-none");
+                if (username !== "all") visibleCount++;
+            } else {
+                option.parentElement.classList.add("d-none");
+            }
+        });
+
+        // Toggle "No matches found" item if list is completely filtered out
+        if (visibleCount === 0 && query !== "") {
+            noResults.classList.remove("d-none");
+        } else {
+            noResults.classList.add("d-none");
+        }
+    });
+
+    // 2. Clear input placeholder when user clicks into the field
+    searchInput.addEventListener("click", function() {
+        if (hiddenField.value === "all") {
+            searchInput.value = "";
+        }
+        // Force Bootstrap to open dropdown list
+        const dropdownObj = new bootstrap.Dropdown(searchInput);
+        dropdownObj.show();
+    });
+
+    // 3. Keep displaying previous value if administrator exits field without choosing anything
+    searchInput.addEventListener("blur", function() {
+        setTimeout(() => {
+            if (hiddenField.value === "all") {
+                searchInput.value = "";
+            } else {
+                searchInput.value = hiddenField.value;
+            }
+        }, 200);
+    });
+
+    // 4. Update underlying input variables upon option button item selection click events
+    options.forEach(option => {
+        option.addEventListener("click", function () {
+            const val = this.getAttribute("data-value");
+            hiddenField.value = val;
+            
+            if (val === "all") {
+                searchInput.value = "";
+            } else {
+                searchInput.value = val;
+            }
+            
+            options.forEach(opt => opt.classList.remove("active"));
+            this.classList.add("active");
+        });
+    });
+});
+</script>
+{% endblock %}

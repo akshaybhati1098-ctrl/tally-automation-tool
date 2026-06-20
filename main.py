@@ -10,6 +10,7 @@ from auth import (
     get_current_user, ACCESS_TOKEN_EXPIRE_MINUTES
 )
 import secrets
+import sqlite3
 
 app = FastAPI()
 
@@ -47,7 +48,7 @@ async def register(
     try:
         with get_db() as conn:
             conn.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
+                "INSERT INTO users (username, password, is_active) VALUES (?, ?, 1)",
                 (username, hashed)
             )
             conn.commit()
@@ -68,18 +69,37 @@ async def login(
     password: str = Form(...)
 ):
     with get_db() as conn:
+        # Explicit column selections ensure accurate index matching regardless of database configuration
         user = conn.execute(
-            "SELECT * FROM users WHERE username = ?", (username,)
+            "SELECT id, username, password, is_active FROM users WHERE username = ?", (username,)
         ).fetchone()
 
-    if not user or not verify_password(password, user["password"]):
+    if not user:
+        return templates.TemplateResponse(
+            "pages/login.html",
+            {"request": request, "error": "Invalid username or password"}
+        )
+
+    # 🔥 SECURITY GUARD BLOCK: Intercept suspended user nodes immediately
+    # Supports dictionary rows or traditional index tuples (where is_active is the 4th column)
+    is_active_val = user["is_active"] if isinstance(user, dict) else user[3]
+    if is_active_val == 0 or is_active_val is False:
+        return templates.TemplateResponse(
+            "pages/login.html",
+            {"request": request, "error": "Your account has been suspended. Please contact support."}
+        )
+
+    password_hash = user["password"] if isinstance(user, dict) else user[2]
+    if not verify_password(password, password_hash):
         return templates.TemplateResponse(
             "pages/login.html",
             {"request": request, "error": "Invalid username or password"}
         )
 
     # Create JWT token
-    token = create_access_token(data={"sub": str(user["id"]), "username": user["username"]})
+    user_id = user["id"] if isinstance(user, dict) else user[0]
+    user_name = user["username"] if isinstance(user, dict) else user[1]
+    token = create_access_token(data={"sub": str(user_id), "username": user_name})
 
     # Set cookie and redirect to dashboard
     response = RedirectResponse(url="/dashboard", status_code=302)
@@ -95,14 +115,12 @@ async def login(
 @app.get("/logout")
 async def logout():
     response = RedirectResponse(url="/login", status_code=302)
-
     response.delete_cookie(
         key="access_token",
         httponly=True,
-        secure=False,   # must match login
-        samesite="lax"  # must match login
+        secure=False,   
+        samesite="lax"  
     )
-
     return response
 
 @app.post("/logout")
@@ -141,7 +159,6 @@ async def login_page(request: Request, registered: int = 0):
 async def register_page(request: Request):
     return templates.TemplateResponse("pages/register.html", {"request": request})
 
-# Optional: make user available in all templates
 @app.middleware("http")
 async def add_user_to_request(request: Request, call_next):
     try:
@@ -152,5 +169,3 @@ async def add_user_to_request(request: Request, call_next):
     request.state.user = user
     response = await call_next(request)
     return response
-
-# In templates, you can access request.state.user

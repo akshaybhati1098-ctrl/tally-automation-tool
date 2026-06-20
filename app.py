@@ -9,17 +9,27 @@ import json
 import bcrypt
 import secrets
 import tempfile
+import time       # Added for tracking execution time metric values
+import traceback  # Added for capturing crash logs safely
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 
 MATCH_SESSIONS = {}
 JOBS = {}
 RESULTS = {}
+# Job statuses: PENDING, PROCESSING, COMPLETED, FAILED
+JOB_STATUS = {}  # {job_id: {"status": "...", "progress": 0-100, "message": "..."}}
+
+# Thread pool for blocking operations
+thread_pool = ThreadPoolExecutor(max_workers=4)
+
 from datetime import datetime, timedelta
-os.makedirs("/data", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
 
-from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends, File
-from fastapi.responses import Response, JSONResponse, RedirectResponse
+from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends, File, WebSocket, WebSocketDisconnect
+from fastapi.responses import Response, JSONResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -62,21 +72,29 @@ from core.mapping import (
 )
 from core.process_service import image_to_excel
 
+# New Admin Enterprise Layer Dependencies
+from core.admin_telemetry import log_admin_event, ensure_admin_schema
+from routes.admin_routes import admin_router as enterprise_admin_system_router
+
+# --- NEW BUSINESS EVENT TELEMETRY DEPENDENCIES ---
+from core.business_telemetry import (
+    log_match_event,
+    log_conversion_event,
+    log_ocr_event,
+    log_business_error
+)
+from routes.admin_business_routes import business_router
+
 # =========================================================
-# APP
+# APP INITIALIZATION
 # =========================================================
 app = FastAPI(title="Tally Automation Tool")
 
 # =========================================================
-# SESSION (HF SAFE)
+# MIDDLEWARE STACK ORDER (Fixed for Session Context)
 # =========================================================
-SECRET_KEY = os.environ.get("SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("SECRET_KEY environment variable not set")
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=SECRET_KEY
-)
+
+# 1. CORS Settings
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -87,6 +105,73 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 2. Enterprise Telemetry Instrumentation Middleware
+@app.middleware("http")
+async def enterprise_request_instrumentation_middleware(request: Request, call_next):
+    # Skip tracking static assets to protect database performance and storage space
+    if request.url.path.startswith("/static") or request.url.path.startswith("/favicon.ico") or request.url.path.startswith("/admin"):
+        return await call_next(request)
+
+    start_time = time.perf_counter()
+    
+    try:
+        user_id = request.session.get("user_id")
+        username = request.session.get("username") or "anonymous_guest"
+    except AssertionError:
+        user_id = None
+        username = "anonymous_guest"
+        
+    endpoint_path = request.url.path
+    
+    try:
+        response = await call_next(request)
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        
+        # Track core analytical traffic pipelines and all API transactions dynamically
+        if endpoint_path.startswith("/api/") or endpoint_path in ["/login", "/signup"]:
+            log_admin_event(
+                user_id=user_id,
+                username=username,
+                event_type="api_request",
+                endpoint=endpoint_path,
+                status_str="success" if response.status_code < 400 else "failed",
+                execution_time_ms=duration_ms,
+                details={"status_code": response.status_code, "method": request.method}
+            )
+        return response
+
+    except Exception as unhandled_sys_exc:
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        error_msg = str(unhandled_sys_exc)
+        stack_trace = traceback.format_exc()
+        
+        # Record structural application errors completely down to the database row
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="system_crash",
+            endpoint=endpoint_path,
+            status_str="error",
+            error_message=error_msg,
+            execution_time_ms=duration_ms,
+            details={"stack_trace": stack_trace, "method": request.method}
+        )
+        raise unhandled_sys_exc
+    
+@app.middleware("http")
+async def admin_security_no_cache_middleware(request: Request, call_next):
+    """Forces the browser to delete the admin page from memory the second you log out."""
+    response = await call_next(request)
+    
+    if request.url.path.startswith("/admin"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+        
+    return response
+
+# 3. Session Timeout Tracker Middleware
 SESSION_TIMEOUT_MINUTES = 60
 
 @app.middleware("http")
@@ -103,7 +188,16 @@ async def session_timeout_middleware(request: Request, call_next):
         except Exception:
             pass
     return await call_next(request)
- 
+
+# 4. Session Engine Core Initialization Middleware
+SECRET_KEY = os.environ.get("SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY environment variable not set")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=SECRET_KEY
+)
+
 # =========================================================
 # STATIC & TEMPLATES
 # =========================================================
@@ -117,16 +211,36 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set")
 
-def get_db_connection():
-    return psycopg2.connect(
-        DATABASE_URL,
-        sslmode="require"
-    )
+def get_db_connection(retries=3, backoff=1):
+    """Connect to database with retry logic for transient failures."""
+    for attempt in range(retries):
+        try:
+            return psycopg2.connect(
+                DATABASE_URL,
+                sslmode="require",
+                connect_timeout=10
+            )
+        except psycopg2.OperationalError as e:
+            if attempt < retries - 1:
+                wait_time = backoff * (2 ** attempt)
+                print(f"⚠️ DB connection attempt {attempt + 1} failed: {str(e)[:100]}")
+                print(f"   Retrying in {wait_time}s...")
+                time.sleep(wait_time)
+            else:
+                print(f"❌ DB connection failed after {retries} attempts")
+                raise
 
 def init_user_db():
     """Create users and pending_users tables if they don't exist."""
     conn = get_db_connection()
     cur = conn.cursor()
+
+    # Initialize Telemetry Schema Immediately to Avoid Database Race Conditions
+    try:
+        ensure_admin_schema()
+        print("✅ Admin telemetry logging schema verified/created.")
+    except Exception as telemetry_init_err:
+        print(f"⚠️ Warning: Pre-initializing admin schema failed: {telemetry_init_err}")
 
     # Users table (final) with email and verification fields
     cur.execute("""
@@ -162,6 +276,36 @@ def init_user_db():
     if 'reset_expiry' not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN reset_expiry TIMESTAMP")
         print("Added reset_expiry column to users table")
+
+    if 'is_admin' not in columns:
+        cur.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE")
+        print("Added is_admin column to users table")
+
+    # =========================================================
+    # AUTOMATIC TELEMETRY COLUMN MIGRATE & FIX
+    # =========================================================
+    try:
+        # 1. Scan for all existing tables in the active database
+        cur.execute("""
+            SELECT table_name 
+            FROM information_schema.tables 
+            WHERE table_schema = 'public'
+        """)
+        existing_tables = [row[0] for row in cur.fetchall()]
+        print(f"🔍 Connected Database Tables Found: {existing_tables}")
+        
+        # 2. Force add 'execution_time_ms' to any table that looks like a telemetry/logging table
+        candidates = ['admin_events', 'telemetry', 'logs', 'api_requests', 'admin_telemetry']
+        for table in existing_tables:
+            if table in candidates or 'log' in table or 'event' in table or 'telemetry' in table:
+                try:
+                    cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS execution_time_ms INTEGER DEFAULT 0;")
+                    print(f"✅ Verified/Added 'execution_time_ms' to table: {table}")
+                except Exception as table_err:
+                    print(f"⚠️ Skip table update for {table}: {table_err}")
+    except Exception as migration_err:
+        print(f"❌ Automatic telemetry migration error: {migration_err}")
+    # =========================================================
 
     conn.commit()
     cur.close()
@@ -322,7 +466,17 @@ def delete_pending_user(email: str):
 # AUTH HELPERS
 # =========================================================
 def get_current_user(request: Request) -> Optional[str]:
-    return request.session.get("username")
+    username = request.session.get("username")
+    if not username:
+        return None
+        
+    # 🔥 LIVE SECURITY CHECK: Verify they aren't suspended right now
+    user = get_user(username)
+    if not user or user.get("is_active") is False:
+        request.session.clear() # Instantly destroy their session
+        return None
+        
+    return username
 
 def require_login(request: Request):
     user = get_current_user(request)
@@ -330,6 +484,16 @@ def require_login(request: Request):
         return RedirectResponse("/login", status_code=302)
     return user
 
+def require_admin(request: Request):
+    """Route guard enforcing that the current session belongs to a platform administrator."""
+    username = get_current_user(request)
+    if not username:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    user = get_user(username)
+    if not user or not user.get("is_admin"):
+        raise HTTPException(status_code=403, detail="Administrative access clearance denied")
+    return username
 
 def get_session_user_id(request: Request) -> str:
     """Return logged-in user id as string for connector queues."""
@@ -380,7 +544,6 @@ def _connector_status_payload(device_id: str) -> dict:
         "company": None,
     }
 
-
 def _parse_last_seen(value) -> Optional[datetime]:
     """Parse heartbeat timestamp; missing/invalid values sort as oldest."""
     if value is None:
@@ -417,15 +580,29 @@ def connector_heartbeat(device_id: str, data: dict):
     """Connector posts Tally running state for this PC/device."""
     status = data.get("status")
     company = data.get("company")
+    
+    # 🔥 FIX: Intercept the user identity from the connector
+    username = data.get("username")
+    user_id = data.get("user_id")
+    
     print("HEARTBEAT DEVICE:", device_id)
     print("STATUS DATA:", data)
+    print(f"--- HEARTBEAT RECEIVED ---")
+    print(f"Device: {device_id}")
+    print(f"Data received: {data}")
+    print(f"Parsed Username: {username}")
+    print(f"--------------------------")
+    print("CONNECTOR_STATUS:", CONNECTOR_STATUS)
+    
+    # Save the identity into the active memory dictionary
     CONNECTOR_STATUS[device_id] = {
         "status": status,
         "company": company,
+        "username": username,
+        "user_id": user_id,
         "last_seen": datetime.now().isoformat(),
     }
     return {"success": True}
-
 
 @app.get("/api/connector/status")
 def connector_status(request: Request):
@@ -450,10 +627,72 @@ async def login_post(
 ):
     username = username.strip()
     user = get_user(username)
+    
+    # 1. 🔥 SECURITY CHECK: Intercept Suspended Accounts Immediately
+    if user and user.get("is_active") is False:
+        # Use your existing flash alert system from login.html
+        return templates.TemplateResponse("pages/login.html", {
+            "request": request,
+            "flashes": [{"category": "error", "message": "Your account has been suspended. Please contact support."}]
+        })
+
+    # 2. Verify Password and Proceed
     if user and verify_password(password, user["password_hash"]):
         request.session["username"] = username
-        request.session["user_id"] = user["id"]   # 🔥 ADD THIS
+        request.session["user_id"] = user["id"]   
+        
+        # --- BUSINESS EVENT LOGGING: SUCCESS ---
+        log_admin_event(
+            user_id=user["id"],
+            username=username,
+            event_type="login_success",
+            status_str="success",
+            details={
+                "username": username,
+                "ip_address": request.client.host,
+                "user_agent": request.headers.get("user-agent", "unknown")
+            }
+        )
         return RedirectResponse("/", status_code=302)
+        
+    # --- BUSINESS EVENT LOGGING: FAILURE ---
+    log_admin_event(
+        username=username,
+        event_type="login_failed",
+        status_str="failed",
+        details={
+            "username": username,
+            "ip_address": request.client.host,
+            "user_agent": request.headers.get("user-agent", "unknown")
+        }
+    )
+    log_business_error(
+        user_id=None,
+        username=username,
+        event_type="login",
+        error_type="auth_failure",
+        error_message="Invalid account handle credentials combination input matching query signature values."
+    )
+    return RedirectResponse("/login?error=1", status_code=302)
+        
+    # --- BUSINESS EVENT LOGGING: FAILURE ---
+    log_admin_event(
+        username=username,
+        event_type="login_failed",
+        status_str="failed",
+        details={
+            "username": username,
+            "ip_address": request.client.host,
+            "user_agent": request.headers.get("user-agent", "unknown")
+        }
+    )
+    log_business_error(
+        user_id=None,
+        username=username,
+        event_type="login",
+        error_type="auth_failure",
+        error_message="Invalid account handle credentials combination input matching query signature values."
+    )
     return RedirectResponse("/login?error=1", status_code=302)
 
 @app.get("/signup")
@@ -477,6 +716,15 @@ async def signup_post(
 
 @app.get("/logout")
 async def logout(request: Request):
+    user = get_current_user(request)
+    if user:
+        # --- BUSINESS EVENT LOGGING ---
+        log_admin_event(
+            username=user,
+            event_type="logout",
+            status_str="success"
+        )
+        
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     request.session.clear()
     if is_ajax:
@@ -534,6 +782,7 @@ async def send_otp(email: str = Form(...), username: str = Form(...)):
         return JSONResponse({"status": "error", "message": "Failed to send OTP email. Please check your email address or try again later."}, status_code=500)
 
     return JSONResponse({"status": "ok"})
+
 @app.post("/api/verify-otp-signup")
 async def verify_otp_signup(
     email: str = Form(...),
@@ -567,27 +816,27 @@ async def verify_otp_signup(
         delete_pending_user(email)
         return JSONResponse({"status": "error", "message": "User already exists"}, status_code=400)
 
-    # ✅ CREATE USER
+    # CREATE USER
     user_id = create_user(username, email, password)
 
-    # ✅ DEFAULT COMPANY
+    # DEFAULT COMPANY
     from core.mapping import save_company_mapping_postgres, get_default_mapping
     save_company_mapping_postgres("Default", get_default_mapping(), user_id)
 
-    # ✅ SEND EMAIL (optional)
+    # SEND EMAIL (optional)
     try:
         send_welcome_email(email, username)
     except Exception as e:
         print("Email error:", e)
 
-    # ✅ DELETE PENDING USER
+    # DELETE PENDING USER
     delete_pending_user(email)
 
     return JSONResponse({"status": "ok"})
+
 # =========================================================
 # FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
 # =========================================================
-
 @app.post("/api/forgot-username")
 async def forgot_username(email: str = Form(...)):
     """Send username to user's email."""
@@ -693,7 +942,6 @@ async def resend_verification_route(email: str = Form(...)):
 # =========================================================
 # MAPPING APIs (PERSISTENT – CORRECT VERSION)
 # =========================================================
-
 @app.get("/api/companies")
 async def get_companies(
     request: Request,
@@ -757,21 +1005,6 @@ async def update_company_mapping(
 # ================================
 # 🔌 CONNECTOR APIs
 # ================================
-
-@app.post("/api/resolve-username")
-def resolve_username(data: dict):
-    """Resolve username to user_id for connector setup."""
-    username = data.get("username", "").strip()
-    if not username:
-        raise HTTPException(status_code=400, detail="Username required")
-    
-    user = get_user(username)
-    if not user:
-        raise HTTPException(status_code=404, detail="Username not found")
-    
-    return {"user_id": user['id']}
-
-
 @app.post("/api/add-job/{user_id}")
 def add_job(user_id: str, data: dict):
     JOBS.setdefault(user_id, []).append(data)
@@ -813,7 +1046,6 @@ def get_result(
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
 # =========================================================
-
 @app.post("/api/image-to-excel")
 async def image_to_excel_api(
     request: Request,
@@ -821,16 +1053,54 @@ async def image_to_excel_api(
     company_key: str = Form(...),
     user: str = Depends(require_login)
 ):
-    excel_bytes, output_filename = image_to_excel(
-        await file.read(),
-        file.filename,
-        company_key
+    # --- BUSINESS EVENT LOGGING: OCR STARTED ---
+    user_id = request.session.get("user_id")
+    username = request.session.get("username", "anonymous")
+    start_time = time.perf_counter()
+    
+    log_admin_event(
+        user_id=user_id,
+        username=username,
+        event_type="ocr_started",
+        status_str="success"
     )
-    return Response(
-        content=excel_bytes,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename={output_filename}"}
-    )
+
+    try:
+        excel_bytes, output_filename = image_to_excel(
+            await file.read(),
+            file.filename,
+            company_key
+        )
+        
+        # --- BUSINESS EVENT LOGGING: OCR COMPLETED SUCCESS ---
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        
+        # Approximate metrics parsing based on image input boundaries
+        log_ocr_event(
+            user_id=user_id,
+            username=username,
+            status="success",
+            duration_ms=duration_ms,
+            file_type=file.filename.split('.')[-1].lower() if '.' in file.filename else 'unknown',
+            pages=1, # Base aggregate fallback metric values safely
+            rows_generated=0 # Safely derived defaults
+        )
+        
+        return Response(
+            content=excel_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename={output_filename}"}
+        )
+    except Exception as ocr_err:
+        # --- BUSINESS EVENT LOGGING: OCR EXCEPTION ---
+        log_business_error(
+            user_id=user_id,
+            username=username,
+            event_type="ocr",
+            error_type="processing_error",
+            error_message=str(ocr_err)
+        )
+        raise ocr_err
 
 @app.post("/api/sheets")
 async def get_sheet_names(
@@ -874,102 +1144,6 @@ async def download_template(
         headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
     )
 
-@app.get("/debug/persistence")
-def debug_persistence():
-    import os
-    
-    result = {
-        "app_status": "running",
-        "database_url_set": bool(os.environ.get("DATABASE_URL")),
-        "environment": os.environ.get("RENDER", "not set"),
-    }
-    
-    # Test database connection
-    try:
-        conn = get_db_connection()
-        cur = conn.cursor()
-        
-        # Check users table
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')")
-        users_table_exists = cur.fetchone()[0]
-        result["users_table_exists"] = users_table_exists
-        
-        if users_table_exists:
-            cur.execute("SELECT COUNT(*) FROM users")
-            user_count = cur.fetchone()[0]
-            result["user_count"] = user_count
-            
-            cur.execute("SELECT username FROM users LIMIT 5")
-            users = [row[0] for row in cur.fetchall()]
-            result["sample_users"] = users
-        
-        # Check pending_users table
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pending_users')")
-        pending_exists = cur.fetchone()[0]
-        result["pending_users_table_exists"] = pending_exists
-        
-        if pending_exists:
-            cur.execute("SELECT COUNT(*) FROM pending_users")
-            pending_count = cur.fetchone()[0]
-            result["pending_count"] = pending_count
-        
-        cur.close()
-        conn.close()
-        result["database_connected"] = True
-        
-    except Exception as e:
-        result["database_connected"] = False
-        result["database_error"] = str(e)
-    
-    # Check if old SQLite file exists (for reference)
-    result["old_sqlite_exists"] = os.path.exists("/data/users.db")
-    
-    return result
-
-@app.get("/debug/smtp-test")
-async def debug_smtp():
-    import socket
-    import smtplib
-    results = {}
-
-    # Get settings from environment or defaults
-    server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
-    port = int(os.environ.get("MAIL_PORT", "587"))
-    username = os.environ.get("MAIL_USERNAME", "")
-    password = os.environ.get("MAIL_PASSWORD", "")
-
-    # Test DNS resolution
-    try:
-        ip = socket.gethostbyname(server)
-        results["dns_resolution"] = {"host": server, "ip": ip, "status": "ok"}
-    except Exception as e:
-        results["dns_resolution"] = {"error": str(e), "status": "fail"}
-
-    # Test SMTP connection (without login)
-    try:
-        with smtplib.SMTP(server, port, timeout=10) as smtp:
-            smtp.ehlo()
-            if port == 587:
-                smtp.starttls()
-            smtp.ehlo()
-            results["smtp_connection"] = {"status": "ok", "banner": str(smtp.ehlo())}
-    except Exception as e:
-        results["smtp_connection"] = {"error": str(e), "status": "fail"}
-
-    # If connection works, test login (without sending email)
-    if results.get("smtp_connection", {}).get("status") == "ok" and username and password:
-        try:
-            with smtplib.SMTP(server, port, timeout=10) as smtp:
-                smtp.ehlo()
-                if port == 587:
-                    smtp.starttls()
-                smtp.ehlo()
-                smtp.login(username, password)
-                results["smtp_login"] = {"status": "ok"}
-        except Exception as e:
-            results["smtp_login"] = {"error": str(e), "status": "fail"}
-
-    return results
 @app.get("/reset-password")
 async def reset_password_page(request: Request, token: str = None):
     """Render the login page with the reset token for frontend handling."""
@@ -987,8 +1161,7 @@ def api_tally_ledgers(
     group: str = Query(None),
     user: str = Depends(require_login),
 ):
-
-    print("📦 API received group:", group)  # ✅ NOW WORKS
+    print("📦 API received group:", group)  
 
     user_id = get_session_user_id(request)
     print("CURRENT USER:", user_id)
@@ -996,7 +1169,7 @@ def api_tally_ledgers(
     # 1. create XML with group
     xml = build_ledger_xml(group)
 
-    print("📤 XML SENT:\n", xml)  # 🔥 DEBUG
+    print("📤 XML SENT:\n", xml)  
 
     # 2. send job (avoid stale results)
     RESULTS.pop(user_id, None)
@@ -1021,7 +1194,6 @@ def api_tally_ledgers(
     group_norm = (group or "").strip()
 
     raw_xml = result.get("data", "") or ""
-    # Quick debug to understand what Tally actually returned
     try:
         print(
             f"📥 Tally raw XML stats: len={len(raw_xml)}, "
@@ -1066,7 +1238,6 @@ def api_tally_ledgers(
         except Exception:
             pass
         if not allowed:
-            # Fallback: tolerate small formatting differences in parent name
             allowed = {
                 i["name"]
                 for i in parsed
@@ -1082,8 +1253,6 @@ def api_tally_ledgers(
                 f"📦 Group filter fallback applied: group={group_norm}, total={len(parsed)}, allowed={len(allowed)}"
             )
         else:
-            # If Tally returns ledgers but we can't parse Parent fields reliably,
-            # fall back to returning names so UI doesn't become empty.
             ledgers = parse_ledgers(result.get("data", ""))
             print(
                 f"⚠️ Group filter fallback: group={group_norm}, total_parsed={len(parsed)}, unfiltered_names={len(ledgers)}"
@@ -1091,9 +1260,7 @@ def api_tally_ledgers(
     else:
         ledgers = parse_ledgers(result.get("data", ""))
 
-    # remove duplicates while preserving order
     ledgers = list(dict.fromkeys(ledgers))
-
     return {"status": "ok", "ledgers": ledgers}
 
 @app.post("/api/match-party")
@@ -1105,10 +1272,15 @@ async def match_party(
     manual_columns: str = Form("{}"),
     user: str = Depends(require_login),
 ):
+    # --- BUSINESS EVENT LOGGING: INITIALIZED ---
+    start_time = time.perf_counter()
+    user_id = request.session.get("user_id")
+    username = request.session.get("username", "anonymous")
+
     try:
         import io
         import json
-        import time
+        import asyncio
 
         contents = await file.read()
         print("📄 Sheet received from frontend:", sheet_name)
@@ -1121,6 +1293,19 @@ async def match_party(
 
         df = df.fillna("")
 
+        # --- BUSINESS EVENT LOGGING: EXCEL FILE LOADED ---
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_file_loaded",
+            status_str="success",
+            details={
+                "rows": len(df),
+                "columns": len(df.columns),
+                "sheet_name": sheet_name or "Sheet1"
+            }
+        )
+
         from core.match_service import (
             detect_party_column,
             detect_gstin_column,
@@ -1132,20 +1317,17 @@ async def match_party(
             build_ledger_xml,
         )
 
-        # Detect columns automatically
         party_col = detect_party_column(df)
         gstin_col = detect_gstin_column(df)
 
         print("🧠 Detected party column:", party_col)
-        print("🧠 Detected GSTIN column:", gstin_col)
+        print("🧠 Detected GSTIN column:", gantin_col if 'gantin_col' in locals() else gstin_col)
 
-        # Parse manual columns if provided
         try:
             manual_cols = json.loads(manual_columns) if isinstance(manual_columns, str) else manual_columns
         except:
             manual_cols = {}
 
-        # Override with manual columns if provided
         if manual_cols.get("party"):
             party_col = manual_cols["party"]
             print("🔧 Using manual party column:", party_col)
@@ -1154,9 +1336,29 @@ async def match_party(
             gstin_col = manual_cols["gstin"]
             print("🔧 Using manual GSTIN column:", gstin_col)
 
-        # Check if both columns are available
+        # --- BUSINESS EVENT LOGGING: COLUMNS DETECTED ---
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_columns_detected",
+            status_str="success",
+            details={
+                "party_column": party_col,
+                "gstin_column": gstin_col
+            }
+        )
+
         if not party_col or not gstin_col:
             print("⚠️ Missing columns - returning manual_required")
+            
+            # Record structural validation failure
+            log_business_error(
+                user_id=user_id,
+                username=username,
+                event_type="match_party",
+                error_type="validation_error",
+                error_message="GSTIN or Party column mapping could not be explicitly auto-resolved."
+            )
             return {
                 "status": "manual_required",
                 "columns": list(df.columns),
@@ -1165,48 +1367,37 @@ async def match_party(
             }
 
         print("🔄 Fetching Tally ledgers...")
-        user_id = get_session_user_id(request)
-        print("CURRENT USER:", user_id)
+        user_id_str = get_session_user_id(request)
+        print("CURRENT USER:", user_id_str)
 
-        # 🔥 Send job to connector
         print("📦 MATCH using group:", tally_group)
 
         xml = build_ledger_xml(tally_group)
-        RESULTS.pop(user_id, None) 
-        JOBS.setdefault(user_id, []).append({"xml": xml})
+        RESULTS.pop(user_id_str, None) 
+        JOBS.setdefault(user_id_str, []).append({"xml": xml})
         print("🧾 JOB ADDED:", JOBS)
 
-        # 🔥 WAIT for connector response (IMPORTANT FIX)
         result = None
-        for _ in range(20):  # ~5 seconds max
-            import asyncio
+        for _ in range(20):  
             await asyncio.sleep(0.5)
-            result = RESULTS.get(user_id)
+            result = RESULTS.get(user_id_str)
             if result:
                 break
 
         if not result:
             print("⏳ Waiting for connector response...")
+            log_business_error(
+                user_id=user_id,
+                username=username,
+                event_type="match_party",
+                error_type="connector_timeout",
+                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming."
+            )
             return {"status": "waiting"}
 
-        # 🔥 Parse ledgers (FIXED)
         raw_xml = result.get("data", "") or ""
-        ledgers, gst_map = parse_ledgers_with_gstin(raw_xml)
+        ledgers, g_map = parse_ledgers_with_gstin(raw_xml)
 
-        # Debug: understand what Tally returned for this collection export
-        try:
-            print(
-                f"📄 match-party Tally XML stats: len={len(raw_xml)}, "
-                f"LEDGER={raw_xml.count('<LEDGER')}, "
-                f"LEDGERNAME={raw_xml.count('<LEDGERNAME')}, "
-                f"NAME={raw_xml.count('<NAME')}, "
-                f"PARTYGSTIN={raw_xml.count('<PARTYGSTIN')}, "
-                f"GSTIN={raw_xml.count('<GSTIN')}"
-            )
-        except Exception:
-            pass
-
-        # Fallback: if Tally ignores CHILDOF/group filtering, filter by Parent in backend.
         group_norm = (tally_group or "").strip()
         if group_norm and group_norm.lower() != "all":
             from core.tally_service import parse_ledgers_with_parent
@@ -1219,28 +1410,13 @@ async def match_party(
                 if i.get("parent", "").strip().lower() == group_norm_lower
             }
 
-            parents_clean = [
-                i.get("parent", "").strip()
-                for i in parsed
-                if i.get("parent", "").strip()
-            ]
-            eq_count = sum(1 for p in parents_clean if p.lower() == group_norm.lower())
-            uniq_parents_sample = sorted({p.lower() for p in parents_clean})[:10]
-
-            print(
-                f"🧩 match-party parent debug: group={group_norm!r}, "
-                f"parsed={len(parsed)}, eq_count={eq_count}, "
-                f"uniq_parents_sample={uniq_parents_sample}"
-            )
-
             if allowed:
                 ledgers = [l for l in ledgers if l in allowed]
-                gst_map = {
+                g_map = {
                     gstin: name
-                    for gstin, name in gst_map.items()
+                    for gstin, name in g_map.items()
                     if name in allowed
                 }
-                print(f"📦 match-party group filtered ledgers: kept={len(ledgers)}")
             else:
                 allowed = {
                     i["name"]
@@ -1249,27 +1425,30 @@ async def match_party(
                 }
                 if allowed:
                     ledgers = [l for l in ledgers if l in allowed]
-                    gst_map = {
+                    g_map = {
                         gstin: name
-                        for gstin, name in gst_map.items()
+                        for gstin, name in g_map.items()
                         if name in allowed
                     }
-                    print(
-                        f"🔁 match-party contains-parent fallback: group={group_norm!r}, kept={len(ledgers)}"
-                    )
-                else:
-                    print(
-                        f"⚠️ Group filter fallback: match-party could not match parent for "
-                        f"group={group_norm}. Returning unfiltered ledgers."
-                    )
+
+        # --- BUSINESS EVENT LOGGING: TALLY LEDGERS STREAMED ---
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="tally_ledgers_loaded",
+            status_str="success",
+            details={
+                "ledgers_fetched": len(ledgers),
+                "tally_group": tally_group or "All"
+            }
+        )
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
 
-        # Match parties
         results = match_party_names(
             df=df,
             tally_ledgers=ledgers,
-            tally_gstin_map=gst_map,
+            tally_gstin_map=g_map,
             party_col=party_col,
             gstin_col=gstin_col,
         )
@@ -1295,6 +1474,40 @@ async def match_party(
         unmatched_count = len(
             [r for r in results if r.get("status") != "matched"]
         )
+        matched_count = len(results) - unmatched_count
+        
+        # Approximate matching classification metadata metrics calculation safely
+        exact_count = len([r for r in results if r.get("confidence", 0) == 100 or r.get("status") == "matched"])
+        fuzzy_count = matched_count - exact_count
+
+        # --- BUSINESS EVENT LOGGING: MATCH COMPLETE SUCCESS ---
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+        log_match_event(
+            user_id=user_id,
+            username=username,
+            status="success",
+            duration_ms=duration_ms,
+            rows_processed=len(df),
+            matched=matched_count,
+            unmatched=unmatched_count,
+            ledgers_fetched=len(ledgers)
+        )
+        
+        # Log extended internal structured payload safely for cross-dashboard evaluation
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_party_complete",
+            status_str="success",
+            details={
+                "rows_processed": len(df),
+                "matched_rows": matched_count,
+                "unmatched_rows": unmatched_count,
+                "fuzzy_matches": fuzzy_count if fuzzy_count >= 0 else 0,
+                "exact_matches": exact_count,
+                "duration_ms": duration_ms
+            }
+        )
 
         return {
             "status": "ok",
@@ -1307,9 +1520,18 @@ async def match_party(
             "block_convert": unmatched_count > 0,
         }
 
-    except Exception as e:
-        print("❌ MATCH ERROR:", str(e))
-        return {"status": "error", "message": str(e)}
+    except Exception as match_exception:
+        print("❌ MATCH ERROR:", str(match_exception))
+        
+        # --- BUSINESS EVENT LOGGING: UNHANDLED EXCEPTION CORNER ---
+        log_business_error(
+            user_id=user_id,
+            username=username,
+            event_type="match_party",
+            error_type="system_exception",
+            error_message=str(match_exception)
+        )
+        return {"status": "error", "message": str(match_exception)}
 
 
 @app.post("/api/apply-corrections")
@@ -1360,11 +1582,6 @@ async def api_apply_corrections(payload: dict):
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
 
-from fastapi import HTTPException
-from fastapi.responses import StreamingResponse
-from io import BytesIO
-import json
-
 @app.post("/api/download-reviewed-excel")
 async def api_download_reviewed_excel(payload: dict):
     try:
@@ -1378,7 +1595,6 @@ async def api_download_reviewed_excel(payload: dict):
         if not session:
             raise HTTPException(status_code=404, detail="Matching session not found")
 
-        # ✅ SAFE DATAFRAME FETCH
         reviewed_df = session.get("reviewed_df")
         if reviewed_df is None:
             reviewed_df = session.get("df")
@@ -1390,7 +1606,6 @@ async def api_download_reviewed_excel(payload: dict):
         if not party_col:
             raise HTTPException(status_code=500, detail="Party column missing in session")
 
-        # ✅ NORMALIZE CORRECTIONS
         normalized_corrections = {}
         for k, v in corrections.items():
             try:
@@ -1400,7 +1615,6 @@ async def api_download_reviewed_excel(payload: dict):
 
         print("Corrections:", normalized_corrections)
 
-        # ✅ APPLY CORRECTIONS
         final_df = apply_corrections_and_build_final_df(
             reviewed_df=reviewed_df,
             corrections=normalized_corrections,
@@ -1408,11 +1622,8 @@ async def api_download_reviewed_excel(payload: dict):
         )
 
         print("Final DF shape:", final_df.shape)
-
-        # ✅ EXPORT TO EXCEL (BYTES)
         excel_bytes = export_dataframe_to_excel_bytes(final_df)
 
-        # ✅ STREAM FILE (NO TEMP FILE NEEDED)
         output = BytesIO(excel_bytes)
         output.seek(0)
 
@@ -1442,10 +1653,30 @@ async def convert_excel_api(
     tally_corrections: str = Form("{}"),
     user: str = Depends(require_login),
 ):
-    if not file.filename.endswith((".xlsx", ".xls")):
-        raise HTTPException(400, "Only Excel files allowed")
-
+    """Start Excel→XML conversion as background job.
+    
+    INSTANT RESPONSE: Returns job_id immediately
+    CLIENT POLLS: /api/job-status/{job_id} for progress
+    REAL-TIME: WebSocket /ws/job-progress/{job_id} for live updates
+    """
+    # Generate unique job ID
+    job_id = str(uuid.uuid4())
     user_id = request.session.get("user_id")
+    username = request.session.get("username", "anonymous")
+    start_time = time.perf_counter()
+    
+    # Initialize job status
+    JOB_STATUS[job_id] = {
+        "status": "PENDING",
+        "progress": 0,
+        "message": "Queued for processing...",
+        "created_at": datetime.now().isoformat()
+    }
+    
+    if not file.filename.endswith((".xlsx", ".xls")):
+        JOB_STATUS[job_id]["status"] = "FAILED"
+        JOB_STATUS[job_id]["message"] = "Only Excel files allowed"
+        return {"job_id": job_id, "status": "FAILED", "message": "Only Excel files allowed"}
 
     try:
         mapping_data = json.loads(column_mapping)
@@ -1454,27 +1685,338 @@ async def convert_excel_api(
 
     try:
         tally_corrections_data = json.loads(tally_corrections)
-        print("🔥 RECEIVED CORRECTIONS:", tally_corrections_data)
     except Exception:
         tally_corrections_data = {}
 
-    xml_content, count = excel_to_xml(
-        await file.read(),
-        sheet_name,
-        vtype,
-        company,
-        user_id,
-        column_mapping=mapping_data,
-        tally_corrections=tally_corrections_data,
-    )
+    # Read file into memory
+    excel_raw_stream = await file.read()
+    
+    # Start background processing
+    async def process_conversion():
+        try:
+            JOB_STATUS[job_id]["status"] = "PROCESSING"
+            JOB_STATUS[job_id]["progress"] = 5
+            JOB_STATUS[job_id]["message"] = "Starting conversion..."
+            
+            # Log conversion started
+            log_admin_event(
+                user_id=user_id,
+                username=username,
+                event_type="convert_started",
+                status_str="success"
+            )
+            
+            # Run blocking operation in thread pool (non-blocking)
+            def blocking_conversion():
+                return excel_to_xml(
+                    excel_raw_stream,
+                    sheet_name,
+                    vtype,
+                    company,
+                    user_id,
+                    column_mapping=mapping_data,
+                    tally_corrections=tally_corrections_data
+                )
+            
+            loop = asyncio.get_event_loop()
+            # Mark progress: file loaded and queued for processing
+            JOB_STATUS[job_id]["progress"] = 20
+            JOB_STATUS[job_id]["message"] = "Parsing Excel and generating XML..."
 
+            xml_content, count = await loop.run_in_executor(thread_pool, blocking_conversion)
+
+            # Conversion completed in worker
+            JOB_STATUS[job_id]["progress"] = 80
+            JOB_STATUS[job_id]["message"] = "Finalizing output..."
+            
+            # Store result
+            RESULTS[job_id] = {
+                "content": xml_content,
+                "filename": f"{file.filename}_output.xml",
+                "count": count
+            }
+
+            # Update progress for storing and completion
+            JOB_STATUS[job_id]["progress"] = 95
+            JOB_STATUS[job_id]["message"] = "Preparing download..."
+            
+            # Log success
+            duration_ms = int((time.perf_counter() - start_time) * 1000)
+            log_admin_event(
+                user_id=user_id,
+                username=username,
+                event_type="xml_generated",
+                status_str="success",
+                details={"rows": count, "voucher_type": vtype}
+            )
+            
+            log_conversion_event(
+                user_id=user_id,
+                username=username,
+                status="success",
+                duration_ms=duration_ms,
+                rows_processed=count,
+                voucher_type=vtype,
+                exceptions=0
+            )
+            
+            # Update job status
+            JOB_STATUS[job_id]["status"] = "COMPLETED"
+            JOB_STATUS[job_id]["progress"] = 100
+            JOB_STATUS[job_id]["message"] = f"✅ Conversion complete! {count} rows processed"
+            JOB_STATUS[job_id]["completed_at"] = datetime.now().isoformat()
+            
+        except Exception as e:
+            logging.error(f"Conversion error: {str(e)}")
+            log_business_error(
+                user_id=user_id,
+                username=username,
+                event_type="convert_xml",
+                error_type="conversion_failed",
+                error_message=str(e)
+            )
+            
+            JOB_STATUS[job_id]["status"] = "FAILED"
+            JOB_STATUS[job_id]["message"] = f"❌ Error: {str(e)}"
+            JOB_STATUS[job_id]["error"] = str(e)
+    
+    # Start background task (fire and forget)
+    asyncio.create_task(process_conversion())
+    
+    # Return immediately with job_id
+    return {
+        "job_id": job_id,
+        "status": "PENDING",
+        "message": "Processing started. Check status with /api/job-status/{job_id}",
+        "websocket_url": f"/ws/job-progress/{job_id}"
+    }
+
+@app.get("/api/job-status/{job_id}")
+async def get_job_status(job_id: str):
+    """Poll for job status and progress.
+    
+    Returns: {"status": "PENDING|PROCESSING|COMPLETED|FAILED", "progress": 0-100, "message": "..."}
+    """
+    if job_id not in JOB_STATUS:
+        return {"status": "NOT_FOUND", "message": "Job not found"}
+    
+    return JOB_STATUS[job_id]
+
+
+@app.get("/api/job-result/{job_id}")
+async def get_job_result(job_id: str):
+    """Download converted XML file once job completes.
+    
+    Returns: XML file or error message
+    """
+    # Check job status
+    if job_id not in JOB_STATUS:
+        raise HTTPException(404, "Job not found")
+    
+    if JOB_STATUS[job_id]["status"] != "COMPLETED":
+        raise HTTPException(
+            status_code=202,  # Accepted but not ready
+            detail={
+                "status": JOB_STATUS[job_id]["status"],
+                "progress": JOB_STATUS[job_id].get("progress", 0),
+                "message": JOB_STATUS[job_id]["message"]
+            }
+        )
+    
+    # Get result
+    if job_id not in RESULTS:
+        raise HTTPException(404, "Result not found")
+    
+    result = RESULTS[job_id]
+    
     return Response(
-        content=xml_content,
+        content=result["content"],
         media_type="application/xml",
         headers={
-            "Content-Disposition": f"attachment; filename={file.filename}_output.xml",
-            "X-Records-Processed": str(count),
+            "Content-Disposition": f"attachment; filename={result['filename']}",
+            "X-Records-Processed": str(result["count"]),
         },
     )
- 
 
+
+@app.websocket("/ws/job-progress/{job_id}")
+async def websocket_job_progress(websocket: WebSocket, job_id: str):
+    """Real-time progress updates via WebSocket.
+    
+    Sends: {"status": "...", "progress": 0-100, "message": "..."}
+    """
+    await websocket.accept()
+    
+    if job_id not in JOB_STATUS:
+        await websocket.send_json({"error": "Job not found"})
+        await websocket.close()
+        return
+    
+    try:
+        # Send initial status
+        await websocket.send_json(JOB_STATUS[job_id])
+        
+        # Keep connection alive and send updates
+        last_status = JOB_STATUS[job_id]["status"]
+        while True:
+            await asyncio.sleep(0.5)  # Check every 500ms
+            
+            if job_id not in JOB_STATUS:
+                break
+            
+            current_status = JOB_STATUS[job_id]
+            
+            # Send update only if status changed
+            if current_status["status"] != last_status or current_status.get("progress", 0) > 0:
+                await websocket.send_json(current_status)
+                last_status = current_status["status"]
+            
+            # Close when job completes
+            if current_status["status"] in ["COMPLETED", "FAILED"]:
+                await websocket.send_json(current_status)
+                break
+                
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        logging.error(f"WebSocket error: {e}")
+
+
+# Background cleanup for finished/old jobs to prevent unbounded memory growth
+JOB_TTL_SECONDS = 60 * 60  # 1 hour
+CLEANUP_INTERVAL_SECONDS = 60  # run cleanup every minute
+
+async def cleanup_old_jobs():
+    while True:
+        try:
+            now = datetime.now()
+            expired = []
+            for jid, meta in list(JOB_STATUS.items()):
+                # Determine timestamp to use
+                ts_text = meta.get("completed_at") or meta.get("created_at")
+                if not ts_text:
+                    continue
+                try:
+                    ts = datetime.fromisoformat(ts_text)
+                except Exception:
+                    continue
+                age = (now - ts).total_seconds()
+                if age > JOB_TTL_SECONDS:
+                    expired.append(jid)
+
+            for jid in expired:
+                JOB_STATUS.pop(jid, None)
+                RESULTS.pop(jid, None)
+                logging.info(f"Cleaned up job {jid} after TTL expiry")
+
+        except Exception as e:
+            logging.error(f"Error in cleanup_old_jobs: {e}")
+
+        await asyncio.sleep(CLEANUP_INTERVAL_SECONDS)
+
+
+@app.on_event("startup")
+async def start_background_tasks():
+    # Ensure created_at exists for any job queued before restart
+    for jid, meta in JOB_STATUS.items():
+        if "created_at" not in meta:
+            meta["created_at"] = datetime.now().isoformat()
+
+    # Launch cleanup loop
+    asyncio.create_task(cleanup_old_jobs())
+
+
+# =========================================================
+# MOUNT MULTI-PAGE ENTERPRISE ADMIN SYSTEM ROUTERS
+# =========================================================
+app.include_router(enterprise_admin_system_router)
+app.include_router(business_router)  # <--- NEW BUSINESS ANALYTICS MOUNTED HERE
+print("⚡ Enterprise Administration Monitoring Engine fully initialized.")
+
+@app.get("/debug/persistence")
+def debug_persistence():
+    import os
+    
+    result = {
+        "app_status": "running",
+        "database_url_set": bool(os.environ.get("DATABASE_URL")),
+        "environment": os.environ.get("RENDER", "not set"),
+    }
+    
+    try:
+        conn = get_db_connection()
+        cur = conn.cursor()
+        
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')")
+        users_table_exists = cur.fetchone()[0]
+        result["users_table_exists"] = users_table_exists
+        
+        if users_table_exists:
+            cur.execute("SELECT COUNT(*) FROM users")
+            user_count = cur.fetchone()[0]
+            result["user_count"] = user_count
+            
+            cur.execute("SELECT username FROM users LIMIT 5")
+            users = [row[0] for row in cur.fetchall()]
+            result["sample_users"] = users
+        
+        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pending_users')")
+        pending_exists = cur.fetchone()[0]
+        result["pending_users_table_exists"] = pending_exists
+        
+        if pending_exists:
+            cur.execute("SELECT COUNT(*) FROM pending_users")
+            pending_count = cur.fetchone()[0]
+            result["pending_count"] = pending_count
+        
+        cur.close()
+        conn.close()
+        result["database_connected"] = True
+        
+    except Exception as e:
+        result["database_connected"] = False
+        result["database_error"] = str(e)
+    
+    result["old_sqlite_exists"] = os.path.exists("/data/users.db")
+    return result
+
+@app.get("/debug/smtp-test")
+async def debug_smtp():
+    import socket
+    import smtplib
+    results = {}
+
+    server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    port = int(os.environ.get("MAIL_PORT", "587"))
+    username = os.environ.get("MAIL_USERNAME", "")
+    password = os.environ.get("MAIL_PASSWORD", "")
+
+    try:
+        ip = socket.gethostbyname(server)
+        results["dns_resolution"] = {"host": server, "ip": ip, "status": "ok"}
+    except Exception as e:
+        results["dns_resolution"] = {"error": str(e), "status": "fail"}
+
+    try:
+        with smtplib.SMTP(server, port, timeout=10) as smtp:
+            smtp.ehlo()
+            if port == 587:
+                smtp.starttls()
+            smtp.ehlo()
+            results["smtp_connection"] = {"status": "ok", "banner": str(smtp.ehlo())}
+    except Exception as e:
+        results["smtp_connection"] = {"error": str(e), "status": "fail"}
+
+    if results.get("smtp_connection", {}).get("status") == "ok" and username and password:
+        try:
+            with smtplib.SMTP(server, port, timeout=10) as smtp:
+                smtp.ehlo()
+                if port == 587:
+                    smtp.starttls()
+                smtp.ehlo()
+                smtp.login(username, password)
+                results["smtp_login"] = {"status": "ok"}
+        except Exception as e:
+            results["smtp_login"] = {"error": str(e), "status": "fail"}
+
+    return results
