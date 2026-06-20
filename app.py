@@ -585,14 +585,6 @@ def connector_heartbeat(device_id: str, data: dict):
     username = data.get("username")
     user_id = data.get("user_id")
     
-    print("HEARTBEAT DEVICE:", device_id)
-    print("STATUS DATA:", data)
-    print(f"--- HEARTBEAT RECEIVED ---")
-    print(f"Device: {device_id}")
-    print(f"Data received: {data}")
-    print(f"Parsed Username: {username}")
-    print(f"--------------------------")
-    print("CONNECTOR_STATUS:", CONNECTOR_STATUS)
     
     # Save the identity into the active memory dictionary
     CONNECTOR_STATUS[device_id] = {
@@ -604,13 +596,18 @@ def connector_heartbeat(device_id: str, data: dict):
     }
     return {"success": True}
 
+import time
+
 @app.get("/api/connector/status")
 def connector_status(request: Request):
-    """Read connector/Tally state for this machine via X-Device-ID header."""
+    start = time.time()
+
     device_id = get_device_id_from_request(request)
     status_data = _connector_status_payload(device_id)
-    resp = JSONResponse(status_data)
-    return resp
+
+    print(f"connector_status took {time.time()-start:.3f}s")
+
+    return JSONResponse(status_data)
 
 @app.get("/login")
 async def login_page(request: Request):
@@ -1010,12 +1007,9 @@ def add_job(user_id: str, data: dict):
 
 @app.get("/api/get-job/{user_id}")
 def get_job(user_id: str):
-    print("CURRENT USER:", user_id)
-    print("📥 Connector requested job for:", user_id)
 
     if JOBS.get(user_id):
         job = JOBS[user_id].pop(0)
-        print("📤 Sending job:", job)
         return job
 
     return {}
@@ -1023,7 +1017,6 @@ def get_job(user_id: str):
 
 @app.post("/api/submit-result/{user_id}")
 def submit_result(user_id: str, data: dict):
-    print("CURRENT USER:", user_id)
     RESULTS[user_id] = data
     return {"ok": True}
 
