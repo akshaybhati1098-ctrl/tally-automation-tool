@@ -90,7 +90,6 @@ def log_admin_event(
     conn = None
     cur = None
     try:
-        ensure_admin_schema()
         conn = get_telemetry_db_connection()
         cur = conn.cursor()
         
@@ -355,7 +354,6 @@ def log_business_error(
 
 def fetch_dashboard_counters() -> Dict[str, int]:
     """Compiles aggregate calculation indexes across application workspaces."""
-    ensure_admin_schema()
     
     metrics = {
         "total_users": 0,
@@ -420,7 +418,6 @@ def fetch_dashboard_counters() -> Dict[str, int]:
 
 def gather_traffic_trends_7d() -> Dict[str, List]:
     """Generates sequential date-matched metric structures for Chart.js rendering."""
-    ensure_admin_schema()
     
     trends = {
         "labels": [],

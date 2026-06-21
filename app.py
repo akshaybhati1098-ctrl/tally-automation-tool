@@ -109,26 +109,34 @@ app.add_middleware(
 # 2. Enterprise Telemetry Instrumentation Middleware
 @app.middleware("http")
 async def enterprise_request_instrumentation_middleware(request: Request, call_next):
-    # Skip tracking static assets to protect database performance and storage space
-    if request.url.path.startswith("/static") or request.url.path.startswith("/favicon.ico") or request.url.path.startswith("/admin"):
+
+    endpoint_path = request.url.path
+
+    # Skip tracking high-frequency endpoints
+    if (
+        endpoint_path.startswith("/static")
+        or endpoint_path.startswith("/favicon.ico")
+        or endpoint_path.startswith("/admin")
+        or endpoint_path.startswith("/api/connector/")
+        or endpoint_path.startswith("/api/get-job/")
+        or endpoint_path.startswith("/api/get-result/")
+        or endpoint_path.startswith("/api/submit-result/")
+    ):
         return await call_next(request)
 
     start_time = time.perf_counter()
-    
+
     try:
         user_id = request.session.get("user_id")
         username = request.session.get("username") or "anonymous_guest"
     except AssertionError:
         user_id = None
         username = "anonymous_guest"
-        
-    endpoint_path = request.url.path
-    
+
     try:
         response = await call_next(request)
         duration_ms = int((time.perf_counter() - start_time) * 1000)
-        
-        # Track core analytical traffic pipelines and all API transactions dynamically
+
         if endpoint_path.startswith("/api/") or endpoint_path in ["/login", "/signup"]:
             log_admin_event(
                 user_id=user_id,
@@ -139,14 +147,14 @@ async def enterprise_request_instrumentation_middleware(request: Request, call_n
                 execution_time_ms=duration_ms,
                 details={"status_code": response.status_code, "method": request.method}
             )
+
         return response
 
     except Exception as unhandled_sys_exc:
         duration_ms = int((time.perf_counter() - start_time) * 1000)
         error_msg = str(unhandled_sys_exc)
         stack_trace = traceback.format_exc()
-        
-        # Record structural application errors completely down to the database row
+
         log_admin_event(
             user_id=user_id,
             username=username,
@@ -157,6 +165,7 @@ async def enterprise_request_instrumentation_middleware(request: Request, call_n
             execution_time_ms=duration_ms,
             details={"stack_trace": stack_trace, "method": request.method}
         )
+
         raise unhandled_sys_exc
     
 @app.middleware("http")
@@ -1907,6 +1916,10 @@ async def cleanup_old_jobs():
 
 @app.on_event("startup")
 async def start_background_tasks():
+
+    # Create admin tables once on startup
+    ensure_admin_schema()
+    
     # Ensure created_at exists for any job queued before restart
     for jid, meta in JOB_STATUS.items():
         if "created_at" not in meta:
