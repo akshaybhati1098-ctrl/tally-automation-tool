@@ -381,6 +381,7 @@ def create_user_legacy(username: str, password: str):
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
 
+
 # =========================================================
 # PASSWORD RESET HELPERS (NEW)
 # =========================================================
@@ -614,13 +615,32 @@ def connector_status(request: Request):
     device_id = get_device_id_from_request(request)
     status_data = _connector_status_payload(device_id)
 
-    print(f"connector_status took {time.time()-start:.3f}s")
-
     return JSONResponse(status_data)
 
 @app.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse("pages/login.html", {"request": request})
+
+# =========================================================
+# USER LOOKUP API FOR CONNECTOR
+# =========================================================
+
+@app.post("/api/resolve-username")
+async def resolve_username(payload: dict):
+    username = payload.get("username", "").strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username required")
+
+    user = get_user(username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Username not found")
+
+    return {
+        "user_id": user["id"],
+        "username": user["username"]
+    }
 
 @app.post("/login")
 async def login_post(
