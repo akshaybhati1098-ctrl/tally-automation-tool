@@ -1282,12 +1282,10 @@ async def match_party(
         import asyncio
 
         contents = await file.read()
-        print("📄 Sheet received from frontend:", sheet_name)
 
         if sheet_name and sheet_name.strip():
             df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
         else:
-            print("⚠️ No sheet provided, using default Sheet1")
             df = pd.read_excel(io.BytesIO(contents))
 
         df = df.fillna("")

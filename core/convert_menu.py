@@ -60,7 +60,6 @@ def state_from_gstin(gstin):
 # ---------------- HELPER ----------------
 def is_interstate(gstin, company_state="Uttar Pradesh"):
     state = state_from_gstin(gstin)
-    print("👉 GSTIN:", gstin, "| STATE:", state, "| COMPANY:", company_state)
     if not state:
         return False
     return state.strip().lower() != company_state.strip().lower()
@@ -108,14 +107,10 @@ def add_entry(v, ledger, positive, amt):
 
 def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
-    print("\n================= START CONVERSION =================")
 
     # ✅ SMART MAPPING
     if not is_already_normalized(mapping):
-        print("⚙️ Mapping not normalized → normalizing...")
         mapping = normalize_mapping(mapping)
-
-    print("📦 FINAL MAPPING KEYS:", list(mapping.keys()))
 
     SALES = mapping.get("SALES", {})
     SALES_INTER = mapping.get("SALES_INTER", {})
@@ -131,7 +126,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
     IGST_PURCHASE = mapping.get("IGST_PURCHASE") or mapping.get("IGST_RATES", {})
 
     COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
-    print("🏢 COMPANY STATE:", COMPANY_STATE)
 
     ENV = ET.Element("ENVELOPE")
 
@@ -146,8 +140,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
     for i, row in df.iterrows():
 
-        print("\n================= ROW", i, "=================")
-
         record_count += 1
 
         taxable = num(first_non_empty(row, "Taxable Value", "Taxable"))
@@ -155,19 +147,14 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         sgst = num(first_non_empty(row, "SGST", "SGST Amount"))
         igst = num(first_non_empty(row, "IGST", "IGST Amount"))
 
-        print("💰 TAXABLE:", taxable)
-        print("💰 CGST:", cgst, "| SGST:", sgst, "| IGST:", igst)
 
         invoice_no = clean_text(first_non_empty(row, "Invoice Number"))
         invoice_date = first_non_empty(row, "Invoice date", "Date")
         invoice_value = num(first_non_empty(row, "Invoice Value", "Total"))
 
-        print("🧾 INVOICE:", invoice_no, "| DATE:", invoice_date, "| VALUE:", invoice_value)
-
         calc_total = taxable + cgst + sgst + igst
         voucher_total = calc_total if abs(invoice_value - calc_total) <= 10 else invoice_value
 
-        print("📊 CALC TOTAL:", calc_total, "| FINAL:", voucher_total)
 
         full_rate = 0 if taxable == 0 else round((cgst + sgst + igst) / taxable * 100, 2)
 
@@ -180,14 +167,11 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         # convert to clean string like "9", "2.5"
         rk_half = str(half_rate).rstrip("0").rstrip(".")
 
-        print("📌 RATE:", full_rate, "| RK:", rk, "| HALF:", rk_half)
 
         gstin = clean_text(first_non_empty(row, "GSTIN"))
         party_state = state_from_gstin(gstin) or COMPANY_STATE
         interstate = is_interstate(gstin, COMPANY_STATE)
 
-        print("🌍 PARTY STATE:", party_state)
-        print("🚚 INTERSTATE:", interstate)
 
         msg = ET.SubElement(REQ, "TALLYMESSAGE")
         V = ET.SubElement(msg, "VOUCHER",
@@ -208,7 +192,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
         party = clean_text(first_non_empty(row, "Recipient Name", "Party"))
 
-        print("👤 PARTY:", party)
 
         # ================= SALES =================
         if vtype == "sale":
@@ -218,18 +201,12 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
                 igst_ledger = IGST_SALES.get(rk)
                 cgst_ledger = None
                 sgst_ledger = None
-                print("📦 SALES TYPE: INTERSTATE")
             else:
                 sales_ledger = SALES.get(rk)
                 cgst_ledger = CGST_SALES.get(rk_half)
                 sgst_ledger = SGST_SALES.get(rk_half)
                 igst_ledger = None
-                print("📦 SALES TYPE: LOCAL")
 
-            print("📘 SALES LEDGER:", sales_ledger)
-            print("📘 CGST LEDGER:", cgst_ledger)
-            print("📘 SGST LEDGER:", sgst_ledger)
-            print("📘 IGST LEDGER:", igst_ledger)
 
             ET.SubElement(V, "PARTYLEDGERNAME").text = party
             ET.SubElement(V, "VOUCHERNUMBER").text = invoice_no
@@ -272,18 +249,13 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
                 igst_ledger = IGST_PURCHASE.get(rk)
                 cgst_ledger = None
                 sgst_ledger = None
-                print("📦 PURCHASE TYPE: INTERSTATE")
+
             else:
                 purchase_ledger = PURCHASE.get(rk)
                 cgst_ledger = CGST_PURCHASE.get(rk_half)
                 sgst_ledger = SGST_PURCHASE.get(rk_half)
                 igst_ledger = None
-                print("📦 PURCHASE TYPE: LOCAL")
 
-            print("📘 PURCHASE LEDGER:", purchase_ledger)
-            print("📘 CGST LEDGER:", cgst_ledger)
-            print("📘 SGST LEDGER:", sgst_ledger)
-            print("📘 IGST LEDGER:", igst_ledger)
 
             ET.SubElement(V, "PARTYLEDGERNAME").text = party
             ET.SubElement(V, "REFERENCE").text = invoice_no
@@ -317,8 +289,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
             if igst_ledger and igst:
                 add_entry(V, igst_ledger, True, igst)
-
-    print("\n✅ TOTAL RECORDS:", record_count)
 
     # SAVE
     file_name = f"{vtype}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xml"
