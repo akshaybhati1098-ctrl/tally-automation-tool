@@ -190,7 +190,7 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         ET.SubElement(V, "VOUCHERTYPENAME").text = "Sales" if vtype == "sale" else "Purchase"
 
 
-        party = clean_text(first_non_empty(row, "Recipient Name", "Party"))
+        party = clean_text(first_non_empty(row, "Final Party Name","Recipient Name", "Party"))
 
 
         # ================= SALES =================
