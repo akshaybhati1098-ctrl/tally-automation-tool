@@ -3,6 +3,7 @@ import pandas as pd
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
+
 MISSING_LEDGER_NAME = "__RATE_NOT_MAPPED__"
 def tally_date(d):
     try:
@@ -107,6 +108,14 @@ def add_entry(v, ledger, positive, amt):
 
 def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
+    print("\n========== XML INPUT ==========")
+    print("Columns:", df.columns.tolist())
+
+    if "Final Party Name" in df.columns:
+        print(df[["Recipient Name", "Final Party Name"]].head(10))
+    else:
+        print(df[["Recipient Name"]].head(10))
+
 
     # ✅ SMART MAPPING
     if not is_already_normalized(mapping):
@@ -191,6 +200,11 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
 
 
         party = clean_text(first_non_empty(row, "Final Party Name","Recipient Name", "Party"))
+        party = clean_text(first_non_empty(row, "Final Party Name", "Party","Recipient Name" ))
+        print(f"Row {i}")
+        print("Recipient Name :", row.get("Recipient Name"))
+        print("Final Party Name :", row.get("Final Party Name"))
+        print("Party used :", party)
 
 
         # ================= SALES =================

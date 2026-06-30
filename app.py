@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 from fastapi import Request
+
 load_dotenv()
 import io
 import uuid
@@ -9,7 +10,7 @@ import json
 import bcrypt
 import secrets
 import tempfile
-import time       # Added for tracking execution time metric values
+import time  # Added for tracking execution time metric values
 import traceback  # Added for capturing crash logs safely
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
@@ -24,12 +25,28 @@ JOB_STATUS = {}  # {job_id: {"status": "...", "progress": 0-100, "message": "...
 thread_pool = ThreadPoolExecutor(max_workers=4)
 
 from datetime import datetime, timedelta
+
 os.makedirs("data", exist_ok=True)
 from io import BytesIO
 from typing import Optional
 
-from fastapi import FastAPI, Request, UploadFile, Form, HTTPException, Depends, File, WebSocket, WebSocketDisconnect
-from fastapi.responses import Response, JSONResponse, RedirectResponse, StreamingResponse
+from fastapi import (
+    FastAPI,
+    Request,
+    UploadFile,
+    Form,
+    HTTPException,
+    Depends,
+    File,
+    WebSocket,
+    WebSocketDisconnect,
+)
+from fastapi.responses import (
+    Response,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
@@ -59,16 +76,22 @@ from psycopg2.extras import RealDictCursor
 
 # Email verification imports
 from itsdangerous import BadSignature, SignatureExpired
-from core.email import generate_token, decode_token, send_verification_email, send_otp_email, send_welcome_email
+from core.email import (
+    generate_token,
+    decode_token,
+    send_verification_email,
+    send_otp_email,
+    send_welcome_email,
+)
 
 # Existing services – these now use persistent /data/mapping.json
-from core.excel_service import excel_to_xml
+from core.excel_service import excel_to_xml, dataframe_to_xml
 from core.mapping import (
     load_companies,
     add_company,
     delete_company,
     get_company_mapping as get_company_mapping_data,
-    save_company_mapping
+    save_company_mapping,
 )
 from core.process_service import image_to_excel
 
@@ -81,7 +104,7 @@ from core.business_telemetry import (
     log_match_event,
     log_conversion_event,
     log_ocr_event,
-    log_business_error
+    log_business_error,
 )
 from routes.admin_business_routes import business_router
 
@@ -97,14 +120,12 @@ app = FastAPI(title="Tally Automation Tool")
 # 1. CORS Settings
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://tallytool.online",
-        "https://www.tallytool.online"
-    ],
+    allow_origins=["https://tallytool.online", "https://www.tallytool.online"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # 2. Enterprise Telemetry Instrumentation Middleware
 @app.middleware("http")
@@ -145,7 +166,7 @@ async def enterprise_request_instrumentation_middleware(request: Request, call_n
                 endpoint=endpoint_path,
                 status_str="success" if response.status_code < 400 else "failed",
                 execution_time_ms=duration_ms,
-                details={"status_code": response.status_code, "method": request.method}
+                details={"status_code": response.status_code, "method": request.method},
             )
 
         return response
@@ -163,25 +184,30 @@ async def enterprise_request_instrumentation_middleware(request: Request, call_n
             status_str="error",
             error_message=error_msg,
             execution_time_ms=duration_ms,
-            details={"stack_trace": stack_trace, "method": request.method}
+            details={"stack_trace": stack_trace, "method": request.method},
         )
 
         raise unhandled_sys_exc
-    
+
+
 @app.middleware("http")
 async def admin_security_no_cache_middleware(request: Request, call_next):
     """Forces the browser to delete the admin page from memory the second you log out."""
     response = await call_next(request)
-    
+
     if request.url.path.startswith("/admin"):
-        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Cache-Control"] = (
+            "no-store, no-cache, must-revalidate, max-age=0"
+        )
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
-        
+
     return response
+
 
 # 3. Session Timeout Tracker Middleware
 SESSION_TIMEOUT_MINUTES = 60
+
 
 @app.middleware("http")
 async def session_timeout_middleware(request: Request, call_next):
@@ -191,21 +217,21 @@ async def session_timeout_middleware(request: Request, call_next):
                 last_active = request.session.get("last_active")
                 if last_active:
                     last_dt = datetime.fromisoformat(last_active)
-                    if datetime.now() - last_dt > timedelta(minutes=SESSION_TIMEOUT_MINUTES):
+                    if datetime.now() - last_dt > timedelta(
+                        minutes=SESSION_TIMEOUT_MINUTES
+                    ):
                         request.session.clear()
                 request.session["last_active"] = datetime.now().isoformat()
         except Exception:
             pass
     return await call_next(request)
 
+
 # 4. Session Engine Core Initialization Middleware
 SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
     raise RuntimeError("SECRET_KEY environment variable not set")
-app.add_middleware(
-    SessionMiddleware,
-    secret_key=SECRET_KEY
-)
+app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # =========================================================
 # STATIC & TEMPLATES
@@ -220,24 +246,22 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set")
 
+
 def get_db_connection(retries=3, backoff=1):
     """Connect to database with retry logic for transient failures."""
     for attempt in range(retries):
         try:
-            return psycopg2.connect(
-                DATABASE_URL,
-                sslmode="require",
-                connect_timeout=10
-            )
+            return psycopg2.connect(DATABASE_URL, sslmode="require", connect_timeout=10)
         except psycopg2.OperationalError as e:
             if attempt < retries - 1:
-                wait_time = backoff * (2 ** attempt)
+                wait_time = backoff * (2**attempt)
                 print(f"⚠️ DB connection attempt {attempt + 1} failed: {str(e)[:100]}")
                 print(f"   Retrying in {wait_time}s...")
                 time.sleep(wait_time)
             else:
                 print(f"❌ DB connection failed after {retries} attempts")
                 raise
+
 
 def init_user_db():
     """Create users and pending_users tables if they don't exist."""
@@ -275,18 +299,20 @@ def init_user_db():
     """)
 
     # Add reset token columns to users table if they don't exist
-    cur.execute("SELECT column_name FROM information_schema.columns WHERE table_name='users'")
+    cur.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='users'"
+    )
     columns = [col[0] for col in cur.fetchall()]
 
-    if 'reset_token' not in columns:
+    if "reset_token" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN reset_token TEXT")
         print("Added reset_token column to users table")
 
-    if 'reset_expiry' not in columns:
+    if "reset_expiry" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN reset_expiry TIMESTAMP")
         print("Added reset_expiry column to users table")
 
-    if 'is_admin' not in columns:
+    if "is_admin" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE")
         print("Added is_admin column to users table")
 
@@ -302,13 +328,26 @@ def init_user_db():
         """)
         existing_tables = [row[0] for row in cur.fetchall()]
         print(f"🔍 Connected Database Tables Found: {existing_tables}")
-        
+
         # 2. Force add 'execution_time_ms' to any table that looks like a telemetry/logging table
-        candidates = ['admin_events', 'telemetry', 'logs', 'api_requests', 'admin_telemetry']
+        candidates = [
+            "admin_events",
+            "telemetry",
+            "logs",
+            "api_requests",
+            "admin_telemetry",
+        ]
         for table in existing_tables:
-            if table in candidates or 'log' in table or 'event' in table or 'telemetry' in table:
+            if (
+                table in candidates
+                or "log" in table
+                or "event" in table
+                or "telemetry" in table
+            ):
                 try:
-                    cur.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS execution_time_ms INTEGER DEFAULT 0;")
+                    cur.execute(
+                        f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS execution_time_ms INTEGER DEFAULT 0;"
+                    )
                     print(f"✅ Verified/Added 'execution_time_ms' to table: {table}")
                 except Exception as table_err:
                     print(f"⚠️ Skip table update for {table}: {table_err}")
@@ -321,7 +360,9 @@ def init_user_db():
     conn.close()
     print("✅ User database tables initialized in PostgreSQL")
 
+
 init_user_db()
+
 
 # =========================================================
 # USER HELPERS (existing + new)
@@ -335,6 +376,7 @@ def get_user(username: str):
     conn.close()
     return user
 
+
 def get_user_by_email(email: str):
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
@@ -344,6 +386,7 @@ def get_user_by_email(email: str):
     conn.close()
     return user
 
+
 # ================= FIXED create_user =================
 def create_user(username: str, email: str, password: str):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -352,7 +395,7 @@ def create_user(username: str, email: str, password: str):
 
     cur.execute(
         "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id",
-        (username, email, hashed)
+        (username, email, hashed),
     )
 
     user_id = cur.fetchone()[0]
@@ -364,6 +407,7 @@ def create_user(username: str, email: str, password: str):
     print(f"✅ User '{username}' created")
     return user_id
 
+
 # Legacy function (username only) – kept for backward compatibility if needed
 def create_user_legacy(username: str, password: str):
     hashed = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode()
@@ -371,12 +415,15 @@ def create_user_legacy(username: str, password: str):
     cur = conn.cursor()
     cur.execute(
         "INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s)",
-        (username, f"{username}@temp.local", hashed)  # placeholder email
+        (username, f"{username}@temp.local", hashed),  # placeholder email
     )
     conn.commit()
     cur.close()
     conn.close()
-    print(f"✅ User '{username}' created in PostgreSQL (legacy, with placeholder email)")
+    print(
+        f"✅ User '{username}' created in PostgreSQL (legacy, with placeholder email)"
+    )
+
 
 def verify_password(password: str, hashed: str) -> bool:
     return bcrypt.checkpw(password.encode(), hashed.encode())
@@ -391,25 +438,26 @@ def set_user_reset_token(email: str, token: str, expiry: datetime):
     cur = conn.cursor()
     cur.execute(
         "UPDATE users SET reset_token = %s, reset_expiry = %s WHERE email = %s",
-        (token, expiry, email)
+        (token, expiry, email),
     )
     conn.commit()
     cur.close()
     conn.close()
     print(f"✅ Reset token set for {email}")
 
+
 def get_user_by_reset_token(token: str):
     """Get user by valid reset token."""
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     cur.execute(
-        "SELECT * FROM users WHERE reset_token = %s AND reset_expiry > NOW()",
-        (token,)
+        "SELECT * FROM users WHERE reset_token = %s AND reset_expiry > NOW()", (token,)
     )
     user = cur.fetchone()
     cur.close()
     conn.close()
     return user
+
 
 def clear_reset_token(email: str):
     """Clear reset token after use."""
@@ -417,25 +465,24 @@ def clear_reset_token(email: str):
     cur = conn.cursor()
     cur.execute(
         "UPDATE users SET reset_token = NULL, reset_expiry = NULL WHERE email = %s",
-        (email,)
+        (email,),
     )
     conn.commit()
     cur.close()
     conn.close()
+
 
 def update_user_password(email: str, new_password: str):
     """Update user's password (hashed)."""
     hashed = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode()
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute(
-        "UPDATE users SET password_hash = %s WHERE email = %s",
-        (hashed, email)
-    )
+    cur.execute("UPDATE users SET password_hash = %s WHERE email = %s", (hashed, email))
     conn.commit()
     cur.close()
     conn.close()
     print(f"✅ Password updated for {email}")
+
 
 # =========================================================
 # PENDING USER HELPERS (OTP)
@@ -443,17 +490,21 @@ def update_user_password(email: str, new_password: str):
 def save_pending_user(email: str, username: str, otp: str, expiry: datetime):
     conn = get_db_connection()
     cur = conn.cursor()
-    cur.execute("""
+    cur.execute(
+        """
         INSERT INTO pending_users (email, username, otp_code, otp_expiry)
         VALUES (%s, %s, %s, %s)
         ON CONFLICT (email) DO UPDATE SET
             username = EXCLUDED.username,
             otp_code = EXCLUDED.otp_code,
             otp_expiry = EXCLUDED.otp_expiry
-    """, (email, username, otp, expiry))
+    """,
+        (email, username, otp, expiry),
+    )
     conn.commit()
     cur.close()
     conn.close()
+
 
 def get_pending_user(email: str):
     conn = get_db_connection()
@@ -464,6 +515,7 @@ def get_pending_user(email: str):
     conn.close()
     return user
 
+
 def delete_pending_user(email: str):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -472,6 +524,7 @@ def delete_pending_user(email: str):
     cur.close()
     conn.close()
 
+
 # =========================================================
 # AUTH HELPERS
 # =========================================================
@@ -479,14 +532,15 @@ def get_current_user(request: Request) -> Optional[str]:
     username = request.session.get("username")
     if not username:
         return None
-        
+
     # 🔥 LIVE SECURITY CHECK: Verify they aren't suspended right now
     user = get_user(username)
     if not user or user.get("is_active") is False:
-        request.session.clear() # Instantly destroy their session
+        request.session.clear()  # Instantly destroy their session
         return None
-        
+
     return username
+
 
 def require_login(request: Request):
     user = get_current_user(request)
@@ -494,16 +548,20 @@ def require_login(request: Request):
         return RedirectResponse("/login", status_code=302)
     return user
 
+
 def require_admin(request: Request):
     """Route guard enforcing that the current session belongs to a platform administrator."""
     username = get_current_user(request)
     if not username:
         raise HTTPException(status_code=401, detail="Authentication required")
-    
+
     user = get_user(username)
     if not user or not user.get("is_admin"):
-        raise HTTPException(status_code=403, detail="Administrative access clearance denied")
+        raise HTTPException(
+            status_code=403, detail="Administrative access clearance denied"
+        )
     return username
+
 
 def get_session_user_id(request: Request) -> str:
     """Return logged-in user id as string for connector queues."""
@@ -511,6 +569,7 @@ def get_session_user_id(request: Request) -> str:
     if user_id is None:
         raise HTTPException(status_code=401, detail="Not authenticated")
     return str(user_id)
+
 
 # =========================================================
 # UI ROUTES
@@ -521,9 +580,10 @@ async def serve_ui(request: Request):
     if not user:
         return RedirectResponse("/login")
     return templates.TemplateResponse(
-        "index.html",
-        {"request": request, "username": user}
+        "index.html", {"request": request, "username": user}
     )
+
+
 # Device-scoped connector status (Tally on this machine)
 CONNECTOR_STATUS = {}
 
@@ -554,6 +614,7 @@ def _connector_status_payload(device_id: str) -> dict:
         "company": None,
     }
 
+
 def _parse_last_seen(value) -> Optional[datetime]:
     """Parse heartbeat timestamp; missing/invalid values sort as oldest."""
     if value is None:
@@ -581,7 +642,9 @@ def _connector_last_seen_sort_key(item: tuple) -> datetime:
 def _get_latest_connector_entry() -> tuple[Optional[str], Optional[dict]]:
     if not CONNECTOR_STATUS:
         return None, None
-    device_id, payload = max(CONNECTOR_STATUS.items(), key=_connector_last_seen_sort_key)
+    device_id, payload = max(
+        CONNECTOR_STATUS.items(), key=_connector_last_seen_sort_key
+    )
     return device_id, payload if isinstance(payload, dict) else None
 
 
@@ -590,12 +653,11 @@ def connector_heartbeat(device_id: str, data: dict):
     """Connector posts Tally running state for this PC/device."""
     status = data.get("status")
     company = data.get("company")
-    
+
     # 🔥 FIX: Intercept the user identity from the connector
     username = data.get("username")
     user_id = data.get("user_id")
-    
-    
+
     # Save the identity into the active memory dictionary
     CONNECTOR_STATUS[device_id] = {
         "status": status,
@@ -606,7 +668,9 @@ def connector_heartbeat(device_id: str, data: dict):
     }
     return {"success": True}
 
+
 import time
+
 
 @app.get("/api/connector/status")
 def connector_status(request: Request):
@@ -615,55 +679,44 @@ def connector_status(request: Request):
     device_id = get_device_id_from_request(request)
     status_data = _connector_status_payload(device_id)
 
+    print(f"connector_status took {time.time()-start:.3f}s")
+
     return JSONResponse(status_data)
+
 
 @app.get("/login")
 async def login_page(request: Request):
     return templates.TemplateResponse("pages/login.html", {"request": request})
 
-# =========================================================
-# USER LOOKUP API FOR CONNECTOR
-# =========================================================
-
-@app.post("/api/resolve-username")
-async def resolve_username(payload: dict):
-    username = payload.get("username", "").strip()
-
-    if not username:
-        raise HTTPException(status_code=400, detail="Username required")
-
-    user = get_user(username)
-
-    if not user:
-        raise HTTPException(status_code=404, detail="Username not found")
-
-    return {
-        "user_id": user["id"],
-        "username": user["username"]
-    }
 
 @app.post("/login")
 async def login_post(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
+    request: Request, username: str = Form(...), password: str = Form(...)
 ):
     username = username.strip()
     user = get_user(username)
-    
+
     # 1. 🔥 SECURITY CHECK: Intercept Suspended Accounts Immediately
     if user and user.get("is_active") is False:
         # Use your existing flash alert system from login.html
-        return templates.TemplateResponse("pages/login.html", {
-            "request": request,
-            "flashes": [{"category": "error", "message": "Your account has been suspended. Please contact support."}]
-        })
+        return templates.TemplateResponse(
+            "pages/login.html",
+            {
+                "request": request,
+                "flashes": [
+                    {
+                        "category": "error",
+                        "message": "Your account has been suspended. Please contact support.",
+                    }
+                ],
+            },
+        )
 
     # 2. Verify Password and Proceed
     if user and verify_password(password, user["password_hash"]):
         request.session["username"] = username
-        request.session["user_id"] = user["id"]   
-        
+        request.session["user_id"] = user["id"]
+
         # --- BUSINESS EVENT LOGGING: SUCCESS ---
         log_admin_event(
             user_id=user["id"],
@@ -673,11 +726,11 @@ async def login_post(
             details={
                 "username": username,
                 "ip_address": request.client.host,
-                "user_agent": request.headers.get("user-agent", "unknown")
-            }
+                "user_agent": request.headers.get("user-agent", "unknown"),
+            },
         )
         return RedirectResponse("/", status_code=302)
-        
+
     # --- BUSINESS EVENT LOGGING: FAILURE ---
     log_admin_event(
         username=username,
@@ -686,18 +739,18 @@ async def login_post(
         details={
             "username": username,
             "ip_address": request.client.host,
-            "user_agent": request.headers.get("user-agent", "unknown")
-        }
+            "user_agent": request.headers.get("user-agent", "unknown"),
+        },
     )
     log_business_error(
         user_id=None,
         username=username,
         event_type="login",
         error_type="auth_failure",
-        error_message="Invalid account handle credentials combination input matching query signature values."
+        error_message="Invalid account handle credentials combination input matching query signature values.",
     )
     return RedirectResponse("/login?error=1", status_code=302)
-        
+
     # --- BUSINESS EVENT LOGGING: FAILURE ---
     log_admin_event(
         username=username,
@@ -706,28 +759,28 @@ async def login_post(
         details={
             "username": username,
             "ip_address": request.client.host,
-            "user_agent": request.headers.get("user-agent", "unknown")
-        }
+            "user_agent": request.headers.get("user-agent", "unknown"),
+        },
     )
     log_business_error(
         user_id=None,
         username=username,
         event_type="login",
         error_type="auth_failure",
-        error_message="Invalid account handle credentials combination input matching query signature values."
+        error_message="Invalid account handle credentials combination input matching query signature values.",
     )
     return RedirectResponse("/login?error=1", status_code=302)
+
 
 @app.get("/signup")
 async def signup_page(request: Request):
     return templates.TemplateResponse("pages/signup.html", {"request": request})
 
+
 # Legacy signup endpoint (username/password only) – kept for backward compatibility
 @app.post("/signup")
 async def signup_post(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...)
+    request: Request, username: str = Form(...), password: str = Form(...)
 ):
     username = username.strip()
     if not username or not password:
@@ -737,22 +790,20 @@ async def signup_post(
     create_user_legacy(username, password)
     return RedirectResponse("/login?created=1", status_code=302)
 
+
 @app.get("/logout")
 async def logout(request: Request):
     user = get_current_user(request)
     if user:
         # --- BUSINESS EVENT LOGGING ---
-        log_admin_event(
-            username=user,
-            event_type="logout",
-            status_str="success"
-        )
-        
+        log_admin_event(username=user, event_type="logout", status_str="success")
+
     is_ajax = request.headers.get("X-Requested-With") == "XMLHttpRequest"
     request.session.clear()
     if is_ajax:
         return JSONResponse({"success": True, "redirect": "/login"})
     return RedirectResponse("/login")
+
 
 @app.get("/api/me")
 async def api_me(request: Request):
@@ -763,6 +814,7 @@ async def api_me(request: Request):
         "username": user,
         "user_id": user_id,
     }
+
 
 # =========================================================
 # OTP ENDPOINTS (for email verification signup)
@@ -775,15 +827,22 @@ async def send_otp(email: str = Form(...), username: str = Form(...)):
 
     # Basic validation
     if not email or not username:
-        return JSONResponse({"status": "error", "message": "Email and username required."}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "Email and username required."},
+            status_code=400,
+        )
 
     # Check if email already registered
     if get_user_by_email(email):
-        return JSONResponse({"status": "error", "message": "Email already registered."}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "Email already registered."}, status_code=400
+        )
 
     # Check if username already exists
     if get_user(username):
-        return JSONResponse({"status": "error", "message": "Username already taken."}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "Username already taken."}, status_code=400
+        )
 
     # Overwrite any existing pending record for this email
     if get_pending_user(email):
@@ -802,29 +861,43 @@ async def send_otp(email: str = Form(...), username: str = Form(...)):
     except Exception as e:
         print(f"OTP email failed: {e}")
         delete_pending_user(email)
-        return JSONResponse({"status": "error", "message": "Failed to send OTP email. Please check your email address or try again later."}, status_code=500)
+        return JSONResponse(
+            {
+                "status": "error",
+                "message": "Failed to send OTP email. Please check your email address or try again later.",
+            },
+            status_code=500,
+        )
 
     return JSONResponse({"status": "ok"})
+
 
 @app.post("/api/verify-otp-signup")
 async def verify_otp_signup(
     email: str = Form(...),
     username: str = Form(...),
     password: str = Form(...),
-    otp: str = Form(...)
+    otp: str = Form(...),
 ):
     email = email.strip().lower()
     username = username.strip()
 
     pending = get_pending_user(email)
     if not pending:
-        return JSONResponse({"status": "error", "message": "No pending registration found"}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "No pending registration found"},
+            status_code=400,
+        )
 
     if pending["username"] != username:
-        return JSONResponse({"status": "error", "message": "Username mismatch"}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "Username mismatch"}, status_code=400
+        )
 
     if pending["otp_code"] != otp:
-        return JSONResponse({"status": "error", "message": "Invalid OTP"}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "Invalid OTP"}, status_code=400
+        )
 
     expiry = pending["otp_expiry"]
     if isinstance(expiry, str):
@@ -832,18 +905,23 @@ async def verify_otp_signup(
 
     if datetime.now() > expiry:
         delete_pending_user(email)
-        return JSONResponse({"status": "error", "message": "OTP expired"}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "OTP expired"}, status_code=400
+        )
 
     # Final validation
     if get_user_by_email(email) or get_user(username):
         delete_pending_user(email)
-        return JSONResponse({"status": "error", "message": "User already exists"}, status_code=400)
+        return JSONResponse(
+            {"status": "error", "message": "User already exists"}, status_code=400
+        )
 
     # CREATE USER
     user_id = create_user(username, email, password)
 
     # DEFAULT COMPANY
     from core.mapping import save_company_mapping_postgres, get_default_mapping
+
     save_company_mapping_postgres("Default", get_default_mapping(), user_id)
 
     # SEND EMAIL (optional)
@@ -857,6 +935,7 @@ async def verify_otp_signup(
 
     return JSONResponse({"status": "ok"})
 
+
 # =========================================================
 # FORGOT USERNAME/PASSWORD ENDPOINTS (NEW)
 # =========================================================
@@ -868,16 +947,20 @@ async def forgot_username(email: str = Form(...)):
     if not user:
         # Return success even if email not found (security)
         return JSONResponse({"status": "ok"})
-    
+
     try:
         # Import the email function
         from core.email import send_username_reminder_email
+
         send_username_reminder_email(email, user["username"])
     except Exception as e:
         print(f"Failed to send username reminder: {e}")
-        return JSONResponse({"status": "error", "message": "Failed to send email."}, status_code=500)
-    
+        return JSONResponse(
+            {"status": "error", "message": "Failed to send email."}, status_code=500
+        )
+
     return JSONResponse({"status": "ok"})
+
 
 @app.post("/api/forgot-password")
 async def forgot_password(email: str = Form(...)):
@@ -886,40 +969,51 @@ async def forgot_password(email: str = Form(...)):
     user = get_user_by_email(email)
     if not user:
         return JSONResponse({"status": "ok"})  # Security: don't reveal existence
-    
+
     # Generate reset token (valid for 1 hour)
     from core.email import generate_token
+
     reset_token = generate_token(email)
     expiry = datetime.now() + timedelta(hours=1)
-    
+
     set_user_reset_token(email, reset_token, expiry)
-    
+
     BASE_URL = os.environ.get("BASE_URL", "https://tallytool.online")
     reset_link = f"{BASE_URL}/reset-password?token={reset_token}"
-    
+
     try:
         from core.email import send_password_reset_email
+
         send_password_reset_email(email, reset_link)
     except Exception as e:
         print(f"Failed to send password reset email: {e}")
-        return JSONResponse({"status": "error", "message": "Failed to send email."}, status_code=500)
-    
+        return JSONResponse(
+            {"status": "error", "message": "Failed to send email."}, status_code=500
+        )
+
     return JSONResponse({"status": "ok"})
+
 
 @app.post("/api/reset-password")
 async def reset_password(token: str = Form(...), new_password: str = Form(...)):
     """Reset password using valid token."""
     if len(new_password) < 6:
-        return JSONResponse({"status": "error", "message": "Password must be at least 6 characters."}, status_code=400)
-    
+        return JSONResponse(
+            {"status": "error", "message": "Password must be at least 6 characters."},
+            status_code=400,
+        )
+
     user = get_user_by_reset_token(token)
     if not user:
-        return JSONResponse({"status": "error", "message": "Invalid or expired token."}, status_code=400)
-    
+        return JSONResponse(
+            {"status": "error", "message": "Invalid or expired token."}, status_code=400
+        )
+
     update_user_password(user["email"], new_password)
     clear_reset_token(user["email"])
-    
+
     return JSONResponse({"status": "ok"})
+
 
 # =========================================================
 # LEGACY EMAIL VERIFICATION ROUTES (if you still need them)
@@ -929,15 +1023,28 @@ async def verify_email_route(request: Request, token: str):
     try:
         email = decode_token(token)
     except SignatureExpired:
-        return templates.TemplateResponse("pages/signup.html", {
-            "request": request,
-            "flashes": [{"category": "error", "message": "Verification link expired. Please sign up again."}]
-        })
+        return templates.TemplateResponse(
+            "pages/signup.html",
+            {
+                "request": request,
+                "flashes": [
+                    {
+                        "category": "error",
+                        "message": "Verification link expired. Please sign up again.",
+                    }
+                ],
+            },
+        )
     except BadSignature:
-        return templates.TemplateResponse("pages/signup.html", {
-            "request": request,
-            "flashes": [{"category": "error", "message": "Invalid verification link."}]
-        })
+        return templates.TemplateResponse(
+            "pages/signup.html",
+            {
+                "request": request,
+                "flashes": [
+                    {"category": "error", "message": "Invalid verification link."}
+                ],
+            },
+        )
 
     conn = get_db_connection()
     cur = conn.cursor()
@@ -948,11 +1055,12 @@ async def verify_email_route(request: Request, token: str):
 
     return RedirectResponse("/login?verified=1", status_code=302)
 
+
 @app.post("/resend-verification")
 async def resend_verification_route(email: str = Form(...)):
     user = get_user_by_email(email)
     if not user or user["is_verified"] == 1:
-        return JSONResponse({"status": "ok"})   # silently ignore
+        return JSONResponse({"status": "ok"})  # silently ignore
 
     token = generate_token(email)
     try:
@@ -962,22 +1070,19 @@ async def resend_verification_route(email: str = Form(...)):
 
     return JSONResponse({"status": "ok"})
 
+
 # =========================================================
 # MAPPING APIs (PERSISTENT – CORRECT VERSION)
 # =========================================================
 @app.get("/api/companies")
-async def get_companies(
-    request: Request,
-    user: str = Depends(require_login)
-):
-    user_id = request.session.get("user_id") 
+async def get_companies(request: Request, user: str = Depends(require_login)):
+    user_id = request.session.get("user_id")
     return {"companies": load_companies(user_id)}
+
 
 @app.post("/api/companies")
 async def create_company(
-    request: Request,
-    name: str = Form(...),
-    user: str = Depends(require_login)
+    request: Request, name: str = Form(...), user: str = Depends(require_login)
 ):
     try:
         user_id = request.session.get("user_id")
@@ -986,11 +1091,10 @@ async def create_company(
         raise HTTPException(400, str(e))
     return {"status": "success"}
 
+
 @app.delete("/api/companies/{name}")
 async def remove_company(
-    request: Request,
-    name: str,
-    user: str = Depends(require_login)
+    request: Request, name: str, user: str = Depends(require_login)
 ):
     try:
         user_id = request.session.get("user_id")
@@ -999,11 +1103,10 @@ async def remove_company(
         raise HTTPException(400, str(e))
     return {"status": "deleted"}
 
+
 @app.get("/api/mapping/{company}")
 async def get_company_mapping_api(
-    request: Request,
-    company: str,
-    user: str = Depends(require_login)
+    request: Request, company: str, user: str = Depends(require_login)
 ):
     try:
         user_id = request.session.get("user_id")
@@ -1011,12 +1114,10 @@ async def get_company_mapping_api(
     except ValueError:
         raise HTTPException(404)
 
+
 @app.post("/api/mapping/{company}")
 async def update_company_mapping(
-    request: Request,
-    company: str,
-    mapping: dict,
-    user: str = Depends(require_login)
+    request: Request, company: str, mapping: dict, user: str = Depends(require_login)
 ):
     try:
         user_id = request.session.get("user_id")
@@ -1024,6 +1125,7 @@ async def update_company_mapping(
     except ValueError as e:
         raise HTTPException(400, str(e))
     return {"status": "saved"}
+
 
 # ================================
 # 🔌 CONNECTOR APIs
@@ -1058,9 +1160,12 @@ def get_result(
 ):
     session_user_id = get_session_user_id(request)
     if session_user_id != str(user_id):
-        raise HTTPException(status_code=403, detail="Cannot access another user's result")
+        raise HTTPException(
+            status_code=403, detail="Cannot access another user's result"
+        )
     print("CURRENT USER:", user_id)
     return RESULTS.get(user_id, {})
+
 
 # =========================================================
 # PROTECTED APIs (ORDER PRESERVED)
@@ -1070,45 +1175,47 @@ async def image_to_excel_api(
     request: Request,
     file: UploadFile,
     company_key: str = Form(...),
-    user: str = Depends(require_login)
+    user: str = Depends(require_login),
 ):
     # --- BUSINESS EVENT LOGGING: OCR STARTED ---
     user_id = request.session.get("user_id")
     username = request.session.get("username", "anonymous")
     start_time = time.perf_counter()
-    
+
     log_admin_event(
         user_id=user_id,
         username=username,
         event_type="ocr_started",
-        status_str="success"
+        status_str="success",
     )
 
     try:
         excel_bytes, output_filename = image_to_excel(
-            await file.read(),
-            file.filename,
-            company_key
+            await file.read(), file.filename, company_key
         )
-        
+
         # --- BUSINESS EVENT LOGGING: OCR COMPLETED SUCCESS ---
         duration_ms = int((time.perf_counter() - start_time) * 1000)
-        
+
         # Approximate metrics parsing based on image input boundaries
         log_ocr_event(
             user_id=user_id,
             username=username,
             status="success",
             duration_ms=duration_ms,
-            file_type=file.filename.split('.')[-1].lower() if '.' in file.filename else 'unknown',
-            pages=1, # Base aggregate fallback metric values safely
-            rows_generated=0 # Safely derived defaults
+            file_type=(
+                file.filename.split(".")[-1].lower()
+                if "." in file.filename
+                else "unknown"
+            ),
+            pages=1,  # Base aggregate fallback metric values safely
+            rows_generated=0,  # Safely derived defaults
         )
-        
+
         return Response(
             content=excel_bytes,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers={"Content-Disposition": f"attachment; filename={output_filename}"}
+            headers={"Content-Disposition": f"attachment; filename={output_filename}"},
         )
     except Exception as ocr_err:
         # --- BUSINESS EVENT LOGGING: OCR EXCEPTION ---
@@ -1117,15 +1224,14 @@ async def image_to_excel_api(
             username=username,
             event_type="ocr",
             error_type="processing_error",
-            error_message=str(ocr_err)
+            error_message=str(ocr_err),
         )
         raise ocr_err
 
+
 @app.post("/api/sheets")
 async def get_sheet_names(
-    request: Request,
-    file: UploadFile,
-    user: str = Depends(require_login)
+    request: Request, file: UploadFile, user: str = Depends(require_login)
 ):
     contents = await file.read()
     if file.filename.endswith(".xlsx"):
@@ -1134,19 +1240,25 @@ async def get_sheet_names(
     df = pd.read_excel(BytesIO(contents), sheet_name=None)
     return {"sheets": list(df.keys())}
 
+
 @app.get("/download-template")
-async def download_template(
-    request: Request,
-    user: str = Depends(require_login)
-):
+async def download_template(request: Request, user: str = Depends(require_login)):
     wb = Workbook()
     ws = wb.active
     ws.title = "Template"
 
     headers = [
-        'Sr','GSTIN','Recipient Name','Invoice Number',
-        'Invoice date','Invoice Value','Taxable Value',
-        'IGST','CGST','SGST','Cess'
+        "Sr",
+        "GSTIN",
+        "Recipient Name",
+        "Invoice Number",
+        "Invoice date",
+        "Invoice Value",
+        "Taxable Value",
+        "IGST",
+        "CGST",
+        "SGST",
+        "Cess",
     ]
 
     ws.append(headers)
@@ -1160,19 +1272,21 @@ async def download_template(
     return Response(
         content=excel_bytes.read(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"}
+        headers={"Content-Disposition": "attachment; filename=invoice_template.xlsx"},
     )
+
 
 @app.get("/reset-password")
 async def reset_password_page(request: Request, token: str = None):
     """Render the login page with the reset token for frontend handling."""
     # Pass the token to the template so JavaScript can pick it up
     return templates.TemplateResponse(
-        "pages/login.html",
-        {"request": request, "reset_token": token}
+        "pages/login.html", {"request": request, "reset_token": token}
     )
 
+
 from fastapi import Query
+
 
 @app.get("/api/tally/ledgers")
 def api_tally_ledgers(
@@ -1180,7 +1294,7 @@ def api_tally_ledgers(
     group: str = Query(None),
     user: str = Depends(require_login),
 ):
-    print("📦 API received group:", group)  
+    print("📦 API received group:", group)
 
     user_id = get_session_user_id(request)
     print("CURRENT USER:", user_id)
@@ -1188,7 +1302,7 @@ def api_tally_ledgers(
     # 1. create XML with group
     xml = build_ledger_xml(group)
 
-    print("📤 XML SENT:\n", xml)  
+    print("📤 XML SENT:\n", xml)
 
     # 2. send job (avoid stale results)
     RESULTS.pop(user_id, None)
@@ -1237,9 +1351,7 @@ def api_tally_ledgers(
         try:
             parents = [i.get("parent", "") for i in parsed]
             parents_clean = [p.strip() for p in parents if p and p.strip()]
-            uniq_parents = sorted(
-                list({p.lower() for p in parents_clean})
-            )[:10]
+            uniq_parents = sorted(list({p.lower() for p in parents_clean}))[:10]
             eq_count = sum(1 for p in parents_clean if p.lower() == group_norm.lower())
             print(
                 f"🧩 parent debug: group={group_norm!r}, parsed={len(parsed)}, "
@@ -1282,11 +1394,12 @@ def api_tally_ledgers(
     ledgers = list(dict.fromkeys(ledgers))
     return {"status": "ok", "ledgers": ledgers}
 
+
 @app.post("/api/match-party")
 async def match_party(
     request: Request,
     file: UploadFile = File(...),
-    tally_group: str = Form(None), 
+    tally_group: str = Form(None),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
     user: str = Depends(require_login),
@@ -1302,10 +1415,12 @@ async def match_party(
         import asyncio
 
         contents = await file.read()
+        print("📄 Sheet received from frontend:", sheet_name)
 
         if sheet_name and sheet_name.strip():
             df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
         else:
+            print("⚠️ No sheet provided, using default Sheet1")
             df = pd.read_excel(io.BytesIO(contents))
 
         df = df.fillna("")
@@ -1319,8 +1434,8 @@ async def match_party(
             details={
                 "rows": len(df),
                 "columns": len(df.columns),
-                "sheet_name": sheet_name or "Sheet1"
-            }
+                "sheet_name": sheet_name or "Sheet1",
+            },
         )
 
         from core.match_service import (
@@ -1338,10 +1453,17 @@ async def match_party(
         gstin_col = detect_gstin_column(df)
 
         print("🧠 Detected party column:", party_col)
-        print("🧠 Detected GSTIN column:", gantin_col if 'gantin_col' in locals() else gstin_col)
+        print(
+            "🧠 Detected GSTIN column:",
+            gantin_col if "gantin_col" in locals() else gstin_col,
+        )
 
         try:
-            manual_cols = json.loads(manual_columns) if isinstance(manual_columns, str) else manual_columns
+            manual_cols = (
+                json.loads(manual_columns)
+                if isinstance(manual_columns, str)
+                else manual_columns
+            )
         except:
             manual_cols = {}
 
@@ -1359,22 +1481,19 @@ async def match_party(
             username=username,
             event_type="match_columns_detected",
             status_str="success",
-            details={
-                "party_column": party_col,
-                "gstin_column": gstin_col
-            }
+            details={"party_column": party_col, "gstin_column": gstin_col},
         )
 
         if not party_col or not gstin_col:
             print("⚠️ Missing columns - returning manual_required")
-            
+
             # Record structural validation failure
             log_business_error(
                 user_id=user_id,
                 username=username,
                 event_type="match_party",
                 error_type="validation_error",
-                error_message="GSTIN or Party column mapping could not be explicitly auto-resolved."
+                error_message="GSTIN or Party column mapping could not be explicitly auto-resolved.",
             )
             return {
                 "status": "manual_required",
@@ -1390,12 +1509,12 @@ async def match_party(
         print("📦 MATCH using group:", tally_group)
 
         xml = build_ledger_xml(tally_group)
-        RESULTS.pop(user_id_str, None) 
+        RESULTS.pop(user_id_str, None)
         JOBS.setdefault(user_id_str, []).append({"xml": xml})
         print("🧾 JOB ADDED:", JOBS)
 
         result = None
-        for _ in range(20):  
+        for _ in range(20):
             await asyncio.sleep(0.5)
             result = RESULTS.get(user_id_str)
             if result:
@@ -1408,7 +1527,7 @@ async def match_party(
                 username=username,
                 event_type="match_party",
                 error_type="connector_timeout",
-                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming."
+                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
             )
             return {"status": "waiting"}
 
@@ -1430,9 +1549,7 @@ async def match_party(
             if allowed:
                 ledgers = [l for l in ledgers if l in allowed]
                 g_map = {
-                    gstin: name
-                    for gstin, name in g_map.items()
-                    if name in allowed
+                    gstin: name for gstin, name in g_map.items() if name in allowed
                 }
             else:
                 allowed = {
@@ -1443,9 +1560,7 @@ async def match_party(
                 if allowed:
                     ledgers = [l for l in ledgers if l in allowed]
                     g_map = {
-                        gstin: name
-                        for gstin, name in g_map.items()
-                        if name in allowed
+                        gstin: name for gstin, name in g_map.items() if name in allowed
                     }
 
         # --- BUSINESS EVENT LOGGING: TALLY LEDGERS STREAMED ---
@@ -1456,8 +1571,8 @@ async def match_party(
             status_str="success",
             details={
                 "ledgers_fetched": len(ledgers),
-                "tally_group": tally_group or "All"
-            }
+                "tally_group": tally_group or "All",
+            },
         )
 
         print(f"✅ Ledgers fetched: {len(ledgers)}")
@@ -1488,13 +1603,24 @@ async def match_party(
             "columns": list(df.columns),
         }
 
-        unmatched_count = len(
-            [r for r in results if r.get("status") != "matched"]
-        )
+        print("=" * 60)
+        print("✅ CREATED MATCH SESSION")
+        print("Session ID:", session_id)
+        print("Current MATCH_SESSIONS:")
+        print(list(MATCH_SESSIONS.keys()))
+        print("=" * 60)
+
+        unmatched_count = len([r for r in results if r.get("status") != "matched"])
         matched_count = len(results) - unmatched_count
-        
+
         # Approximate matching classification metadata metrics calculation safely
-        exact_count = len([r for r in results if r.get("confidence", 0) == 100 or r.get("status") == "matched"])
+        exact_count = len(
+            [
+                r
+                for r in results
+                if r.get("confidence", 0) == 100 or r.get("status") == "matched"
+            ]
+        )
         fuzzy_count = matched_count - exact_count
 
         # --- BUSINESS EVENT LOGGING: MATCH COMPLETE SUCCESS ---
@@ -1507,9 +1633,9 @@ async def match_party(
             rows_processed=len(df),
             matched=matched_count,
             unmatched=unmatched_count,
-            ledgers_fetched=len(ledgers)
+            ledgers_fetched=len(ledgers),
         )
-        
+
         # Log extended internal structured payload safely for cross-dashboard evaluation
         log_admin_event(
             user_id=user_id,
@@ -1522,8 +1648,8 @@ async def match_party(
                 "unmatched_rows": unmatched_count,
                 "fuzzy_matches": fuzzy_count if fuzzy_count >= 0 else 0,
                 "exact_matches": exact_count,
-                "duration_ms": duration_ms
-            }
+                "duration_ms": duration_ms,
+            },
         )
 
         return {
@@ -1539,14 +1665,14 @@ async def match_party(
 
     except Exception as match_exception:
         print("❌ MATCH ERROR:", str(match_exception))
-        
+
         # --- BUSINESS EVENT LOGGING: UNHANDLED EXCEPTION CORNER ---
         log_business_error(
             user_id=user_id,
             username=username,
             event_type="match_party",
             error_type="system_exception",
-            error_message=str(match_exception)
+            error_message=str(match_exception),
         )
         return {"status": "error", "message": str(match_exception)}
 
@@ -1583,8 +1709,10 @@ async def api_apply_corrections(payload: dict):
         session["reviewed_df"] = final_df
 
         unmatched = [
-            row for row in session["match_results"]
-            if row.get("status") != "matched" and not normalized_corrections.get(row["row_index"])
+            row
+            for row in session["match_results"]
+            if row.get("status") != "matched"
+            and not normalized_corrections.get(row["row_index"])
         ]
 
         return {
@@ -1598,6 +1726,7 @@ async def api_apply_corrections(payload: dict):
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
 
 @app.post("/api/download-reviewed-excel")
 async def api_download_reviewed_excel(payload: dict):
@@ -1621,7 +1750,9 @@ async def api_download_reviewed_excel(payload: dict):
 
         party_col = session.get("party_col")
         if not party_col:
-            raise HTTPException(status_code=500, detail="Party column missing in session")
+            raise HTTPException(
+                status_code=500, detail="Party column missing in session"
+            )
 
         normalized_corrections = {}
         for k, v in corrections.items():
@@ -1658,7 +1789,7 @@ async def api_download_reviewed_excel(payload: dict):
     except Exception as exc:
         print("❌ ERROR:", str(exc))
         raise HTTPException(status_code=500, detail=str(exc))
-
+    
 @app.post("/api/convert")
 async def convert_excel_api(
     request: Request,
@@ -1668,10 +1799,11 @@ async def convert_excel_api(
     company: str = Form("Default"),
     column_mapping: str = Form("{}"),
     tally_corrections: str = Form("{}"),
+    match_session_id: str | None = Form(None),
     user: str = Depends(require_login),
 ):
     """Start Excel→XML conversion as background job.
-    
+
     INSTANT RESPONSE: Returns job_id immediately
     CLIENT POLLS: /api/job-status/{job_id} for progress
     REAL-TIME: WebSocket /ws/job-progress/{job_id} for live updates
@@ -1681,19 +1813,23 @@ async def convert_excel_api(
     user_id = request.session.get("user_id")
     username = request.session.get("username", "anonymous")
     start_time = time.perf_counter()
-    
+
     # Initialize job status
     JOB_STATUS[job_id] = {
         "status": "PENDING",
         "progress": 0,
         "message": "Queued for processing...",
-        "created_at": datetime.now().isoformat()
+        "created_at": datetime.now().isoformat(),
     }
-    
+
     if not file.filename.endswith((".xlsx", ".xls")):
         JOB_STATUS[job_id]["status"] = "FAILED"
         JOB_STATUS[job_id]["message"] = "Only Excel files allowed"
-        return {"job_id": job_id, "status": "FAILED", "message": "Only Excel files allowed"}
+        return {
+            "job_id": job_id,
+            "status": "FAILED",
+            "message": "Only Excel files allowed",
+        }
 
     try:
         mapping_data = json.loads(column_mapping)
@@ -1707,24 +1843,54 @@ async def convert_excel_api(
 
     # Read file into memory
     excel_raw_stream = await file.read()
-    
+
     # Start background processing
     async def process_conversion():
         try:
             JOB_STATUS[job_id]["status"] = "PROCESSING"
             JOB_STATUS[job_id]["progress"] = 5
             JOB_STATUS[job_id]["message"] = "Starting conversion..."
-            
+
             # Log conversion started
             log_admin_event(
                 user_id=user_id,
                 username=username,
                 event_type="convert_started",
-                status_str="success"
+                status_str="success",
             )
-            
+
             # Run blocking operation in thread pool (non-blocking)
             def blocking_conversion():
+                # Use corrected dataframe if matching exists
+                print("=" * 60)
+                print("📥 CONVERT REQUEST")
+                print("Received match_session_id:", repr(match_session_id))
+                print("Available MATCH_SESSIONS:")
+                print(list(MATCH_SESSIONS.keys()))
+                print("=" * 60)
+                
+                # STRICT BOUNDARY: If match_session_id is passed, validate it securely
+                if match_session_id:
+                    if match_session_id not in MATCH_SESSIONS:
+                        # Fail loudly inside background job worker instead of silent fallback
+                        raise ValueError("Matching session expired or invalid. Please refresh and redo party matching.")
+
+                    print("✅ USING MATCHED DATAFRAME")
+
+                    session = MATCH_SESSIONS[match_session_id]
+                    reviewed_df = session["reviewed_df"].copy()
+
+                    return dataframe_to_xml(
+                        df=reviewed_df,
+                        voucher_type=vtype,
+                        company=company,
+                        user_id=user_id,
+                        column_mapping=mapping_data,
+                        tally_corrections=tally_corrections_data,
+                    )
+
+                # Otherwise convert uploaded Excel normally (Only triggers if match_session_id was completely skipped)
+                print("📄 USING ORIGINAL EXCEL")
                 return excel_to_xml(
                     excel_raw_stream,
                     sheet_name,
@@ -1732,31 +1898,33 @@ async def convert_excel_api(
                     company,
                     user_id,
                     column_mapping=mapping_data,
-                    tally_corrections=tally_corrections_data
+                    tally_corrections=tally_corrections_data,
                 )
-            
+
             loop = asyncio.get_event_loop()
             # Mark progress: file loaded and queued for processing
             JOB_STATUS[job_id]["progress"] = 20
             JOB_STATUS[job_id]["message"] = "Parsing Excel and generating XML..."
 
-            xml_content, count = await loop.run_in_executor(thread_pool, blocking_conversion)
+            xml_content, count = await loop.run_in_executor(
+                thread_pool, blocking_conversion
+            )
 
             # Conversion completed in worker
             JOB_STATUS[job_id]["progress"] = 80
             JOB_STATUS[job_id]["message"] = "Finalizing output..."
-            
+
             # Store result
             RESULTS[job_id] = {
                 "content": xml_content,
                 "filename": f"{file.filename}_output.xml",
-                "count": count
+                "count": count,
             }
 
             # Update progress for storing and completion
             JOB_STATUS[job_id]["progress"] = 95
             JOB_STATUS[job_id]["message"] = "Preparing download..."
-            
+
             # Log success
             duration_ms = int((time.perf_counter() - start_time) * 1000)
             log_admin_event(
@@ -1764,9 +1932,9 @@ async def convert_excel_api(
                 username=username,
                 event_type="xml_generated",
                 status_str="success",
-                details={"rows": count, "voucher_type": vtype}
+                details={"rows": count, "voucher_type": vtype},
             )
-            
+
             log_conversion_event(
                 user_id=user_id,
                 username=username,
@@ -1774,15 +1942,17 @@ async def convert_excel_api(
                 duration_ms=duration_ms,
                 rows_processed=count,
                 voucher_type=vtype,
-                exceptions=0
+                exceptions=0,
             )
-            
+
             # Update job status
             JOB_STATUS[job_id]["status"] = "COMPLETED"
             JOB_STATUS[job_id]["progress"] = 100
-            JOB_STATUS[job_id]["message"] = f"✅ Conversion complete! {count} rows processed"
+            JOB_STATUS[job_id][
+                "message"
+            ] = f"✅ Conversion complete! {count} rows processed"
             JOB_STATUS[job_id]["completed_at"] = datetime.now().isoformat()
-            
+
         except Exception as e:
             logging.error(f"Conversion error: {str(e)}")
             log_business_error(
@@ -1790,62 +1960,63 @@ async def convert_excel_api(
                 username=username,
                 event_type="convert_xml",
                 error_type="conversion_failed",
-                error_message=str(e)
+                error_message=str(e),
             )
-            
+
             JOB_STATUS[job_id]["status"] = "FAILED"
             JOB_STATUS[job_id]["message"] = f"❌ Error: {str(e)}"
             JOB_STATUS[job_id]["error"] = str(e)
-    
+
     # Start background task (fire and forget)
     asyncio.create_task(process_conversion())
-    
+
     # Return immediately with job_id
     return {
         "job_id": job_id,
         "status": "PENDING",
         "message": "Processing started. Check status with /api/job-status/{job_id}",
-        "websocket_url": f"/ws/job-progress/{job_id}"
+        "websocket_url": f"/ws/job-progress/{job_id}",
     }
+
 
 @app.get("/api/job-status/{job_id}")
 async def get_job_status(job_id: str):
     """Poll for job status and progress.
-    
+
     Returns: {"status": "PENDING|PROCESSING|COMPLETED|FAILED", "progress": 0-100, "message": "..."}
     """
     if job_id not in JOB_STATUS:
         return {"status": "NOT_FOUND", "message": "Job not found"}
-    
+
     return JOB_STATUS[job_id]
 
 
 @app.get("/api/job-result/{job_id}")
 async def get_job_result(job_id: str):
     """Download converted XML file once job completes.
-    
+
     Returns: XML file or error message
     """
     # Check job status
     if job_id not in JOB_STATUS:
         raise HTTPException(404, "Job not found")
-    
+
     if JOB_STATUS[job_id]["status"] != "COMPLETED":
         raise HTTPException(
             status_code=202,  # Accepted but not ready
             detail={
                 "status": JOB_STATUS[job_id]["status"],
                 "progress": JOB_STATUS[job_id].get("progress", 0),
-                "message": JOB_STATUS[job_id]["message"]
-            }
+                "message": JOB_STATUS[job_id]["message"],
+            },
         )
-    
+
     # Get result
     if job_id not in RESULTS:
         raise HTTPException(404, "Result not found")
-    
+
     result = RESULTS[job_id]
-    
+
     return Response(
         content=result["content"],
         media_type="application/xml",
@@ -1859,40 +2030,43 @@ async def get_job_result(job_id: str):
 @app.websocket("/ws/job-progress/{job_id}")
 async def websocket_job_progress(websocket: WebSocket, job_id: str):
     """Real-time progress updates via WebSocket.
-    
+
     Sends: {"status": "...", "progress": 0-100, "message": "..."}
     """
     await websocket.accept()
-    
+
     if job_id not in JOB_STATUS:
         await websocket.send_json({"error": "Job not found"})
         await websocket.close()
         return
-    
+
     try:
         # Send initial status
         await websocket.send_json(JOB_STATUS[job_id])
-        
+
         # Keep connection alive and send updates
         last_status = JOB_STATUS[job_id]["status"]
         while True:
             await asyncio.sleep(0.5)  # Check every 500ms
-            
+
             if job_id not in JOB_STATUS:
                 break
-            
+
             current_status = JOB_STATUS[job_id]
-            
+
             # Send update only if status changed
-            if current_status["status"] != last_status or current_status.get("progress", 0) > 0:
+            if (
+                current_status["status"] != last_status
+                or current_status.get("progress", 0) > 0
+            ):
                 await websocket.send_json(current_status)
                 last_status = current_status["status"]
-            
+
             # Close when job completes
             if current_status["status"] in ["COMPLETED", "FAILED"]:
                 await websocket.send_json(current_status)
                 break
-                
+
     except WebSocketDisconnect:
         pass
     except Exception as e:
@@ -1902,6 +2076,7 @@ async def websocket_job_progress(websocket: WebSocket, job_id: str):
 # Background cleanup for finished/old jobs to prevent unbounded memory growth
 JOB_TTL_SECONDS = 60 * 60  # 1 hour
 CLEANUP_INTERVAL_SECONDS = 60  # run cleanup every minute
+
 
 async def cleanup_old_jobs():
     while True:
@@ -1937,7 +2112,7 @@ async def start_background_tasks():
 
     # Create admin tables once on startup
     ensure_admin_schema()
-    
+
     # Ensure created_at exists for any job queued before restart
     for jid, meta in JOB_STATUS.items():
         if "created_at" not in meta:
@@ -1954,57 +2129,64 @@ app.include_router(enterprise_admin_system_router)
 app.include_router(business_router)  # <--- NEW BUSINESS ANALYTICS MOUNTED HERE
 print("⚡ Enterprise Administration Monitoring Engine fully initialized.")
 
+
 @app.get("/debug/persistence")
 def debug_persistence():
     import os
-    
+
     result = {
         "app_status": "running",
         "database_url_set": bool(os.environ.get("DATABASE_URL")),
         "environment": os.environ.get("RENDER", "not set"),
     }
-    
+
     try:
         conn = get_db_connection()
         cur = conn.cursor()
-        
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')")
+
+        cur.execute(
+            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users')"
+        )
         users_table_exists = cur.fetchone()[0]
         result["users_table_exists"] = users_table_exists
-        
+
         if users_table_exists:
             cur.execute("SELECT COUNT(*) FROM users")
             user_count = cur.fetchone()[0]
             result["user_count"] = user_count
-            
+
             cur.execute("SELECT username FROM users LIMIT 5")
             users = [row[0] for row in cur.fetchall()]
             result["sample_users"] = users
-        
-        cur.execute("SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pending_users')")
+
+        cur.execute(
+            "SELECT EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'pending_users')"
+        )
         pending_exists = cur.fetchone()[0]
         result["pending_users_table_exists"] = pending_exists
-        
+
         if pending_exists:
             cur.execute("SELECT COUNT(*) FROM pending_users")
             pending_count = cur.fetchone()[0]
             result["pending_count"] = pending_count
-        
+
         cur.close()
         conn.close()
         result["database_connected"] = True
-        
+
     except Exception as e:
         result["database_connected"] = False
         result["database_error"] = str(e)
-    
+
     result["old_sqlite_exists"] = os.path.exists("/data/users.db")
     return result
+
 
 @app.get("/debug/smtp-test")
 async def debug_smtp():
     import socket
     import smtplib
+
     results = {}
 
     server = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
@@ -2028,7 +2210,11 @@ async def debug_smtp():
     except Exception as e:
         results["smtp_connection"] = {"error": str(e), "status": "fail"}
 
-    if results.get("smtp_connection", {}).get("status") == "ok" and username and password:
+    if (
+        results.get("smtp_connection", {}).get("status") == "ok"
+        and username
+        and password
+    ):
         try:
             with smtplib.SMTP(server, port, timeout=10) as smtp:
                 smtp.ehlo()

@@ -74,16 +74,6 @@ def prepare_excel_party_matching(
         "prepare_excel_party_matching() is deprecated. Use /api/match-party instead."
     )
 
-    return {
-        "dataframe": df,
-        "match_results": [],
-        "party_col": party_col,
-        "gstin_col": gstin_col,
-        "ledger_list": [],
-        "gstin_map": {},
-        "unmatched_rows": [],
-    }
-
 
 def apply_corrections_and_build_final_df(
     reviewed_df: pd.DataFrame,
@@ -95,6 +85,83 @@ def apply_corrections_and_build_final_df(
         corrections=corrections,
         party_col=party_col,
     )
+
+
+def dataframe_to_xml(
+    df: pd.DataFrame,
+    voucher_type: str,
+    company: str,
+    user_id: int,
+    column_mapping: dict = None,
+    tally_corrections: dict = None,
+):
+    """
+    Converts an already matching-reviewed pandas DataFrame directly into Tally XML format.
+    This bypasses raw file reading to preserve corrections applied during matching screen operations.
+    """
+    print("🔥 INSIDE DATAFRAME XML FUNCTION. Corrections received:", tally_corrections)
+
+    # Ensure clean columns and drop empty string null records 
+    df.columns = [str(c).strip() for c in df.columns]
+    df = df.fillna("")
+
+    # Identify active party column target
+    party_col = detect_party_column(df) or "Recipient Name"
+
+    # Apply any extra late-stage manual corrections passed directly via form parameters
+    if tally_corrections:
+        for k, v in tally_corrections.items():
+            if str(v).strip():
+                try:
+                    idx_int = int(k)
+                    if idx_int in df.index:
+                        df.at[idx_int, party_col] = str(v).strip()
+                    elif idx_int >= 0 and idx_int < len(df):
+                        df.iloc[idx_int, df.columns.get_loc(party_col)] = str(v).strip()
+                except (ValueError, IndexError):
+                    continue
+
+    # ════════════════════════════════════════════════════════════
+    # CRITICAL FIX: Prevent uncorrected original columns from clobbering reviewed data
+    # ════════════════════════════════════════════════════════════
+    if column_mapping and "party_name" in column_mapping:
+        orig_party_col = str(column_mapping["party_name"]).strip()
+        # If the matched data lives in "Recipient Name", synchronize it back to the original mapped column
+        if "Recipient Name" in df.columns and orig_party_col in df.columns and orig_party_col != "Recipient Name":
+            df[orig_party_col] = df["Recipient Name"]
+
+    # ✅ APPLY COLUMN MAPPING FOR THE TEMPLATE ENGINE
+    if column_mapping:
+        rename_map = {}
+        for field_key, source_col in column_mapping.items():
+            canonical = CANONICAL_COLUMNS.get(field_key)
+            if canonical and source_col and source_col in df.columns:
+                rename_map[source_col] = canonical
+        if rename_map:
+            df = df.rename(columns=rename_map)
+
+    # Re-verify post-rename to ensure template matches target variables
+    final_party_col = CANONICAL_COLUMNS.get("party_name", "Recipient Name")
+    print("✅ FINAL RUNTIME CHECK FOR XML PARTY COLUMN:")
+    if final_party_col in df.columns:
+        print(df[[final_party_col]].head(10))
+
+    mapping = get_company_mapping(company, user_id)
+    out_dir = tempfile.mkdtemp()
+
+    try:
+        xml_path, record_count = convert_menu.convert_excel_to_xml(
+            vtype=voucher_type,
+            df=df,
+            out_dir=out_dir,
+            mapping=mapping,
+        )
+        with open(xml_path, "r", encoding="utf-8") as f:
+            xml_content = f.read()
+        return xml_content, record_count
+    finally:
+        shutil.rmtree(out_dir, ignore_errors=True)
+
 
 def excel_to_xml(
     file_bytes: bytes,
@@ -124,7 +191,6 @@ def excel_to_xml(
 
     try:
         party_col = detect_party_column(df)
-        gstin_col = detect_gstin_column(df)
 
         if party_col:
             # ✅ APPLY CORRECTIONS (FINAL FIX)
