@@ -1,11 +1,26 @@
 import os
 import logging
 from datetime import datetime, timedelta
+import app
 from fastapi import APIRouter, Request, Depends, HTTPException, Form, Query
 from fastapi.responses import HTMLResponse, RedirectResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.exceptions import HTTPException
+from core.subscription import update_user_subscription
 from fastapi.responses import RedirectResponse
+from core.subscription import (
+    get_user_plan,
+    get_remaining_feature_usage,
+)
+from pydantic import BaseModel
+from typing import Optional
+
+class SubscriptionUpdateRequest(BaseModel):
+    plan_id: int
+    match_limit: int
+    subscription_status: str
+    plan_expiry: Optional[str] = None
+
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -226,7 +241,39 @@ async def view_user_management(
         if records:
             for row in records:
                 user_data = dict(row)
-                
+                try:
+                    subscription = get_user_plan(user_data["id"])
+
+                    if subscription:
+
+                        user_data["plan_name"] = subscription["plan_name"]
+
+                        user_data["subscription_status"] = subscription["subscription_status"]
+
+                        user_data["plan_expiry"] = subscription["plan_expiry"]
+
+                        user_data["match_limit"] = subscription["match_limit"]
+
+                    else:
+
+                        user_data["plan_name"] = "Basic"
+
+                        user_data["subscription_status"] = "ACTIVE"
+
+                        user_data["plan_expiry"] = None
+
+                        user_data["match_limit"] = 0
+
+                except Exception:
+
+                    user_data["plan_name"] = "Basic"
+
+                    user_data["subscription_status"] = "ACTIVE"
+
+                    user_data["plan_expiry"] = None
+
+                    user_data["match_limit"] = 0
+
                 # If user already added, skip to prevent duplicates
                 if user_data["id"] in unique_users:
                     continue
@@ -857,3 +904,62 @@ async def api_dashboard_traffic_trends(request: Request, admin_user: str = Depen
     except Exception as err:
         logger.error(f"Traffic analytics chart data distribution engine failure: {err}")
         return JSONResponse(status_code=500, content={"labels": [], "api_data": [], "error_data": []})
+    
+@admin_router.get("/api/admin/user/{user_id}")
+def admin_get_user(
+    user_id: int,
+    admin_user: str = Depends(enforce_admin_clearance),
+):
+    conn = get_telemetry_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT
+            id,
+            username,
+            email,
+            is_admin,
+            is_verified
+        FROM users
+        WHERE id=%s
+    """, (user_id,))
+
+    user = cur.fetchone()
+
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    subscription = get_user_plan(user_id)
+
+    response = {
+    "user": user,
+    "subscription": subscription,
+    "remaining_matching": get_remaining_feature_usage(
+        user_id,
+        "party_matching"
+    ),
+    "match_limit": subscription["match_limit"]
+}
+
+    cur.close()
+    conn.close()
+
+    return response
+@admin_router.post("/api/admin/user/{user_id}")
+def update_customer_subscription(
+    user_id: int,
+    payload: SubscriptionUpdateRequest,
+    admin_user: str = Depends(enforce_admin_clearance),
+):
+    update_user_subscription(
+        user_id=user_id,
+        plan_id=payload.plan_id,
+        match_limit=payload.match_limit,
+        subscription_status=payload.subscription_status,
+        plan_expiry=payload.plan_expiry,
+    )
+
+    return {
+        "success": True,
+        "message": "Subscription updated successfully."
+    }

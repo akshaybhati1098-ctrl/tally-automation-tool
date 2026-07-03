@@ -18,12 +18,18 @@
         }
 
         /* ===== FIX: Constrain main content width ===== */
-        .main-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 0 1rem;
-            box-sizing: border-box; /* ensures padding doesn't add to width */
+        .main-content{
+
+            margin-left:220px;   /* sidebar width */
+
+            width:calc(100% - 220px);
+
+            max-width:none;
+
+            padding:30px;
+
+            box-sizing:border-box;
+
         }
     </style>
 
@@ -57,8 +63,8 @@
             {% include 'pages/mapping.html' %}
         </div>
 
-        <div id="settings" class="page">
-            {% include 'pages/settings.html' %}
+        <div id="subscription" class="page">
+            {% include 'pages/subscription.html' %}
         </div>
 
         <div id="image_to_excel" class="page">

@@ -1,28 +1,66 @@
-import sqlite3
+import os
+import time
 from contextlib import contextmanager
 
-DATABASE_URL = "users.db"
+import psycopg2
+from psycopg2.extras import RealDictCursor
+from dotenv import load_dotenv
 
-def get_db_connection():
-    conn = sqlite3.connect(DATABASE_URL)
-    conn.row_factory = sqlite3.Row
-    return conn
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL environment variable not set")
+
+
+def get_db_connection(
+    retries=3,
+    backoff=1,
+    cursor_factory=None
+):
+    """
+    Returns a PostgreSQL connection.
+    """
+
+    for attempt in range(retries):
+
+        try:
+
+            kwargs = {
+                "sslmode": "require",
+                "connect_timeout": 10,
+            }
+
+            if cursor_factory:
+                kwargs["cursor_factory"] = cursor_factory
+
+            return psycopg2.connect(
+                DATABASE_URL,
+                **kwargs
+            )
+
+        except psycopg2.OperationalError:
+
+            if attempt == retries - 1:
+                raise
+
+            wait = backoff * (2 ** attempt)
+
+            print(f"Retrying database connection in {wait}s...")
+
+            time.sleep(wait)
+
 
 @contextmanager
-def get_db():
-    conn = get_db_connection()
-    try:
-        yield conn
-    finally:
-        conn.close()
+def get_db(cursor_factory=RealDictCursor):
 
-def init_db():
-    with get_db() as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        ''')
+    conn = get_db_connection(cursor_factory=cursor_factory)
+
+    try:
+
+        yield conn
+
+    finally:
+
+        conn.close()

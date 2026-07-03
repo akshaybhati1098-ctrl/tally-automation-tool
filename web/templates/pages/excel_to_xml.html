@@ -446,7 +446,6 @@
     }
 
     .form-group:has(#sheetSelect)::after,
-    .form-group:has(#companySelect)::after,
     .form-group:has(#ledgerTypeSelect)::after {
       content: "▾";
       position: absolute;
@@ -456,6 +455,7 @@
       color: var(--muted);
       pointer-events: none;
     }
+
 
     .form-select {
       width: 100%;
@@ -835,6 +835,27 @@
       transform: translateY(0);
     }
 
+    .summary-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 12px;
+    }
+
+    .summary-btn-secondary {
+      background: #ffffff;
+      color: #1649e0;
+      border: 1px solid #cfdcff;
+      box-shadow: none;
+    }
+
+    .summary-btn-secondary:hover {
+      background: #f3f7ff;
+      box-shadow: 0 4px 12px rgba(22, 73, 224, 0.12);
+    }
+
     .matched-section,
     .fix-required-section {
       animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1);
@@ -843,6 +864,24 @@
     .match-table {
       width: 100%;
       border-collapse: collapse;
+    }
+
+    .matched-section .match-table {
+      min-width: 820px;
+    }
+
+    .fix-required-section .match-table {
+      min-width: 1080px;
+    }
+
+    .fix-required-section .match-table th:first-child,
+    .fix-required-section .match-table td:first-child {
+      min-width: 220px;
+    }
+
+    .fix-required-section .match-table th:nth-child(6),
+    .fix-required-section .match-table td:nth-child(6) {
+      min-width: 260px;
     }
 
     .match-table thead tr {
@@ -902,6 +941,195 @@
       background: rgba(239, 68, 68, 0.15);
       color: #7f1d1d;
       border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .match-view-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.48rem 0.78rem;
+      border-radius: 8px;
+      border: 1px solid #dbe6ff;
+      background: #f7faff;
+      color: #1649e0;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.78rem;
+      font-weight: 800;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background 0.2s, border-color 0.2s, transform 0.2s;
+    }
+
+    .match-view-btn:hover {
+      background: #eef4ff;
+      border-color: #b9ccff;
+      transform: translateY(-1px);
+    }
+
+    .ledger-search-input {
+      width: 100%;
+      min-width: 220px;
+      box-sizing: border-box;
+      padding: 0.72rem 2.1rem 0.72rem 0.85rem;
+      border: 1px solid #c8d3e6;
+      border-radius: 8px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      color: var(--ink);
+      background: #fff;
+      cursor: pointer;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      overflow: hidden;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .ledger-search-input:focus {
+      outline: none;
+      border-color: #1649e0;
+      box-shadow: 0 0 0 3px rgba(22, 73, 224, 0.12);
+    }
+
+    .ledger-picker-cell {
+      position: relative;
+    }
+
+    .ledger-picker-cell::after {
+      content: "▾";
+      position: absolute;
+      right: 0.85rem;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #6b7891;
+      font-size: 0.8rem;
+      pointer-events: none;
+    }
+
+    .ledger-dropdown {
+      position: fixed;
+      z-index: 10000;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid #d7e0ee;
+      border-radius: 8px;
+      box-shadow: 0 18px 42px rgba(10, 15, 30, 0.18);
+    }
+
+    .ledger-dropdown-search-wrap {
+      flex: 0 0 auto;
+      padding: 0.65rem;
+      background: #f8fbff;
+      border-bottom: 1px solid #e2eaf5;
+    }
+
+    .ledger-dropdown-search {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 0.72rem 0.85rem;
+      border: 1px solid #c8d3e6;
+      border-radius: 8px;
+      font-family: "DM Sans", sans-serif;
+      font-size: 0.92rem;
+      color: var(--ink);
+      background: #fff;
+    }
+
+    .ledger-dropdown-search:focus {
+      outline: none;
+      border-color: #1649e0;
+      box-shadow: 0 0 0 3px rgba(22, 73, 224, 0.12);
+    }
+
+    .ledger-options {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+    }
+
+    .ledger-option {
+      border-bottom: 1px solid #edf1f7;
+      cursor: pointer;
+      color: var(--ink2);
+      background: #fff;
+    }
+
+    .ledger-option span {
+      display: block;
+      padding: 0.78rem 0.95rem;
+      font-size: 0.92rem;
+      line-height: 1.35;
+    }
+
+    .ledger-option:hover {
+      background: #f0f6ff;
+    }
+
+    .party-rows-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      background: rgba(10, 15, 30, 0.52);
+      backdrop-filter: blur(5px);
+    }
+
+    .party-rows-modal {
+      width: min(920px, 96vw);
+      max-height: 86vh;
+      overflow: hidden;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 24px 70px rgba(10, 15, 30, 0.22);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .party-rows-modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 1.2rem;
+      border-bottom: 1px solid #e6edf7;
+    }
+
+    .party-rows-modal-title {
+      margin: 0;
+      font-family: "Syne", sans-serif;
+      font-size: 1rem;
+      color: var(--ink);
+    }
+
+    .party-rows-modal-subtitle {
+      margin-top: 0.28rem;
+      color: var(--muted);
+      font-size: 0.84rem;
+      font-weight: 700;
+    }
+
+    .party-rows-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      border: 1px solid #dbe4f2;
+      background: #f8fbff;
+      color: var(--ink);
+      font-size: 1rem;
+      font-weight: 900;
+      cursor: pointer;
+    }
+
+    .party-rows-modal-body {
+      overflow: auto;
+      padding: 1rem 1.2rem 1.2rem;
     }
 
     .ledger-select {
@@ -2240,6 +2468,287 @@
       animation: slideOutRight 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
     }
 
+    .upgrade-modal {
+      border-radius: 22px !important;
+      padding: 1.2rem !important;
+      box-shadow: 0 24px 70px rgba(10, 15, 30, 0.2) !important;
+    }
+
+    .upgrade-modal .swal2-title {
+      color: var(--ink) !important;
+      font-family: "Syne", sans-serif !important;
+      font-size: 1.4rem !important;
+      font-weight: 800 !important;
+      margin-bottom: 0.4rem !important;
+    }
+
+    .upgrade-modal .swal2-content {
+      color: var(--muted) !important;
+      font-size: 1rem !important;
+      line-height: 1.6 !important;
+    }
+
+    .upgrade-modal .swal2-actions {
+      gap: 0.6rem !important;
+      margin-top: 1rem !important;
+    }
+
+    .upgrade-modal .swal2-confirm,
+    .upgrade-modal .swal2-cancel {
+      border-radius: 999px !important;
+      padding: 0.7rem 1.2rem !important;
+      font-weight: 700 !important;
+    }
+
+    .upgrade-modal .swal2-confirm {
+      background: linear-gradient(135deg, var(--accent), var(--accent2)) !important;
+      border: none !important;
+    }
+
+    .upgrade-modal .swal2-cancel {
+      background: #f3f6fd !important;
+      color: var(--ink) !important;
+      border: 1px solid #dbe4f2 !important;
+    }
+
+    .match-loading-overlay {
+      position: fixed !important;
+      inset: 0 !important;
+      background: rgba(10, 15, 30, 0.5) !important;
+      backdrop-filter: blur(6px) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      z-index: 9999 !important;
+      animation: fadeIn 0.2s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    }
+
+    .match-loading-card {
+      background: #ffffff !important;
+      padding: 1.6rem !important;
+      border-radius: 8px !important;
+      width: 100% !important;
+      max-width: 460px !important;
+      text-align: left !important;
+      box-shadow: 0 24px 70px rgba(10, 15, 30, 0.2) !important;
+      animation: slideUp 0.3s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    }
+
+    .match-loading-header {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.75rem !important;
+      margin-bottom: 1.1rem !important;
+    }
+
+    .match-loading-icon {
+      width: 42px !important;
+      height: 42px !important;
+      border-radius: 8px !important;
+      flex: 0 0 auto !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      color: #1649e0 !important;
+      background: linear-gradient(135deg, #eef4ff, #f7faff) !important;
+      border: 1px solid #dbe6ff !important;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    }
+
+    .match-loading-icon svg {
+      width: 22px !important;
+      height: 22px !important;
+      stroke-width: 2.2 !important;
+      display: block !important;
+      flex: 0 0 auto !important;
+    }
+
+    .match-loading-text {
+      font-family: "Syne", sans-serif !important;
+      font-size: 1.1rem !important;
+      font-weight: 700 !important;
+      color: var(--ink) !important;
+      margin: 0 !important;
+    }
+
+    .match-progress-section {
+      border-top: 1px solid #e6edf7 !important;
+      padding-top: 1rem !important;
+      margin-top: 1rem !important;
+    }
+
+    .match-progress-label {
+      font-size: 0.74rem !important;
+      font-weight: 800 !important;
+      color: #617089 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.08em !important;
+      margin-bottom: 0.45rem !important;
+    }
+
+    .match-status-line {
+      display: flex !important;
+      align-items: center !important;
+      gap: 0.65rem !important;
+      font-size: 0.95rem !important;
+      font-weight: 700 !important;
+      color: var(--ink) !important;
+      line-height: 1.4 !important;
+    }
+
+    .match-status-spinner {
+      width: 16px !important;
+      height: 16px !important;
+      border: 2px solid #dfe7f4 !important;
+      border-top-color: #1649e0 !important;
+      border-radius: 50% !important;
+      flex: 0 0 auto !important;
+      animation: matchStatusSpin 0.75s linear infinite !important;
+    }
+
+    .match-status-dots::after {
+      content: "" !important;
+      display: inline-block !important;
+      width: 1.2em !important;
+      text-align: left !important;
+      animation: matchStatusDots 1.2s steps(4, end) infinite !important;
+    }
+
+    .match-company-line {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 1rem !important;
+      padding: 0.78rem 0.9rem !important;
+      background: #f8fbff !important;
+      border: 1px solid #e2eaf5 !important;
+      border-radius: 8px !important;
+    }
+
+    .match-company-name {
+      min-width: 0 !important;
+      color: var(--ink) !important;
+      font-size: 0.92rem !important;
+      font-weight: 800 !important;
+      text-align: right !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+    }
+
+    .match-ledger-value {
+      font-size: 2rem !important;
+      font-weight: 800 !important;
+      color: #1649e0 !important;
+      line-height: 1 !important;
+    }
+
+    .match-row-progress {
+      display: flex !important;
+      justify-content: space-between !important;
+      gap: 1rem !important;
+      align-items: baseline !important;
+      margin-bottom: 0.5rem !important;
+    }
+
+    .match-row-count {
+      font-size: 1rem !important;
+      font-weight: 800 !important;
+      color: var(--ink) !important;
+    }
+
+    .match-percent {
+      font-size: 1rem !important;
+      font-weight: 800 !important;
+      color: #1649e0 !important;
+    }
+
+    .match-progress-container {
+      width: 100% !important;
+      height: 10px !important;
+      background: #edf2fb !important;
+      border-radius: 999px !important;
+      overflow: hidden !important;
+      margin-top: 0.4rem !important;
+    }
+
+    .match-progress-bar {
+      width: 0%;
+      height: 100% !important;
+      background: linear-gradient(90deg, #0fa966 0%, #0b8f56 100%) !important;
+      border-radius: 999px !important;
+      transition: width 0.25s ease !important;
+    }
+
+    .match-elapsed {
+      margin-top: 1rem !important;
+      font-size: 0.86rem !important;
+      color: var(--muted) !important;
+      font-weight: 700 !important;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.95);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        opacity: 1;
+      }
+      50% {
+        opacity: 0.6;
+      }
+    }
+
+    @keyframes matchLoadingMove {
+      0% {
+        transform: translateX(-100%);
+      }
+      50% {
+        transform: translateX(400%);
+      }
+      100% {
+        transform: translateX(400%);
+      }
+    }
+
+    @keyframes matchStatusSpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes matchStatusDots {
+      0% {
+        content: "";
+      }
+      25% {
+        content: ".";
+      }
+      50% {
+        content: "..";
+      }
+      75%, 100% {
+        content: "...";
+      }
+    }
+
     @media (max-width: 600px) {
       .toast-container {
         top: 10px;
@@ -2476,21 +2985,31 @@
                 </div>
               </div>
             </div>
-            <button type="button" id="viewMatchedBtn" class="summary-btn" style="margin-top: 12px">
-              👁️ View Matched Invoices
-            </button>
+            <div class="summary-actions">
+              <button type="button" id="viewMatchedBtn" class="summary-btn">
+                👁️ View Matched Invoices
+              </button>
+              <button type="button" id="downloadFixRequiredBtn" class="summary-btn summary-btn-secondary">
+                ⬇️ Download Review / Not Matched
+              </button>
+            </div>
           </div>
 
           <!-- MATCHED INVOICES (EXPANDABLE) -->
           <div id="matchedSection" class="matched-section" style="display: none; margin-top: 20px">
-            <h4 style="margin-bottom: 12px">✅ Matched Invoices</h4>
+            <h4 style="margin-bottom: 12px">✅ Matched Invoices Summary (Grouped by Party)</h4>
+            <div style="margin: -4px 0 14px; color: var(--muted); font-size: 0.9rem; font-weight: 600;">
+              Use View to inspect every row under a matched party.
+            </div>
             <div style="overflow-x: auto">
               <table class="match-table">
                 <thead>
                   <tr>
                     <th>Original Party Name</th>
+                    <th>Rows</th>
                     <th>Matched Ledger</th>
                     <th>Confidence</th>
+                    <th>View</th>
                   </tr>
                 </thead>
                 <tbody id="matchedTableBody"></tbody>
@@ -2502,17 +3021,22 @@
           <!-- FIX REQUIRED TABLE -->
           <div id="fixRequiredSection" class="fix-required-section" style="margin-top: 20px">
             <h4 style="margin-bottom: 12px">
-              🔧 Fix Required (Review & Not Matched)
+              🔧 Fix Required Summary (Grouped by Party)
             </h4>
+            <div style="margin: -4px 0 14px; color: var(--muted); font-size: 0.9rem; font-weight: 600;">
+              Select one ledger once. All rows with the same party name will use that fix.
+            </div>
             <div style="overflow-x: auto">
               <table class="match-table">
                 <thead>
                   <tr>
                     <th>Original Party Name</th>
+                    <th>Rows</th>
                     <th>Suggested Match</th>
                     <th>Status</th>
                     <th>Final Name</th>
                     <th>Select Ledger</th>
+                    <th>View</th>
                   </tr>
                 </thead>
                 <tbody id="fixRequiredTableBody"></tbody>
@@ -3079,19 +3603,46 @@
         // ══════════════════════════════════════
         async function loadCompaniesForConverter() {
           try {
-            const response = await fetch("/api/companies");
-            if (!response.ok) throw new Error("Failed to fetch companies");
-            const data = await response.json();
-            const companies = data.companies || [];
 
-            companySelect.innerHTML =
-              '<option value="">-- Select company --</option>';
+            const response = await fetch("/api/companies");
+
+            // Handle subscription limit
+            if (response.status === 403) {
+
+              const data = await response.json();
+
+              if (data.status === "subscription_required") {
+
+                showUpgradeModal(data.message);
+
+                return;
+
+            }
+
+        }
+
+        if (!response.ok)
+          throw new Error("Failed to fetch companies");
+
+        const data = await response.json();
+
+        const companies = data.companies || [];
+
+            const options = [];
+            const excelLedgersOption = document.createElement("option");
+            excelLedgersOption.value = "__EXCEL_LEDGERS__";
+            excelLedgersOption.textContent = "📄 Use Excel Ledgers";
+            options.push(excelLedgersOption);
+
             companies.forEach((name) => {
               const option = document.createElement("option");
               option.value = name;
               option.textContent = name;
-              companySelect.appendChild(option);
+              options.push(option);
             });
+
+            companySelect.innerHTML = '<option value="">-- Select company --</option>';
+            options.forEach((option) => companySelect.appendChild(option));
           } catch (err) {
             showMessage(
               "Failed to load companies. Is the server running?",
@@ -3120,7 +3671,9 @@
 
         companySelect.addEventListener("change", async function () {
           const company = companySelect.value;
-          if (company) {
+          if (company === "__EXCEL_LEDGERS__") {
+            currentMapping = null;
+          } else if (company) {
             await fetchMapping(company);
           } else {
             currentMapping = null;
@@ -4176,6 +4729,7 @@
     }
   </style>
 
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script>
     (function () {
       // ── All fields — all required ────────────────────────────────────────────
@@ -4592,6 +5146,7 @@
       // ===============================
       let tallyLedgers = [];
       let matchRows = [];
+      window.currentTallyCompany = "";
       // Use global window.tallyCorrections instead of local variable
 
       // ===============================
@@ -4617,11 +5172,12 @@
           if (!statusEl) return;
 
           if (data.status === "running") {
-            statusEl.innerText = "Running";
-            companyEl.innerText =
+            window.currentTallyCompany =
               data.company && data.company !== ""
                 ? data.company
                 : "No company open";
+            statusEl.innerText = "Running";
+            companyEl.innerText = window.currentTallyCompany;
 
             // green theme
             if (badge) {
@@ -4651,6 +5207,7 @@
             tallyOfflineDismissed = false;
             console.log("✅ Tally online - reset dismiss flag");
           } else {
+            window.currentTallyCompany = "";
             statusEl.innerText = "Not Running";
             companyEl.innerText = "—";
 
@@ -4885,12 +5442,40 @@
         );
 
         try {
-          const res = await fetch("/api/match-party", {
+          showMatchLoading();
+
+          const res = await fetch("/api/match-party/start", {
             method: "POST",
             body: formData,
           });
+          console.log("HTTP Status:", res.status);
 
-          const data = await res.json();
+          if (res.status === 403) {
+            let data = {};
+            try {
+              data = await res.json();
+            } catch (err) {
+              console.warn("Failed to parse 403 response", err);
+            }
+
+            showUpgradeModal(data.message || "You have reached your matching limit.");
+            hideMatchLoading();
+            return;
+          }
+
+          const startData = await res.json();
+          if (startData.status !== "accepted" || !startData.task_id) {
+            hideMatchLoading();
+            showErrorPopup(startData.message || "Matching failed to start");
+            return;
+          }
+
+          await watchTaskProgress(startData.task_id);
+          const resultRes = await fetch(`/api/tasks/${startData.task_id}/result`);
+          const data = await resultRes.json();
+          hideMatchLoading();
+
+          console.log("Response Data:", data);
           console.log("MATCH RESPONSE:", data);
 
           if (data.status === "ok" || data.session_id) {
@@ -4929,7 +5514,8 @@
 
           updateConvertButtonState();
         } catch (err) {
-          showErrorPopup("Failed to process matching");
+          hideMatchLoading();
+          showErrorPopup(err.message || "Failed to process matching");
         }
       }
 
@@ -4986,26 +5572,211 @@
           stats.accuracy + "%";
       }
 
+      function escapeMatchHtml(value) {
+        return String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function normalizePartyGroupName(value) {
+        return String(value || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .toLowerCase();
+      }
+
+      function buildPartyGroups(rows, idPrefix) {
+        const groups = new Map();
+
+        rows.forEach((row) => {
+          const original = String(row.original || "").trim() || "-";
+          const key = normalizePartyGroupName(original);
+
+          if (!groups.has(key)) {
+            groups.set(key, {
+              original,
+              rows: [],
+            });
+          }
+
+          groups.get(key).rows.push(row);
+        });
+
+        return Array.from(groups.values()).map((group, index) => {
+          const rows = group.rows;
+          const corrections = window.tallyCorrections || {};
+          const selectedValues = Array.from(
+            new Set(
+              rows
+                .map((row) => corrections[row.row_index])
+                .filter(Boolean),
+            ),
+          );
+          const selectedFix = selectedValues.length === 1 ? selectedValues[0] : "";
+          const bestSuggestion =
+            rows
+              .filter((row) => row.matched)
+              .sort((a, b) => (Number(b.score) || 0) - (Number(a.score) || 0))[0] ||
+            rows[0];
+          const hasNotMatched = rows.some((row) => row.status === "not_matched");
+          const hasReview = rows.some((row) => row.status === "review");
+          const status = hasReview ? "review" : hasNotMatched ? "not_matched" : rows[0].status;
+          const maxScore = rows.reduce(
+            (score, row) => Math.max(score, Number(row.score) || 0),
+            0,
+          );
+
+          return {
+            groupId: `${idPrefix}-${index}`,
+            original: group.original,
+            rows,
+            count: rows.length,
+            selectedFix,
+            suggestedMatch: bestSuggestion?.matched || "",
+            score: maxScore,
+            status,
+          };
+        });
+      }
+
+      function buildMatchedGroups() {
+        return buildPartyGroups(
+          matchRows.filter((row) => row.status === "matched"),
+          "matched-party-group",
+        );
+      }
+
+      function buildFixRequiredGroups() {
+        return buildPartyGroups(
+          matchRows.filter((row) => row.status !== "matched"),
+          "fix-party-group",
+        );
+      }
+
+      function showPartyRowsModal(group, mode) {
+        const existing = document.getElementById("partyRowsOverlay");
+        if (existing) existing.remove();
+
+        const overlay = document.createElement("div");
+        overlay.id = "partyRowsOverlay";
+        overlay.className = "party-rows-overlay";
+
+        const title =
+          mode === "matched"
+            ? "Matched Rows"
+            : "Rows Using This Party Fix";
+        const rowsHtml = group.rows
+          .map((row) => {
+            const correction = window.tallyCorrections[row.row_index] || "";
+            const finalName =
+              correction ||
+              (row.status === "not_matched"
+                ? ""
+                : row.matched || row.original || "");
+            const statusClass =
+              correction || row.status === "matched"
+                ? "status-matched"
+                : row.status === "not_matched"
+                  ? "status-not-matched"
+                  : "status-review";
+            const statusIcon =
+              correction || row.status === "matched"
+                ? "✅"
+                : row.status === "not_matched"
+                  ? "❌"
+                  : "⚠️";
+            const displayStatus = correction ? "matched" : row.status;
+
+            return `
+              <tr>
+                <td>${row.row_index + 1}</td>
+                <td>${escapeMatchHtml(row.original || "-")}</td>
+                <td>${escapeMatchHtml(row.matched || "-")}</td>
+                <td><span class="status-badge ${statusClass}">${statusIcon} ${displayStatus} (${row.score || 0})</span></td>
+                <td>${escapeMatchHtml(finalName || "-")}</td>
+              </tr>
+            `;
+          })
+          .join("");
+
+        overlay.innerHTML = `
+          <div class="party-rows-modal" role="dialog" aria-modal="true">
+            <div class="party-rows-modal-header">
+              <div>
+                <h3 class="party-rows-modal-title">${escapeMatchHtml(title)}: ${escapeMatchHtml(group.original || "-")}</h3>
+                <div class="party-rows-modal-subtitle">${group.count} row${group.count === 1 ? "" : "s"} in this group</div>
+              </div>
+              <button type="button" class="party-rows-close" id="partyRowsClose" aria-label="Close">x</button>
+            </div>
+            <div class="party-rows-modal-body">
+              <table class="match-table">
+                <thead>
+                  <tr>
+                    <th>Excel Row</th>
+                    <th>Original Party Name</th>
+                    <th>Suggested / Matched Ledger</th>
+                    <th>Status</th>
+                    <th>Final Name</th>
+                  </tr>
+                </thead>
+                <tbody>${rowsHtml}</tbody>
+              </table>
+            </div>
+          </div>
+        `;
+
+        const close = () => {
+          overlay.remove();
+          document.removeEventListener("keydown", escHandler);
+        };
+        overlay.addEventListener("click", (event) => {
+          if (event.target === overlay) close();
+        });
+        overlay.querySelector("#partyRowsClose")?.addEventListener("click", close);
+
+        const escHandler = (event) => {
+          if (event.key === "Escape") {
+            close();
+            document.removeEventListener("keydown", escHandler);
+          }
+        };
+        document.addEventListener("keydown", escHandler);
+        document.body.appendChild(overlay);
+      }
+
       function renderMatchedTable(page = 1) {
-        const matched = matchRows.filter((r) => r.status === "matched");
+        const matchedGroups = buildMatchedGroups();
         const { itemsPerPage } = matchPaginationState;
-        const totalPages = Math.ceil(matched.length / itemsPerPage);
+        const totalPages = Math.ceil(matchedGroups.length / itemsPerPage);
         const start = (page - 1) * itemsPerPage;
         const end = start + itemsPerPage;
-        const pageData = matched.slice(start, end);
+        const pageData = matchedGroups.slice(start, end);
 
         const tbody = document.getElementById("matchedTableBody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        pageData.forEach((row) => {
+        pageData.forEach((group) => {
           const tr = document.createElement("tr");
           tr.innerHTML = `
-              <td>${row.original || "-"}</td>
-              <td><span class="status-badge status-matched">✅ ${row.matched || "-"}</span></td>
-              <td style="text-align: center; font-weight: 600; color: #0fa966;">${row.score || "100%"}</td>
+              <td>${escapeMatchHtml(group.original || "-")}</td>
+              <td><span class="status-badge" style="background:#eef4ff;color:#1649e0;border:1px solid #dbe6ff;">${group.count}</span></td>
+              <td><span class="status-badge status-matched">✅ ${escapeMatchHtml(group.suggestedMatch || "-")}</span></td>
+              <td style="text-align: center; font-weight: 600; color: #0fa966;">${group.score || "100%"}</td>
+              <td><button type="button" class="match-view-btn" data-view-group="${group.groupId}">View</button></td>
             `;
           tbody.appendChild(tr);
+        });
+
+        tbody.querySelectorAll(".match-view-btn").forEach((button) => {
+          const group = pageData.find(
+            (item) => item.groupId === button.getAttribute("data-view-group"),
+          );
+          if (!group) return;
+          button.addEventListener("click", () => showPartyRowsModal(group, "matched"));
         });
 
         renderPagination("matchedPagination", page, totalPages, (p) => {
@@ -5015,66 +5786,71 @@
       }
 
       function renderFixRequiredTable(page = 1) {
-        const fixRequired = matchRows.filter((r) => r.status !== "matched");
+        const fixRequiredGroups = buildFixRequiredGroups();
         const { itemsPerPage } = matchPaginationState;
-        const totalPages = Math.ceil(fixRequired.length / itemsPerPage);
+        const totalPages = Math.ceil(fixRequiredGroups.length / itemsPerPage);
         const start = (page - 1) * itemsPerPage;
         const end = start + itemsPerPage;
-        const pageData = fixRequired.slice(start, end);
+        const pageData = fixRequiredGroups.slice(start, end);
+        const groupsById = {};
+        pageData.forEach((group) => {
+          groupsById[group.groupId] = group;
+        });
 
         const tbody = document.getElementById("fixRequiredTableBody");
         if (!tbody) return;
         tbody.innerHTML = "";
 
-        pageData.forEach((row) => {
+        pageData.forEach((group) => {
           const tr = document.createElement("tr");
-          const rowIndex = row.row_index;
-          const selectedFix = window.tallyCorrections[rowIndex] || "";
+          const selectedFix = group.selectedFix || "";
 
           // Determine final name based on status and manual selection
           let finalName = "";
           if (selectedFix) {
             // If manually selected, show it
             finalName = selectedFix;
-          } else if (row.status === "not_matched") {
+          } else if (group.status === "not_matched") {
             // If not matched and no manual selection, show empty
             finalName = "";
           } else {
             // For review status, show matched or original
-            finalName = row.matched || row.original || "-";
+            finalName = group.suggestedMatch || group.original || "-";
           }
 
           // Determine status based on whether a manual selection has been made
           let statusClass = "status-review";
           let statusIcon = "⚠️";
-          let displayStatus = row.status;
+          let displayStatus = group.status;
 
           if (selectedFix) {
             // If manually selected, show as matched
             statusClass = "status-matched";
             statusIcon = "✅";
             displayStatus = "matched";
-          } else if (row.status === "not_matched") {
+          } else if (group.status === "not_matched") {
             statusClass = "status-not-matched";
             statusIcon = "❌";
           }
 
           tr.innerHTML = `
-              <td>${row.original || "-"}</td>
-              <td>${row.matched || "-"}</td>
-              <td><span class="status-badge ${statusClass}">${statusIcon} ${displayStatus} (${row.score})</span></td>
-              <td style="font-weight: 500; color: var(--ink2);">${finalName}</td>
-              <td style="position: relative;">
+              <td>${escapeMatchHtml(group.original || "-")}</td>
+              <td><span class="status-badge" style="background:#eef4ff;color:#1649e0;border:1px solid #dbe6ff;">${group.count}</span></td>
+              <td>${escapeMatchHtml(group.suggestedMatch || "-")}</td>
+              <td><span class="status-badge ${statusClass}">${statusIcon} ${displayStatus} (${group.score})</span></td>
+              <td style="font-weight: 500; color: var(--ink2);">${escapeMatchHtml(finalName)}</td>
+              <td class="ledger-picker-cell">
                 <input 
                   type="text" 
-                  data-row="${rowIndex}" 
+                  data-group-id="${group.groupId}" 
                   class="ledger-search-input" 
-                  placeholder="-- Select Ledger --" 
-                  value="${selectedFix}"
+                  placeholder="Select ledger"
+                  title="${escapeMatchHtml(selectedFix || "Select ledger for all rows")}"
+                  value="${escapeMatchHtml(selectedFix)}"
                   readonly
-                  style="width: 100%; padding: 10px 14px; border: 1px solid #999; border-radius: 6px; font-size: 1rem; font-weight: 500; background: white; cursor: pointer;"
                 />
               </td>
+              <td><button type="button" class="match-view-btn" data-view-group="${group.groupId}">View</button></td>
             `;
           tbody.appendChild(tr);
         });
@@ -5083,13 +5859,15 @@
         document
           .querySelectorAll("#fixRequiredTableBody .ledger-search-input")
           .forEach((input) => {
-            const rowIndex = input.getAttribute("data-row");
+            const groupId = input.getAttribute("data-group-id");
+            const group = groupsById[groupId];
+            if (!group) return;
             let isOpen = false;
 
             // Show dropdown on focus
             input.addEventListener("click", (e) => {
               e.stopPropagation();
-              console.log("Input clicked for row:", rowIndex);
+              console.log("Input clicked for party group:", group.original);
 
               if (isOpen) {
                 console.log("Dropdown already open");
@@ -5098,72 +5876,46 @@
 
               isOpen = true;
 
-              // Remove any existing dropdown for this row
+              // Remove any existing dropdown for this party group
               const existingDropdown = document.getElementById(
-                `dropdown-${rowIndex}`,
+                `dropdown-${groupId}`,
               );
               if (existingDropdown) existingDropdown.remove();
 
               // Create new dropdown in body
               const dropdownList = document.createElement("div");
-              dropdownList.id = `dropdown-${rowIndex}`;
-              dropdownList.style.cssText = `
-                  position: fixed;
-                  background: white;
-                  border: 1px solid #ddd;
-                  border-radius: 8px;
-                  max-height: 350px;
-                  overflow-y: auto;
-                  z-index: 10000;
-                  box-shadow: 0 8px 16px rgba(0,0,0,0.15);
-                  min-width: 300px;
-                  display: flex;
-                  flex-direction: column;
-                `;
+              dropdownList.id = `dropdown-${groupId}`;
+              dropdownList.className = "ledger-dropdown";
 
               // Add search bar at top
               const searchBarContainer = document.createElement("div");
-              searchBarContainer.style.cssText =
-                "padding: 10px; border-bottom: 2px solid #f0f0f0; flex-shrink: 0; background: #fafafa;";
+              searchBarContainer.className = "ledger-dropdown-search-wrap";
 
               const dropdownSearchInput = document.createElement("input");
               dropdownSearchInput.type = "text";
-              dropdownSearchInput.placeholder = "🔍 Search ledger...";
-              dropdownSearchInput.style.cssText = `
-                  width: 100%;
-                  padding: 10px 12px;
-                  border: 1px solid #ddd;
-                  border-radius: 6px;
-                  font-size: 0.95rem;
-                  box-sizing: border-box;
-                `;
+              dropdownSearchInput.placeholder = "Search ledger...";
+              dropdownSearchInput.className = "ledger-dropdown-search";
               searchBarContainer.appendChild(dropdownSearchInput);
               dropdownList.appendChild(searchBarContainer);
 
               // Create options container
               const optionsContainer = document.createElement("div");
-              optionsContainer.style.cssText = "flex: 1; overflow-y: auto;";
+              optionsContainer.className = "ledger-options";
 
               // Add clear option
               const clearOption = document.createElement("div");
               clearOption.className = "ledger-option";
-              clearOption.setAttribute("data-row", rowIndex);
               clearOption.setAttribute("data-value", "");
-              clearOption.style.cssText =
-                "padding: 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;";
               clearOption.innerHTML =
-                '<span style="padding: 10px 14px; display: block; color: #999; font-weight: 500;">✕ Clear Selection</span>';
+                '<span style="color: #8a94a8; font-weight: 800;">Clear Selection</span>';
               optionsContainer.appendChild(clearOption);
 
               // Add all ledger options
               (tallyLedgers || []).forEach((ledger) => {
                 const option = document.createElement("div");
                 option.className = "ledger-option";
-                option.setAttribute("data-row", rowIndex);
                 option.setAttribute("data-value", ledger);
-                option.style.cssText =
-                  "padding: 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;";
-                option.innerHTML = `<span style="padding: 11px 14px; display: block; font-weight: 400;">${ledger}</span>`;
+                option.innerHTML = `<span>${escapeMatchHtml(ledger)}</span>`;
                 optionsContainer.appendChild(option);
               });
 
@@ -5172,9 +5924,29 @@
 
               // Position dropdown
               const rect = input.getBoundingClientRect();
-              dropdownList.style.top = rect.bottom + 5 + "px";
-              dropdownList.style.left = rect.left + "px";
-              dropdownList.style.width = Math.max(rect.width, 300) + "px";
+              const viewportPadding = 12;
+              const dropdownWidth = Math.min(
+                Math.max(rect.width, 380),
+                window.innerWidth - viewportPadding * 2,
+              );
+              const left = Math.min(
+                Math.max(rect.left, viewportPadding),
+                window.innerWidth - dropdownWidth - viewportPadding,
+              );
+              const spaceBelow = window.innerHeight - rect.bottom - viewportPadding;
+              const spaceAbove = rect.top - viewportPadding;
+              const openAbove = spaceBelow < 260 && spaceAbove > spaceBelow;
+              const dropdownHeight = Math.min(
+                420,
+                Math.max(240, openAbove ? spaceAbove - 6 : spaceBelow - 6),
+              );
+
+              dropdownList.style.left = left + "px";
+              dropdownList.style.width = dropdownWidth + "px";
+              dropdownList.style.maxHeight = dropdownHeight + "px";
+              dropdownList.style.top = openAbove
+                ? rect.top - dropdownHeight - 6 + "px"
+                : rect.bottom + 6 + "px";
 
               console.log("Dropdown created with", tallyLedgers.length, "ledgers");
 
@@ -5203,6 +5975,14 @@
                 e.stopPropagation();
               });
 
+              const cleanupDropdown = () => {
+                if (dropdownList.parentNode) dropdownList.remove();
+                isOpen = false;
+                document.removeEventListener("click", closeDropdown);
+                window.removeEventListener("scroll", closeOnPageMove, true);
+                window.removeEventListener("resize", closeOnPageMove);
+              };
+
               // Handle option selection
               const options = optionsContainer.querySelectorAll(".ledger-option");
               options.forEach((opt) => {
@@ -5211,28 +5991,25 @@
                   const value = opt.getAttribute("data-value");
                   input.value = value;
 
-                  // Update corrections
+                  // Update corrections for every row under this party name.
                   if (value) {
-                    window.tallyCorrections[rowIndex] = value;
+                    group.rows.forEach((row) => {
+                      window.tallyCorrections[row.row_index] = value;
+                    });
                   } else {
-                    delete window.tallyCorrections[rowIndex];
+                    group.rows.forEach((row) => {
+                      delete window.tallyCorrections[row.row_index];
+                    });
                   }
 
                   // Close and cleanup
-                  dropdownList.remove();
-                  isOpen = false;
+                  cleanupDropdown();
 
                   // Re-render to update status and final name
                   renderFixRequiredTable(page);
                   updateConvertButtonState();
                 });
 
-                opt.addEventListener("mouseenter", () => {
-                  opt.style.background = "#f0f9ff";
-                });
-                opt.addEventListener("mouseleave", () => {
-                  opt.style.background = "white";
-                });
               });
 
               // Close on outside click
@@ -5243,17 +6020,28 @@
                   e.target !== dropdownSearchInput &&
                   !dropdownList.contains(e.target)
                 ) {
-                  dropdownList.remove();
-                  isOpen = false;
-                  document.removeEventListener("click", closeDropdown);
+                  cleanupDropdown();
                 }
+              };
+
+              const closeOnPageMove = (e) => {
+                if (dropdownList.contains(e.target)) return;
+                cleanupDropdown();
               };
 
               setTimeout(() => {
                 document.addEventListener("click", closeDropdown);
+                window.addEventListener("scroll", closeOnPageMove, true);
+                window.addEventListener("resize", closeOnPageMove);
               }, 50);
             });
           });
+
+        tbody.querySelectorAll(".match-view-btn").forEach((button) => {
+          const group = groupsById[button.getAttribute("data-view-group")];
+          if (!group) return;
+          button.addEventListener("click", () => showPartyRowsModal(group, "fix"));
+        });
 
         renderPagination("fixRequiredPagination", page, totalPages, (p) => {
           matchPaginationState.fixRequiredPage = p;
@@ -5348,6 +6136,58 @@
         container.appendChild(info);
       }
 
+      function downloadFixRequiredExcel() {
+        const rowsToExport = (matchRows || []).filter(
+          (row) => row.status === "review" || row.status === "not_matched",
+        );
+
+        if (rowsToExport.length === 0) {
+          showToast("No review or not matched parties to download", "info");
+          return;
+        }
+
+        if (typeof XLSX === "undefined") {
+          showErrorPopup("Excel export library is not loaded");
+          return;
+        }
+
+        const grouped = {};
+
+        rowsToExport.forEach((row) => {
+            const party = (row.original || "").trim();
+
+            if (!grouped[party]) {
+                grouped[party] = {
+                  "Original Party Name": party,
+                  "Rows": 0,
+                  "Status": row.status || "",
+                  "GSTIN": row.gstin || ""
+              };
+          }
+
+          grouped[party]["Rows"]++;
+      });
+
+      const exportRows = Object.values(grouped);
+
+        const worksheet = XLSX.utils.json_to_sheet(exportRows);
+        worksheet["!cols"] = [
+          { wch: 10 },
+          { wch: 34 },
+          { wch: 34 },
+          { wch: 16 },
+          { wch: 10 },
+          { wch: 14 },
+          { wch: 18 },
+          { wch: 34 },
+          { wch: 34 },
+        ];
+
+        const workbook = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(workbook, worksheet, "Review_Not_Matched");
+        XLSX.writeFile(workbook, "review_not_matched_parties.xlsx");
+      }
+
       function renderMatchTable() {
         if (!matchRows || matchRows.length === 0) return;
 
@@ -5381,6 +6221,11 @@
             // Update text immediately after toggling
             syncButtonText();
           };
+        }
+
+        const downloadFixRequiredBtn = document.getElementById("downloadFixRequiredBtn");
+        if (downloadFixRequiredBtn) {
+          downloadFixRequiredBtn.onclick = downloadFixRequiredExcel;
         }
       }
 
@@ -5525,29 +6370,8 @@
             return;
           }
 
-          // ✅ SHOW LOADING POPUP
-          showMatchLoading();
-
           try {
-            // 👇 Optional step text updates (premium feel)
-            document.getElementById("matchLoadingText").innerText =
-              "🧠 Detecting columns...";
-
-            await new Promise((r) => setTimeout(r, 400));
-
-            document.getElementById("matchLoadingText").innerText =
-              "🔄 Fetching Tally ledgers...";
-
-            // 👇 YOUR EXISTING FUNCTION
             await runPartyMatch(file);
-
-            document.getElementById("matchLoadingText").innerText =
-              "⚡ Matching parties...";
-
-            await new Promise((r) => setTimeout(r, 300));
-
-            // ✅ HIDE POPUP AFTER DONE
-            hideMatchLoading();
           } catch (err) {
             hideMatchLoading();
             alert("Matching failed: " + err.message);
@@ -5560,62 +6384,132 @@
 
       // refresh every 5 sec
       setInterval(refreshTallyStatus, 5000);
+
+      function formatElapsed(seconds) {
+        const safeSeconds = Math.max(0, Number(seconds) || 0);
+        const minutes = String(Math.floor(safeSeconds / 60)).padStart(2, "0");
+        const secs = String(safeSeconds % 60).padStart(2, "0");
+        return `${minutes}:${secs}`;
+      }
+
+      function updateMatchLoading(snapshot) {
+        if (!snapshot) return;
+        const progress = snapshot.progress || {};
+        const currentRow = Number(progress.current_row) || 0;
+        const totalRows = Number(progress.total_rows) || 0;
+        const percentage = Number(progress.percentage) || 0;
+
+        const setText = (id, value) => {
+          const el = document.getElementById(id);
+          if (el) el.textContent = value;
+        };
+
+        setText("matchLoadingStatus", snapshot.message || "Preparing matching...");
+        setText("matchOpenCompany", window.currentTallyCompany || "Checking company...");
+        setText("matchLedgerCount", Number(progress.ledger_count) || 0);
+        setText("matchCurrentRow", currentRow);
+        setText("matchTotalRows", totalRows);
+        setText("matchPercent", `${percentage}%`);
+        setText("matchElapsedTime", formatElapsed(snapshot.elapsed_seconds));
+
+        const bar = document.getElementById("matchProgressBar");
+        if (bar) bar.style.width = `${Math.max(0, Math.min(100, percentage))}%`;
+
+        const spinner = document.getElementById("matchStatusSpinner");
+        if (spinner) {
+          spinner.style.display = snapshot.status === "completed" ? "none" : "inline-block";
+        }
+      }
+
+      function watchTaskProgress(taskId) {
+        return new Promise((resolve, reject) => {
+          const stream = new EventSource(`/api/tasks/${taskId}/progress`);
+
+          stream.onmessage = (event) => {
+            const snapshot = JSON.parse(event.data);
+            updateMatchLoading(snapshot);
+
+            if (snapshot.status === "failed") {
+              stream.close();
+              reject(new Error(snapshot.error || snapshot.message || "Matching failed"));
+              return;
+            }
+
+            if (snapshot.status === "completed") {
+              stream.close();
+              resolve(snapshot);
+            }
+          };
+
+          stream.onerror = () => {
+            stream.close();
+            reject(new Error("Lost connection to matching progress stream"));
+          };
+        });
+      }
+
       function showMatchLoading() {
         const existing = document.getElementById("matchLoadingOverlay");
         if (existing) existing.remove();
 
         const overlay = document.createElement("div");
         overlay.id = "matchLoadingOverlay";
-
-        overlay.style = `
-        position: fixed;
-        inset: 0;
-        background: rgba(10,15,30,0.45);
-        backdrop-filter: blur(4px);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 9999;
-    `;
+        overlay.className = "match-loading-overlay";
 
         overlay.innerHTML = `
-        <div style="
-            background: white;
-            padding: 24px 28px;
-            border-radius: 18px;
-            width: 320px;
-            text-align: center;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.2);
-        ">
-            <div style="font-size: 28px; margin-bottom: 10px;">🧾</div>
-
-            <div id="matchLoadingText" style="
-                font-size: 15px;
-                font-weight: 600;
-                color: #1a2035;
-            ">
-                Matching parties...
+        <div class="match-loading-card">
+            <div class="match-loading-header">
+              <div class="match-loading-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M8 8.5h8" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M8 12h5" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M7.5 17.5h-1A2.5 2.5 0 0 1 4 15V7a2.5 2.5 0 0 1 2.5-2.5h1" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M16.5 4.5h1A2.5 2.5 0 0 1 20 7v8a2.5 2.5 0 0 1-2.5 2.5h-1" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M9 18.5h6" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M12 16v5" stroke="currentColor" stroke-linecap="round"/>
+                  <path d="M9 5.5h6v11H9z" stroke="currentColor" stroke-linejoin="round"/>
+                </svg>
+              </div>
+              <h2 class="match-loading-text">Party Matching</h2>
             </div>
 
-            <div style="margin-top: 12px; font-size: 13px; color: #7688a8;">
-                Please wait while we match Excel data with Tally
+            <div>
+              <div class="match-progress-label">Status</div>
+              <div class="match-status-line">
+                <span class="match-status-spinner" id="matchStatusSpinner"></span>
+                <span id="matchLoadingStatus" class="match-status-dots">Sending matching job</span>
+              </div>
             </div>
 
-            <div style="margin-top:16px;">
-                <div style="
-                    width: 100%;
-                    height: 6px;
-                    background: #edf2fb;
-                    border-radius: 10px;
-                    overflow: hidden;
-                ">
-                    <div id="matchProgressBar" style="
-                        width: 30%;
-                        height: 100%;
-                        background: linear-gradient(90deg, #0fa966, #0b8f56);
-                        animation: loadingMove 1.2s infinite;
-                    "></div>
+            <div class="match-progress-section">
+              <div class="match-progress-label">Open Company</div>
+              <div class="match-company-line">
+                <span>Tally Company</span>
+                <span class="match-company-name" id="matchOpenCompany">${escapeMatchHtml(window.currentTallyCompany || "Checking company...")}</span>
+              </div>
+            </div>
+
+            <div class="match-progress-section">
+              <div class="match-progress-label">Party Ledgers Found</div>
+              <div class="match-ledger-value" id="matchLedgerCount">0</div>
+            </div>
+
+            <div class="match-progress-section">
+              <div class="match-progress-label">Matching Progress</div>
+              <div class="match-row-progress">
+                <div class="match-row-count">
+                  <span id="matchCurrentRow">0</span> / <span id="matchTotalRows">0</span> Rows
                 </div>
+                <div class="match-percent" id="matchPercent">0%</div>
+              </div>
+              <div class="match-progress-container">
+                <div class="match-progress-bar" id="matchProgressBar"></div>
+              </div>
+            </div>
+
+            <div class="match-progress-section">
+              <div class="match-progress-label">Elapsed Time</div>
+              <div class="match-elapsed" id="matchElapsedTime">00:00</div>
             </div>
         </div>
     `;
@@ -5642,7 +6536,45 @@
       });
       const USER_ID = "{{ user_id or '' }}";
     })();
+    function showUpgradeModal(message){
+
+    Swal.fire({
+
+        icon:"warning",
+
+        title:"Party Matching Limit Reached",
+
+        html:`<div style="text-align:center;"><div style="display:inline-block;padding:0.35rem 0.7rem;border-radius:999px;background:rgba(22,73,224,0.08);color:#1649e0;font-weight:700;font-size:0.8rem;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:0.7rem;">Upgrade Needed</div><div style="font-size:1rem;line-height:1.6;color:#4b5872;">${message || "You have reached your matching limit."}</div></div>`,
+
+        confirmButtonText:"View Plans",
+
+        showCancelButton:true,
+
+        cancelButtonText:"Close",
+
+        customClass:{
+            popup:"upgrade-modal",
+            confirmButton:"swal2-confirm",
+            cancelButton:"swal2-cancel"
+        },
+
+        buttonsStyling:false,
+
+        allowOutsideClick:false
+
+    }).then((result)=>{
+
+        if(result.isConfirmed){
+
+            window.location="/subscription";
+
+        }
+
+    });
+
+}
   </script>
 </body>
 
 </html>
+

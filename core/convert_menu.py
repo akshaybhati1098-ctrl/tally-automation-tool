@@ -106,7 +106,7 @@ def add_entry(v, ledger, positive, amt):
 
 # ---------------- MAIN FUNCTION ----------------
 
-def convert_excel_to_xml(vtype, df, out_dir, mapping):
+def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
 
     print("\n========== XML INPUT ==========")
     print("Columns:", df.columns.tolist())
@@ -117,24 +117,39 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         print(df[["Recipient Name"]].head(10))
 
 
+    use_excel_ledgers = bool(use_excel_ledgers)
+
     # ✅ SMART MAPPING
-    if not is_already_normalized(mapping):
+    if not use_excel_ledgers and not is_already_normalized(mapping):
         mapping = normalize_mapping(mapping)
 
-    SALES = mapping.get("SALES", {})
-    SALES_INTER = mapping.get("SALES_INTER", {})
-    PURCHASE = mapping.get("PURCHASE", {})
-    PURCHASE_INTER = mapping.get("PURCHASE_INTER", {})
+    if use_excel_ledgers:
+        SALES = {}
+        SALES_INTER = {}
+        PURCHASE = {}
+        PURCHASE_INTER = {}
+        CGST_SALES = {}
+        SGST_SALES = {}
+        IGST_SALES = {}
+        CGST_PURCHASE = {}
+        SGST_PURCHASE = {}
+        IGST_PURCHASE = {}
+        COMPANY_STATE = "Uttar Pradesh"
+    else:
+        SALES = mapping.get("SALES", {})
+        SALES_INTER = mapping.get("SALES_INTER", {})
+        PURCHASE = mapping.get("PURCHASE", {})
+        PURCHASE_INTER = mapping.get("PURCHASE_INTER", {})
 
-    CGST_SALES = mapping.get("CGST_SALES") or mapping.get("CGST_RATES", {})
-    SGST_SALES = mapping.get("SGST_SALES") or mapping.get("SGST_RATES", {})
-    IGST_SALES = mapping.get("IGST_SALES") or mapping.get("IGST_RATES", {})
+        CGST_SALES = mapping.get("CGST_SALES") or mapping.get("CGST_RATES", {})
+        SGST_SALES = mapping.get("SGST_SALES") or mapping.get("SGST_RATES", {})
+        IGST_SALES = mapping.get("IGST_SALES") or mapping.get("IGST_RATES", {})
 
-    CGST_PURCHASE = mapping.get("CGST_PURCHASE") or mapping.get("CGST_RATES", {})
-    SGST_PURCHASE = mapping.get("SGST_PURCHASE") or mapping.get("SGST_RATES", {})
-    IGST_PURCHASE = mapping.get("IGST_PURCHASE") or mapping.get("IGST_RATES", {})
+        CGST_PURCHASE = mapping.get("CGST_PURCHASE") or mapping.get("CGST_RATES", {})
+        SGST_PURCHASE = mapping.get("SGST_PURCHASE") or mapping.get("SGST_RATES", {})
+        IGST_PURCHASE = mapping.get("IGST_PURCHASE") or mapping.get("IGST_RATES", {})
 
-    COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
+        COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
 
     ENV = ET.Element("ENVELOPE")
 
@@ -210,7 +225,12 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         # ================= SALES =================
         if vtype == "sale":
 
-            if interstate:
+            if use_excel_ledgers:
+                sales_ledger = clean_text(first_non_empty(row, "Sales Ledger"))
+                cgst_ledger = clean_text(first_non_empty(row, "CGST Ledger"))
+                sgst_ledger = clean_text(first_non_empty(row, "SGST Ledger"))
+                igst_ledger = clean_text(first_non_empty(row, "IGST Ledger"))
+            elif interstate:
                 sales_ledger = SALES_INTER.get(rk)
                 igst_ledger = IGST_SALES.get(rk)
                 cgst_ledger = None
@@ -258,7 +278,12 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping):
         # ================= PURCHASE =================
         else:
 
-            if interstate:
+            if use_excel_ledgers:
+                purchase_ledger = clean_text(first_non_empty(row, "Purchase Ledger"))
+                cgst_ledger = clean_text(first_non_empty(row, "CGST Ledger"))
+                sgst_ledger = clean_text(first_non_empty(row, "SGST Ledger"))
+                igst_ledger = clean_text(first_non_empty(row, "IGST Ledger"))
+            elif interstate:
                 purchase_ledger = PURCHASE_INTER.get(rk)
                 igst_ledger = IGST_PURCHASE.get(rk)
                 cgst_ledger = None

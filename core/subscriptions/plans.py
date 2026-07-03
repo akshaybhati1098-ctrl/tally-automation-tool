@@ -1,0 +1,7 @@
+TRIAL = "TRIAL"
+BASIC = "BASIC"
+PRO = "PRO"
+
+UNLIMITED = -1
+
+FEATURE_PARTY_MATCH = "party_matching"

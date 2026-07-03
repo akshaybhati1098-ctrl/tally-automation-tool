@@ -146,7 +146,8 @@ def dataframe_to_xml(
     if final_party_col in df.columns:
         print(df[[final_party_col]].head(10))
 
-    mapping = get_company_mapping(company, user_id)
+    use_excel_ledgers = str(company).strip() == "__EXCEL_LEDGERS__"
+    mapping = {} if use_excel_ledgers else get_company_mapping(company, user_id)
     out_dir = tempfile.mkdtemp()
 
     try:
@@ -155,6 +156,7 @@ def dataframe_to_xml(
             df=df,
             out_dir=out_dir,
             mapping=mapping,
+            use_excel_ledgers=use_excel_ledgers,
         )
         with open(xml_path, "r", encoding="utf-8") as f:
             xml_content = f.read()
@@ -212,7 +214,8 @@ def excel_to_xml(
     except Exception as e:
         print(f"⚠️ Tally Matching Skipped: {e}")
 
-    mapping = get_company_mapping(company, user_id)
+    use_excel_ledgers = str(company).strip() == "__EXCEL_LEDGERS__"
+    mapping = {} if use_excel_ledgers else get_company_mapping(company, user_id)
     out_dir = tempfile.mkdtemp()
 
     try:
@@ -221,6 +224,7 @@ def excel_to_xml(
             df=df,
             out_dir=out_dir,
             mapping=mapping,
+            use_excel_ledgers=use_excel_ledgers,
         )
         with open(xml_path, "r", encoding="utf-8") as f:
             xml_content = f.read()

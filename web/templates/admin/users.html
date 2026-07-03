@@ -1,4 +1,4 @@
- {% extends "admin/base.html" %}
+{% extends "admin/base.html" %}
 {% block page_title %}SaaS Customer Account Registry Matrix{% endblock %}
 
 {% block content %}
@@ -29,14 +29,18 @@
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0 text-center">
                 <thead class="table-light">
-                    <tr>
-                        <th class="text-start ps-4">Account ID</th>
-                        <th>User Handle</th>
-                        <th>Email Address Identity</th>
-                        <th>Load Multipliers (C / O / M)</th>
-                        <th class="text-start">Dynamic History Diagnostics</th>
-                        <th class="text-end pe-4">Account Authorization Flags</th>
-                    </tr>
+                <tr>
+                    <th class="text-start ps-4">Account</th>
+                    <th>User</th>
+                    <th>Email</th>
+
+                    <th>Subscription</th>
+                    <th>Authentication</th>
+                    <th>Usage</th>
+
+                    <th>Activity</th>
+                    <th class="text-end pe-4">Actions</th>
+                </tr>
                 </thead>
                 <tbody>
                     {% for u in users %}
@@ -66,6 +70,61 @@
     </div>
 </td>
                         <td><span class="text-muted">{{ u.email }}</span></td>
+                        <td>
+
+                            {% if u.plan_name == "Trial" %}
+
+                                <span class="badge bg-warning text-dark px-3">
+                                    🎁 TRIAL
+                                </span>
+
+                            {% elif u.plan_name == "Basic" %}
+
+                                <span class="badge bg-secondary px-3">
+                                    ⭐ BASIC
+                                </span>
+
+                            {% elif u.plan_name == "Pro" %}
+
+                                <span class="badge bg-success px-3">
+                                    🚀 PRO
+                                </span>
+
+                {% else %}
+
+        <span class="badge bg-dark px-3">
+            UNKNOWN
+        </span>
+
+    {% endif %}
+
+</td>
+                        <td>
+
+                        {% if u.subscription_status == "ACTIVE" %}
+
+                        <span class="badge bg-success">
+
+                        Active
+
+                        </span>
+
+                        {% else %}
+
+                        <span class="badge bg-danger">
+
+                        Expired
+
+                        </span>
+
+                        {% endif %}
+
+                        </td>
+                        <td>
+
+                        {{ u.match_limit }}
+
+                        </td>
                         <td class="small">
                             <span class="badge bg-light text-primary border px-2 py-1 me-1">Conversions: <strong>{{ u.conversions }}</strong></span>
                             <span class="badge bg-light text-info border px-2 py-1 me-1">OCR: <strong>{{ u.ocr_jobs }}</strong></span>
@@ -113,19 +172,40 @@
                             </div>
                         </td>
                          <td class="text-end pe-4">
-    {% if u.is_admin %}
-        <button class="btn btn-sm btn-light text-muted border fw-bold px-3 cursor-not-allowed" disabled title="Administrator accounts cannot be suspended.">
-            <i class="bi bi-shield-lock-fill me-1 text-primary"></i> Protected Node
-        </button>
-    {% else %}
-        <button id="btn-toggle-{{ u.id }}" class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-success{% endif %} fw-bold px-3" onclick="executeAccountStateInversion({{ u.id }})">
+
+                            <button
+                                class="btn btn-sm btn-primary manage-user me-2"
+                                data-user-id="{{ u.id }}">
+
+                                <i class="bi bi-gear-fill"></i>
+                                Manage
+
+                            </button>
+
+                            {% if u.is_admin %}
+                                <button class="btn btn-sm btn-light text-muted border fw-bold px-3 cursor-not-allowed"
+                                    disabled
+                                    title="Administrator accounts cannot be suspended.">
+                                 <i class="bi bi-shield-lock-fill me-1 text-primary"></i>
+                                 Protected Node
+                            </button>
+                        {% else %}
+        <button
+            id="btn-toggle-{{ u.id }}"
+            class="btn btn-sm {% if u.is_active %}btn-outline-danger{% else %}btn-success{% endif %} fw-bold px-3"
+            onclick="executeAccountStateInversion({{ u.id }})">
+
             {% if u.is_active %}
-                <i class="bi bi-slash-circle me-1"></i> Suspend Account
+                <i class="bi bi-slash-circle me-1"></i>
+                Suspend Account
             {% else %}
-                <i class="bi bi-check-circle me-1"></i> Activate Node
+                <i class="bi bi-check-circle me-1"></i>
+                Activate Node
             {% endif %}
+
         </button>
     {% endif %}
+
 </td>
                     </tr>
                     {% else %}
@@ -155,11 +235,150 @@
     .bg-secondary-light { background-color: rgba(108, 117, 125, 0.1); }
     .input-group :focus { border-color: #dee2e6 !important; box-shadow: none !important; }
 </style>
+<!-- Customer Management Modal -->
+
+<div class="modal fade" id="customerModal" tabindex="-1">
+
+    <div class="modal-dialog modal-lg">
+
+        <div class="modal-content">
+
+            <div class="modal-header">
+
+                <h5 class="modal-title">
+                    Customer Management
+                </h5>
+
+                <button
+                    type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal">
+                </button>
+
+            </div>
+
+            <div class="modal-body">
+
+                <div class="row mb-3">
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Username
+                        </label>
+
+                        <input
+                            type="text"
+                            id="cm_username"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+                    <div class="col-md-6">
+
+                        <label class="form-label">
+                            Email
+                        </label>
+
+                        <input
+                            type="text"
+                            id="cm_email"
+                            class="form-control"
+                            readonly>
+
+                    </div>
+
+                </div>
+
+                <div class="row">
+
+    <!-- Subscription Plan -->
+    <div class="col-md-4">
+
+        <label class="form-label">
+            Subscription Plan
+        </label>
+
+        <select
+            id="cm_plan"
+            class="form-select">
+
+            <option value="1">Trial</option>
+            <option value="2">Basic</option>
+            <option value="3">Pro</option>
+
+
+        </select>
+
+    </div>
+
+    <!-- Match Limit -->
+    <div class="col-md-4">
+
+        <label class="form-label">
+            Match Limit
+        </label>
+
+        <input
+            type="number"
+            id="cm_match_limit"
+            class="form-control"
+            readonly>
+
+    </div>
+
+    <!-- Remaining Matching -->
+    <div class="col-md-4">
+
+        <label class="form-label">
+            Remaining Matching
+        </label>
+
+        <input
+            type="text"
+            id="cm_remaining"
+            class="form-control"
+            readonly>
+
+    </div>
+
+</div>
+
+            </div>
+
+            <div class="modal-footer">
+
+                <button
+                    class="btn btn-secondary"
+                    data-bs-dismiss="modal">
+
+                    Close
+
+                </button>
+
+                <button
+                    id="saveSubscription"
+                    class="btn btn-primary">
+
+                    Save Changes
+
+                </button>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 {% endblock %}
+
 
 {% block scripts %}
 <script>
     document.getElementById('nav-users').classList.add('active');
+    let currentUserId = null;
     
     // 1. Client-Side Realtime Search Filtering Engine
     document.addEventListener("DOMContentLoaded", function () {
@@ -222,8 +441,99 @@
             alert(`Network error tracking request: ${err.message}`);
         }
     }
-    setInterval(() => {
-    location.reload();
-}, 5000);
+const planLimits = {
+
+    1:2,
+    2:30,
+    3:-1
+
+};
+
+document
+.getElementById("cm_plan")
+.addEventListener("change",function(){
+
+    let limit = planLimits[this.value];
+
+    document.getElementById("cm_match_limit").value = limit;
+
+});
+
+document.querySelectorAll(".manage-user").forEach(btn=>{
+
+    btn.addEventListener("click",async function(){
+
+        currentUserId=this.dataset.userId;
+
+        const res=await fetch(`/admin/api/admin/user/${currentUserId}`);
+
+        const data=await res.json();
+
+        document.getElementById("cm_username").value=data.user.username;
+
+        document.getElementById("cm_email").value=data.user.email;
+
+        document.getElementById("cm_remaining").value=data.remaining_matching;
+
+        document.getElementById("cm_match_limit").value=data.subscription.match_limit;
+
+        document.getElementById("cm_plan").value=data.subscription.plan_id;
+
+        new bootstrap.Modal(
+            document.getElementById("customerModal")
+        ).show();
+
+    });
+
+});
+
+
+// Save Subscription
+document.getElementById("saveSubscription").addEventListener("click", async function () {
+
+    const payload = {
+
+        plan_id: Number(
+            document.getElementById("cm_plan").value
+        ),
+
+        match_limit: Number(
+            document.getElementById("cm_match_limit").value
+        ),
+
+        subscription_status: "ACTIVE",
+
+        plan_expiry: null
+
+    };
+
+    const res = await fetch(
+        `/admin/api/admin/user/${currentUserId}`,
+        {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(payload)
+        }
+    );
+
+    const data = await res.json();
+
+    if (data.success) {
+
+        alert("Subscription Updated Successfully");
+
+        location.reload();
+
+    } else {
+
+        alert("Unable to save changes.");
+
+    }
+
+});
 </script>
 {% endblock %}
+
+

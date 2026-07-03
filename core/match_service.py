@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import re
-from typing import Dict, List, Optional
+from typing import Callable, Dict, List, Optional
 
 import pandas as pd
 from rapidfuzz import fuzz, process
 
 MATCHED_THRESHOLD = 80
-REVIEW_THRESHOLD = 50
+REVIEW_THRESHOLD = 75
 
 REMOVE_WORDS = [
     "pvt ltd",
@@ -103,6 +103,7 @@ def match_party_names(
     tally_gstin_map: Optional[Dict[str, str]] = None,
     party_col: Optional[str] = None,
     gstin_col: Optional[str] = None,
+    progress_callback: Optional[Callable[[dict], None]] = None,
 ) -> List[dict]:
     if df is None:
         raise ValueError("DataFrame is required")
@@ -116,6 +117,10 @@ def match_party_names(
     cleaned_ledger_names, cleaned_lookup = _build_ledger_lookup(tally_ledgers)
 
     results: List[dict] = []
+    total_rows = len(df)
+    matched_count = 0
+    review_count = 0
+    not_matched_count = 0
 
     for idx, row in df.iterrows():
         original_party = row.get(party_col, "")
@@ -144,9 +149,16 @@ def match_party_names(
                 )
                 if extracted:
                     matched_cleaned, score, _ = extracted
-                    best_match = cleaned_lookup.get(matched_cleaned, "")
                     best_score = int(score)
-                    match_by = "Name"
+
+                    # Only keep suggestion if score is high enough for review
+                    if best_score >= REVIEW_THRESHOLD:
+                        best_match = cleaned_lookup.get(matched_cleaned, "")
+                        match_by = "Name"
+                else:
+                    # Too weak → don't suggest anything
+                        best_match = ""
+                        match_by = "None"
 
         if best_score > MATCHED_THRESHOLD:
             status = "matched"
@@ -166,6 +178,29 @@ def match_party_names(
                 "gstin": original_gstin,
             }
         )
+
+        if status == "matched":
+            matched_count += 1
+        elif status == "review":
+            review_count += 1
+        else:
+            not_matched_count += 1
+
+        if progress_callback:
+            processed_rows = len(results)
+            percentage = (
+                round((processed_rows / total_rows) * 100) if total_rows else 100
+            )
+            progress_callback(
+                {
+                    "current_row": processed_rows,
+                    "total_rows": total_rows,
+                    "percentage": percentage,
+                    "matched": matched_count,
+                    "review": review_count,
+                    "not_matched": not_matched_count,
+                }
+            )
 
     return results
 

@@ -1,3 +1,4 @@
+from email.mime import message
 import os
 from dotenv import load_dotenv
 from fastapi import Request
@@ -50,6 +51,7 @@ from fastapi.responses import (
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
+from core.subscription import get_user_plan
 from fastapi.middleware.cors import CORSMiddleware
 from core.excel_service import (
     excel_to_xml,
@@ -62,6 +64,14 @@ from core.tally_service import (
     build_company_status_xml,
     parse_ledgers,
     parse_company_status,
+)
+from core.subscription import (
+    get_plan_name,
+    get_remaining_feature_usage,
+    can_use_feature,
+    assign_trial_plan,
+    initialize_feature_usage,
+    increment_feature_usage,
 )
 from core.match_service import apply_match_results_to_dataframe
 
@@ -107,6 +117,7 @@ from core.business_telemetry import (
     log_business_error,
 )
 from routes.admin_business_routes import business_router
+from core.task_progress import task_progress_store
 
 # =========================================================
 # APP INITIALIZATION
@@ -286,6 +297,125 @@ def init_user_db():
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
+    # =====================================
+    # Subscription Plans
+    # =====================================
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS subscription_plans (
+
+          id SERIAL PRIMARY KEY,
+
+          plan_name TEXT UNIQUE NOT NULL,
+
+          price INTEGER DEFAULT 0,
+
+          match_limit INTEGER DEFAULT 0,
+
+          connector_enabled BOOLEAN DEFAULT TRUE,
+
+          xml_enabled BOOLEAN DEFAULT TRUE,
+
+          ocr_enabled BOOLEAN DEFAULT TRUE,
+
+          priority_support BOOLEAN DEFAULT FALSE,
+
+          is_active BOOLEAN DEFAULT TRUE
+        )
+    """)
+    cur.execute(
+        "SELECT column_name FROM information_schema.columns WHERE table_name='subscription_plans'"
+    )
+    plan_columns = [col[0] for col in cur.fetchall()]
+    if "monthly_price" not in plan_columns:
+        cur.execute("""
+        ALTER TABLE subscription_plans
+        ADD COLUMN monthly_price INTEGER DEFAULT 0
+    """)
+
+    if "yearly_price" not in plan_columns:
+        cur.execute("""
+        ALTER TABLE subscription_plans
+        ADD COLUMN yearly_price INTEGER DEFAULT 0
+    """)
+    cur.execute("""
+    UPDATE subscription_plans
+    SET
+        monthly_price = CASE
+            WHEN plan_name='Basic' THEN 0
+            WHEN plan_name='Pro' THEN 299
+        END,
+    yearly_price = CASE
+            WHEN plan_name='Basic' THEN 0
+            WHEN plan_name='Pro' THEN 2999
+        END
+    """)             
+    # =====================================
+    # Feature Usage
+    # =====================================
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS subscription_history (
+
+        id SERIAL PRIMARY KEY,
+
+        user_id INTEGER NOT NULL,
+
+        old_plan_id INTEGER,
+
+        new_plan_id INTEGER,
+
+        payment_provider TEXT,
+
+        payment_id TEXT,
+
+        amount INTEGER,
+
+        changed_by TEXT,
+
+        remarks TEXT,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
+    )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS feature_usage (
+
+        id SERIAL PRIMARY KEY,
+
+        user_id INTEGER NOT NULL,
+
+        feature_name TEXT NOT NULL,
+
+        used_count INTEGER DEFAULT 0,
+
+        reset_date DATE,
+
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+        UNIQUE(user_id, feature_name)
+
+)
+""")
+    cur.execute("""
+    SELECT COUNT(*) FROM subscription_plans
+""")
+
+    count = cur.fetchone()[0]
+
+    if count == 0:
+
+      cur.execute("""
+      INSERT INTO subscription_plans
+      (plan_name,price,match_limit,priority_support)
+
+      VALUES
+
+      ('Basic',0,5,FALSE),
+
+      ('Pro',299,-1,TRUE)
+    """)
 
     # Pending registrations (temporary) – stores OTP before final signup
     cur.execute("""
@@ -315,6 +445,52 @@ def init_user_db():
     if "is_admin" not in columns:
         cur.execute("ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE")
         print("Added is_admin column to users table")
+    if "plan_name" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN plan_name TEXT DEFAULT 'FREE'
+    """)
+
+    if "subscription_status" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN subscription_status TEXT DEFAULT 'ACTIVE'
+    """)
+
+    if "plan_start" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN plan_start TIMESTAMP
+    """)
+
+    if "plan_expiry" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN plan_expiry TIMESTAMP
+    """)
+
+    if "payment_provider" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN payment_provider TEXT
+    """)
+
+    if "payment_id" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN payment_id TEXT
+    """)
+    if "plan_id" not in columns:
+        cur.execute("""
+        ALTER TABLE users
+        ADD COLUMN plan_id INTEGER
+    """)
+
+        cur.execute("""
+        UPDATE users
+        SET plan_id = 1
+        WHERE plan_id IS NULL
+    """)
 
     # =========================================================
     # AUTOMATIC TELEMETRY COLUMN MIGRATE & FIX
@@ -918,6 +1094,9 @@ async def verify_otp_signup(
 
     # CREATE USER
     user_id = create_user(username, email, password)
+    assign_trial_plan(user_id)
+
+    initialize_feature_usage(user_id)
 
     # DEFAULT COMPANY
     from core.mapping import save_company_mapping_postgres, get_default_mapping
@@ -1395,6 +1574,375 @@ def api_tally_ledgers(
     return {"status": "ok", "ledgers": ledgers}
 
 
+async def _run_party_match_task(
+    *,
+    task_id: str,
+    contents: bytes,
+    filename: str,
+    tally_group: str,
+    sheet_name: str,
+    manual_columns: str,
+    user_id: str,
+    username: str,
+    start_time: float,
+) -> None:
+    try:
+        import json
+
+        task_progress_store.update(
+            task_id,
+            status="processing",
+            message="Reading Excel file...",
+        )
+
+        if sheet_name and sheet_name.strip():
+            df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
+        else:
+            df = pd.read_excel(io.BytesIO(contents))
+
+        df = df.fillna("")
+        task_progress_store.update(
+            task_id,
+            message="Detecting columns...",
+            progress={"total_rows": len(df)},
+        )
+
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_file_loaded",
+            status_str="success",
+            details={
+                "rows": len(df),
+                "columns": len(df.columns),
+                "sheet_name": sheet_name or "Sheet1",
+            },
+        )
+
+        from core.match_service import (
+            detect_party_column,
+            detect_gstin_column,
+            match_party_names,
+            apply_match_results_to_dataframe,
+        )
+        from core.tally_service import parse_ledgers_with_gstin, build_ledger_xml
+
+        party_col = detect_party_column(df)
+        gstin_col = detect_gstin_column(df)
+
+        try:
+            manual_cols = (
+                json.loads(manual_columns)
+                if isinstance(manual_columns, str)
+                else manual_columns
+            )
+        except Exception:
+            manual_cols = {}
+
+        if manual_cols.get("party"):
+            party_col = manual_cols["party"]
+        if manual_cols.get("gstin"):
+            gstin_col = manual_cols["gstin"]
+
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_columns_detected",
+            status_str="success",
+            details={"party_column": party_col, "gstin_column": gstin_col},
+        )
+
+        if not party_col or not gstin_col:
+            log_business_error(
+                user_id=user_id,
+                username=username,
+                event_type="match_party",
+                error_type="validation_error",
+                error_message="GSTIN or Party column mapping could not be explicitly auto-resolved.",
+            )
+            task_progress_store.complete(
+                task_id,
+                {
+                    "status": "manual_required",
+                    "columns": list(df.columns),
+                    "party_column": party_col,
+                    "gstin_column": gstin_col,
+                },
+            )
+            return
+
+        task_progress_store.update(
+            task_id,
+            status="processing",
+            message="Fetching Party Ledgers from Tally...",
+        )
+
+        xml = build_ledger_xml(tally_group)
+        RESULTS.pop(user_id, None)
+        JOBS.setdefault(user_id, []).append({"xml": xml})
+
+        result = None
+        for _ in range(20):
+            await asyncio.sleep(0.5)
+            result = RESULTS.get(user_id)
+            if result:
+                break
+
+        if not result:
+            log_business_error(
+                user_id=user_id,
+                username=username,
+                event_type="match_party",
+                error_type="connector_timeout",
+                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
+            )
+            task_progress_store.fail(task_id, "Tally connector timed out while fetching ledgers.")
+            return
+
+        raw_xml = result.get("data", "") or ""
+        ledgers, g_map = parse_ledgers_with_gstin(raw_xml)
+
+        group_norm = (tally_group or "").strip()
+        if group_norm and group_norm.lower() != "all":
+            from core.tally_service import parse_ledgers_with_parent
+
+            parsed = parse_ledgers_with_parent(raw_xml)
+            group_norm_lower = group_norm.lower()
+            allowed = {
+                i["name"]
+                for i in parsed
+                if i.get("parent", "").strip().lower() == group_norm_lower
+            }
+            if not allowed:
+                allowed = {
+                    i["name"]
+                    for i in parsed
+                    if group_norm_lower in i.get("parent", "").strip().lower()
+                }
+            if allowed:
+                ledgers = [l for l in ledgers if l in allowed]
+                g_map = {gstin: name for gstin, name in g_map.items() if name in allowed}
+
+        task_progress_store.update(
+            task_id,
+            message="Matching Excel parties with Tally ledgers...",
+            progress={"ledger_count": len(ledgers), "total_rows": len(df)},
+        )
+
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="tally_ledgers_loaded",
+            status_str="success",
+            details={
+                "ledgers_fetched": len(ledgers),
+                "tally_group": tally_group or "All",
+            },
+        )
+
+        def report_match_progress(progress: dict) -> None:
+            task_progress_store.update(
+                task_id,
+                message="Matching Excel parties with Tally ledgers...",
+                progress=progress,
+            )
+
+        results = await asyncio.to_thread(
+            match_party_names,
+            df=df,
+            tally_ledgers=ledgers,
+            tally_gstin_map=g_map,
+            party_col=party_col,
+            gstin_col=gstin_col,
+            progress_callback=report_match_progress,
+        )
+
+        reviewed_df = apply_match_results_to_dataframe(
+            df=df,
+            match_results=results,
+            party_col=party_col,
+        )
+
+        session_id = str(uuid.uuid4())
+        MATCH_SESSIONS[session_id] = {
+            "reviewed_df": reviewed_df,
+            "match_results": results,
+            "party_col": party_col,
+            "gstin_col": gstin_col,
+            "ledger_list": ledgers,
+            "sheet_name": sheet_name,
+            "source_filename": filename,
+            "columns": list(df.columns),
+            "party_matching_used": True,
+            "usage_counted": False,
+        }
+
+        unmatched_count = len([r for r in results if r.get("status") != "matched"])
+        matched_count = len(results) - unmatched_count
+        exact_count = len(
+            [
+                r
+                for r in results
+                if r.get("confidence", 0) == 100 or r.get("status") == "matched"
+            ]
+        )
+        fuzzy_count = matched_count - exact_count
+        duration_ms = int((time.perf_counter() - start_time) * 1000)
+
+        log_match_event(
+            user_id=user_id,
+            username=username,
+            status="success",
+            duration_ms=duration_ms,
+            rows_processed=len(df),
+            matched=matched_count,
+            unmatched=unmatched_count,
+            ledgers_fetched=len(ledgers),
+        )
+
+        log_admin_event(
+            user_id=user_id,
+            username=username,
+            event_type="match_party_complete",
+            status_str="success",
+            details={
+                "rows_processed": len(df),
+                "matched_rows": matched_count,
+                "unmatched_rows": unmatched_count,
+                "fuzzy_matches": fuzzy_count if fuzzy_count >= 0 else 0,
+                "exact_matches": exact_count,
+                "duration_ms": duration_ms,
+            },
+        )
+
+        task_progress_store.update(
+            task_id,
+            progress={
+                "current_row": len(results),
+                "total_rows": len(results),
+                "percentage": 100 if results else 0,
+                "matched": matched_count,
+                "review": len([r for r in results if r.get("status") == "review"]),
+                "not_matched": len(
+                    [r for r in results if r.get("status") == "not_matched"]
+                ),
+            },
+        )
+        task_progress_store.complete(
+            task_id,
+            {
+                "status": "ok",
+                "session_id": session_id,
+                "party_column": party_col,
+                "gstin_column": gstin_col,
+                "rows": results,
+                "ledger_list": ledgers,
+                "unmatched_count": unmatched_count,
+                "block_convert": unmatched_count > 0,
+            },
+        )
+    except Exception as match_exception:
+        log_business_error(
+            user_id=user_id,
+            username=username,
+            event_type="match_party",
+            error_type="system_exception",
+            error_message=str(match_exception),
+        )
+        task_progress_store.fail(task_id, str(match_exception))
+
+
+@app.post("/api/match-party/start")
+async def start_match_party_task(
+    request: Request,
+    file: UploadFile = File(...),
+    tally_group: str = Form(None),
+    sheet_name: str = Form(None),
+    manual_columns: str = Form("{}"),
+    user: str = Depends(require_login),
+):
+    user_id = get_session_user_id(request)
+    username = request.session.get("username", "anonymous")
+    allowed, message = can_use_feature(user_id, "party_matching")
+
+    if not allowed:
+        return JSONResponse(
+            status_code=403,
+            content={"status": "subscription_required", "message": message},
+        )
+
+    contents = await file.read()
+    task_id = task_progress_store.create(user_id, "party_matching", "Party Matching")
+
+    asyncio.create_task(
+        _run_party_match_task(
+            task_id=task_id,
+            contents=contents,
+            filename=file.filename,
+            tally_group=tally_group,
+            sheet_name=sheet_name,
+            manual_columns=manual_columns,
+            user_id=user_id,
+            username=username,
+            start_time=time.perf_counter(),
+        )
+    )
+
+    return {"status": "accepted", "task_id": task_id}
+
+
+@app.get("/api/tasks/{task_id}/progress")
+async def stream_task_progress(
+    request: Request,
+    task_id: str,
+    user: str = Depends(require_login),
+):
+    user_id = get_session_user_id(request)
+
+    async def event_generator():
+        while True:
+            snapshot = task_progress_store.snapshot(task_id, user_id)
+            if not snapshot:
+                yield "event: error\ndata: {\"message\":\"Task not found\"}\n\n"
+                break
+
+            snapshot.pop("result", None)
+            yield f"data: {json.dumps(snapshot, default=str)}\n\n"
+
+            if snapshot.get("is_terminal"):
+                break
+            await asyncio.sleep(0.5)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.get("/api/tasks/{task_id}/result")
+async def get_task_result(
+    request: Request,
+    task_id: str,
+    user: str = Depends(require_login),
+):
+    user_id = get_session_user_id(request)
+    snapshot = task_progress_store.snapshot(task_id, user_id)
+    if not snapshot:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if snapshot["status"] == "failed":
+        return JSONResponse(
+            status_code=500,
+            content={"status": "error", "message": snapshot.get("error")},
+        )
+    if snapshot["status"] != "completed":
+        return JSONResponse(
+            status_code=202,
+            content={"status": snapshot["status"], "message": snapshot["message"]},
+        )
+    return snapshot.get("result") or {"status": "error", "message": "Missing result"}
+
+
 @app.post("/api/match-party")
 async def match_party(
     request: Request,
@@ -1408,6 +1956,23 @@ async def match_party(
     start_time = time.perf_counter()
     user_id = request.session.get("user_id")
     username = request.session.get("username", "anonymous")
+    # ===============================
+    # Subscription Check
+    # ===============================
+
+    allowed, message = can_use_feature(
+    user_id,
+    "party_matching"
+    )
+
+    if not allowed:
+        return JSONResponse(
+            status_code=403,
+            content={
+                "status": "subscription_required",
+                "message": message
+            }
+        )
 
     try:
         import io
@@ -1601,6 +2166,8 @@ async def match_party(
             "sheet_name": sheet_name,
             "source_filename": file.filename,
             "columns": list(df.columns),
+            "party_matching_used": True,
+            "usage_counted": False
         }
 
         print("=" * 60)
@@ -1952,6 +2519,19 @@ async def convert_excel_api(
                 "message"
             ] = f"✅ Conversion complete! {count} rows processed"
             JOB_STATUS[job_id]["completed_at"] = datetime.now().isoformat()
+            
+            if match_session_id and match_session_id in MATCH_SESSIONS:
+
+                session = MATCH_SESSIONS[match_session_id]
+
+                if not session["usage_counted"]:
+
+                    increment_feature_usage(
+                        user_id,
+                        "party_matching"
+                )
+
+                session["usage_counted"] = True
 
         except Exception as e:
             logging.error(f"Conversion error: {str(e)}")
@@ -2024,6 +2604,18 @@ async def get_job_result(job_id: str):
             "Content-Disposition": f"attachment; filename={result['filename']}",
             "X-Records-Processed": str(result["count"]),
         },
+    )
+@app.get("/subscription")
+async def subscription_page(request: Request):
+
+    if "user_id" not in request.session:
+        return RedirectResponse("/login")
+
+    return templates.TemplateResponse(
+        "pages/subscription.html",
+        {
+            "request": request
+        }
     )
 
 
@@ -2120,6 +2712,44 @@ async def start_background_tasks():
 
     # Launch cleanup loop
     asyncio.create_task(cleanup_old_jobs())
+
+@app.get("/api/subscription/me")
+def my_subscription(request: Request):
+
+    user_id = int(get_session_user_id(request))
+
+    return {
+        "subscription": get_user_plan(user_id),
+        "remaining_matching": get_remaining_feature_usage(
+            user_id,
+            "party_matching"
+        )
+    }
+
+@app.get("/api/subscription/status")
+def subscription_status(
+    request: Request,
+    user: str = Depends(require_login),
+):
+    """
+    Returns current subscription information.
+    """
+
+    user_id = int(get_session_user_id(request))
+
+    return {
+        "plan": get_plan_name(user_id),
+
+        "remaining_matching": get_remaining_feature_usage(
+            user_id,
+            "party_matching"
+        ),
+
+        "can_use_matching": can_use_feature(
+            user_id,
+            "party_matching"
+        )
+    }
 
 
 # =========================================================
@@ -2227,3 +2857,111 @@ async def debug_smtp():
             results["smtp_login"] = {"error": str(e), "status": "fail"}
 
     return results
+@app.get("/api/admin/plans")
+def admin_plans(admin=Depends(require_admin)):
+
+    conn = get_db_connection()
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+        SELECT *
+        FROM subscription_plans
+        ORDER BY id
+    """)
+
+    plans = cur.fetchall()
+
+    cur.close()
+    conn.close()
+
+    return plans
+@app.get("/api/admin/users/subscription")
+def admin_users(admin=Depends(require_admin)):
+
+    conn = get_db_connection()
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+
+    cur.execute("""
+
+        SELECT
+
+            u.id,
+
+            u.username,
+
+            u.subscription_status,
+
+            u.plan_expiry,
+
+            p.plan_name,
+
+            p.price
+
+        FROM users u
+
+        LEFT JOIN subscription_plans p
+
+        ON u.plan_id=p.id
+
+        ORDER BY username
+
+    """)
+
+    users = cur.fetchall()
+
+    cur.close()
+
+    conn.close()
+
+    return users
+@app.post("/api/admin/update-subscription")
+def update_subscription(
+    data: dict,
+    admin=Depends(require_admin)
+):
+
+    conn = get_db_connection()
+
+    cur = conn.cursor()
+
+    cur.execute("""
+
+        UPDATE users
+
+        SET
+
+            plan_id=%s,
+
+            subscription_status=%s,
+
+            plan_expiry=%s
+
+        WHERE id=%s
+
+    """,
+
+    (
+
+        data["plan_id"],
+
+        data["subscription_status"],
+
+        data["plan_expiry"],
+
+        data["user_id"]
+
+    ))
+
+    conn.commit()
+
+    cur.close()
+
+    conn.close()
+
+    return {
+
+        "success":True
+
+    }
