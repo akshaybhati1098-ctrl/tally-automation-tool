@@ -1491,7 +1491,7 @@ def api_tally_ledgers(
     result = None
     import time
 
-    for _ in range(20):  # ~10 seconds max
+    for _ in range(60):  # ~30 seconds
         result = RESULTS.get(user_id)
         if result:
             break
