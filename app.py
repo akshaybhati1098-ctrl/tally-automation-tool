@@ -864,6 +864,27 @@ def connector_status(request: Request):
 async def login_page(request: Request):
     return templates.TemplateResponse("pages/login.html", {"request": request})
 
+# =========================================================
+# USER LOOKUP API FOR CONNECTOR
+# =========================================================
+
+@app.post("/api/resolve-username")
+async def resolve_username(payload: dict):
+    username = payload.get("username", "").strip()
+
+    if not username:
+        raise HTTPException(status_code=400, detail="Username required")
+
+    user = get_user(username)
+
+    if not user:
+        raise HTTPException(status_code=404, detail="Username not found")
+
+    return {
+        "user_id": user["id"],
+        "username": user["username"]
+    }
+
 
 @app.post("/login")
 async def login_post(
