@@ -120,6 +120,105 @@ from routes.admin_business_routes import business_router
 from core.task_progress import task_progress_store
 
 # =========================================================
+# PHASE A: non-blocking helpers + match concurrency cap
+# =========================================================
+MATCH_CONCURRENCY = max(1, int(os.environ.get("MATCH_CONCURRENCY", "2")))
+match_semaphore = asyncio.Semaphore(MATCH_CONCURRENCY)
+
+
+async def run_blocking(func, /, *args, **kwargs):
+    """Run sync/blocking work on the shared thread pool without blocking the event loop."""
+    loop = asyncio.get_running_loop()
+    if kwargs:
+        return await loop.run_in_executor(
+            thread_pool, lambda: func(*args, **kwargs)
+        )
+    return await loop.run_in_executor(thread_pool, func, *args)
+
+
+def _read_match_excel(contents: bytes, sheet_name: str | None):
+    if sheet_name and sheet_name.strip():
+        df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
+    else:
+        df = pd.read_excel(io.BytesIO(contents))
+    return df.fillna("")
+
+
+def _parse_tally_ledgers_for_match(raw_xml: str, tally_group: str):
+    from core.tally_service import parse_ledgers_with_gstin, parse_ledgers_with_parent
+
+    ledgers, g_map = parse_ledgers_with_gstin(raw_xml)
+    group_norm = (tally_group or "").strip()
+    if group_norm and group_norm.lower() != "all":
+        parsed = parse_ledgers_with_parent(raw_xml)
+        group_norm_lower = group_norm.lower()
+        allowed = {
+            i["name"]
+            for i in parsed
+            if i.get("parent", "").strip().lower() == group_norm_lower
+        }
+        if not allowed:
+            allowed = {
+                i["name"]
+                for i in parsed
+                if group_norm_lower in i.get("parent", "").strip().lower()
+            }
+        if allowed:
+            ledgers = [l for l in ledgers if l in allowed]
+            g_map = {gstin: name for gstin, name in g_map.items() if name in allowed}
+    return ledgers, g_map
+
+
+def _parse_tally_ledgers_api(raw_data: str, group: str | None):
+    from core.tally_service import parse_ledgers_with_parent, parse_ledgers
+
+    group_norm = (group or "").strip()
+    raw_xml = raw_data or ""
+
+    if group_norm and group_norm.lower() != "all":
+        parsed = parse_ledgers_with_parent(raw_data)
+        group_norm_lower = group_norm.lower()
+        allowed = {
+            i["name"]
+            for i in parsed
+            if i.get("parent", "").strip().lower() == group_norm_lower
+        }
+        if not allowed:
+            allowed = {
+                i["name"]
+                for i in parsed
+                if group_norm_lower in i.get("parent", "").strip().lower()
+            }
+        if allowed:
+            ledgers = [i["name"] for i in parsed if i["name"] in allowed]
+        else:
+            ledgers = parse_ledgers(raw_data)
+    else:
+        ledgers = parse_ledgers(raw_data)
+
+    return list(dict.fromkeys(ledgers))
+
+
+def _agent_debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "A"):
+    # #region agent log
+    try:
+        payload = {
+            "sessionId": "d6c7de",
+            "runId": "phase-a",
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data or {},
+            "timestamp": int(time.time() * 1000),
+        }
+        with open("debug-d6c7de.log", "a", encoding="utf-8") as log_file:
+            log_file.write(json.dumps(payload) + "\n")
+    except Exception:
+        pass
+    # #endregion
+
+
+# =========================================================
 # APP INITIALIZATION
 # =========================================================
 app = FastAPI(title="Tally Automation Tool")
@@ -1338,11 +1437,36 @@ def add_job(user_id: str, data: dict):
 
 @app.get("/api/get-job/{user_id}")
 def get_job(user_id: str):
+    # #region agent log
+    started = time.perf_counter()
+    _agent_debug_log(
+        "app.py:get_job:entry",
+        "get_job called",
+        {"user_id": user_id, "pending_jobs": len(JOBS.get(user_id, []))},
+        hypothesis_id="A",
+    )
+    # #endregion
 
     if JOBS.get(user_id):
         job = JOBS[user_id].pop(0)
+        # #region agent log
+        _agent_debug_log(
+            "app.py:get_job:exit",
+            "get_job returned job",
+            {"user_id": user_id, "elapsed_ms": int((time.perf_counter() - started) * 1000)},
+            hypothesis_id="A",
+        )
+        # #endregion
         return job
 
+    # #region agent log
+    _agent_debug_log(
+        "app.py:get_job:exit",
+        "get_job returned empty",
+        {"user_id": user_id, "elapsed_ms": int((time.perf_counter() - started) * 1000)},
+        hypothesis_id="A",
+    )
+    # #endregion
     return {}
 
 
@@ -1489,7 +1613,7 @@ from fastapi import Query
 
 
 @app.get("/api/tally/ledgers")
-def api_tally_ledgers(
+async def api_tally_ledgers(
     request: Request,
     group: str = Query(None),
     user: str = Depends(require_login),
@@ -1499,32 +1623,21 @@ def api_tally_ledgers(
     user_id = get_session_user_id(request)
     print("CURRENT USER:", user_id)
 
-    # 1. create XML with group
     xml = build_ledger_xml(group)
-
     print("📤 XML SENT:\n", xml)
 
-    # 2. send job (avoid stale results)
     RESULTS.pop(user_id, None)
     JOBS.setdefault(user_id, []).append({"xml": xml})
 
-    # 3. wait for connector response (same pattern as /api/match-party)
     result = None
-    import time
-
     for _ in range(20):  # ~10 seconds max
         result = RESULTS.get(user_id)
         if result:
             break
-        time.sleep(0.5)
+        await asyncio.sleep(0.5)
 
     if not result:
         return {"status": "waiting"}
-
-    # 4. parse result
-    from core.tally_service import parse_ledgers_with_parent
-
-    group_norm = (group or "").strip()
 
     raw_xml = result.get("data", "") or ""
     try:
@@ -1540,58 +1653,7 @@ def api_tally_ledgers(
     except Exception:
         pass
 
-    if group_norm and group_norm.lower() != "all":
-        parsed = parse_ledgers_with_parent(result.get("data", ""))
-        group_norm_lower = group_norm.lower()
-        allowed = {
-            i["name"]
-            for i in parsed
-            if i.get("parent", "").strip().lower() == group_norm_lower
-        }
-        try:
-            parents = [i.get("parent", "") for i in parsed]
-            parents_clean = [p.strip() for p in parents if p and p.strip()]
-            uniq_parents = sorted(list({p.lower() for p in parents_clean}))[:10]
-            eq_count = sum(1 for p in parents_clean if p.lower() == group_norm.lower())
-            print(
-                f"🧩 parent debug: group={group_norm!r}, parsed={len(parsed)}, "
-                f"eq_count={eq_count}, uniq_parents_sample={uniq_parents}"
-            )
-        except Exception:
-            pass
-        try:
-            parents = [i.get("parent", "") for i in parsed]
-            uniq_parents = len(set(p.strip().lower() for p in parents if p.strip()))
-            sample_parent = next((p for p in parents if p and p.strip()), "")
-            print(
-                f"📌 Parent parse stats: parsed={len(parsed)}, uniq_parents={uniq_parents}, sample_parent={sample_parent!r}"
-            )
-        except Exception:
-            pass
-        if not allowed:
-            allowed = {
-                i["name"]
-                for i in parsed
-                if group_norm_lower in i.get("parent", "").strip().lower()
-            }
-            print(
-                f"🔁 contains-parent fallback: group={group_norm!r}, allowed={len(allowed)}"
-            )
-
-        if allowed:
-            ledgers = [i["name"] for i in parsed if i["name"] in allowed]
-            print(
-                f"📦 Group filter fallback applied: group={group_norm}, total={len(parsed)}, allowed={len(allowed)}"
-            )
-        else:
-            ledgers = parse_ledgers(result.get("data", ""))
-            print(
-                f"⚠️ Group filter fallback: group={group_norm}, total_parsed={len(parsed)}, unfiltered_names={len(ledgers)}"
-            )
-    else:
-        ledgers = parse_ledgers(result.get("data", ""))
-
-    ledgers = list(dict.fromkeys(ledgers))
+    ledgers = await run_blocking(_parse_tally_ledgers_api, raw_xml, group)
     return {"status": "ok", "ledgers": ledgers}
 
 
@@ -1610,25 +1672,32 @@ async def _run_party_match_task(
     try:
         import json
 
+        # #region agent log
+        _agent_debug_log(
+            "app.py:_run_party_match_task:start",
+            "match task started",
+            {"task_id": task_id, "user_id": user_id},
+            hypothesis_id="B",
+        )
+        # #endregion
+
         task_progress_store.update(
             task_id,
             status="processing",
             message="Reading Excel file...",
         )
 
-        if sheet_name and sheet_name.strip():
-            df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
-        else:
-            df = pd.read_excel(io.BytesIO(contents))
+        async with match_semaphore:
+            df = await run_blocking(_read_match_excel, contents, sheet_name)
 
-        df = df.fillna("")
         task_progress_store.update(
             task_id,
             message="Detecting columns...",
             progress={"total_rows": len(df)},
         )
 
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_file_loaded",
@@ -1646,7 +1715,7 @@ async def _run_party_match_task(
             match_party_names,
             apply_match_results_to_dataframe,
         )
-        from core.tally_service import parse_ledgers_with_gstin, build_ledger_xml
+        from core.tally_service import build_ledger_xml
 
         party_col = detect_party_column(df)
         gstin_col = detect_gstin_column(df)
@@ -1665,7 +1734,8 @@ async def _run_party_match_task(
         if manual_cols.get("gstin"):
             gstin_col = manual_cols["gstin"]
 
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_columns_detected",
@@ -1674,7 +1744,8 @@ async def _run_party_match_task(
         )
 
         if not party_col or not gstin_col:
-            log_business_error(
+            await run_blocking(
+                log_business_error,
                 user_id=user_id,
                 username=username,
                 event_type="match_party",
@@ -1701,6 +1772,14 @@ async def _run_party_match_task(
         xml = build_ledger_xml(tally_group)
         RESULTS.pop(user_id, None)
         JOBS.setdefault(user_id, []).append({"xml": xml})
+        # #region agent log
+        _agent_debug_log(
+            "app.py:_run_party_match_task:job_queued",
+            "tally job queued for connector",
+            {"task_id": task_id, "user_id": user_id},
+            hypothesis_id="B",
+        )
+        # #endregion
 
         result = None
         for _ in range(20):
@@ -1710,7 +1789,8 @@ async def _run_party_match_task(
                 break
 
         if not result:
-            log_business_error(
+            await run_blocking(
+                log_business_error,
                 user_id=user_id,
                 username=username,
                 event_type="match_party",
@@ -1721,68 +1801,53 @@ async def _run_party_match_task(
             return
 
         raw_xml = result.get("data", "") or ""
-        ledgers, g_map = parse_ledgers_with_gstin(raw_xml)
 
-        group_norm = (tally_group or "").strip()
-        if group_norm and group_norm.lower() != "all":
-            from core.tally_service import parse_ledgers_with_parent
+        async with match_semaphore:
+            ledgers, g_map = await run_blocking(
+                _parse_tally_ledgers_for_match, raw_xml, tally_group
+            )
 
-            parsed = parse_ledgers_with_parent(raw_xml)
-            group_norm_lower = group_norm.lower()
-            allowed = {
-                i["name"]
-                for i in parsed
-                if i.get("parent", "").strip().lower() == group_norm_lower
-            }
-            if not allowed:
-                allowed = {
-                    i["name"]
-                    for i in parsed
-                    if group_norm_lower in i.get("parent", "").strip().lower()
-                }
-            if allowed:
-                ledgers = [l for l in ledgers if l in allowed]
-                g_map = {gstin: name for gstin, name in g_map.items() if name in allowed}
-
-        task_progress_store.update(
-            task_id,
-            message="Matching Excel parties with Tally ledgers...",
-            progress={"ledger_count": len(ledgers), "total_rows": len(df)},
-        )
-
-        log_admin_event(
-            user_id=user_id,
-            username=username,
-            event_type="tally_ledgers_loaded",
-            status_str="success",
-            details={
-                "ledgers_fetched": len(ledgers),
-                "tally_group": tally_group or "All",
-            },
-        )
-
-        def report_match_progress(progress: dict) -> None:
             task_progress_store.update(
                 task_id,
                 message="Matching Excel parties with Tally ledgers...",
-                progress=progress,
+                progress={"ledger_count": len(ledgers), "total_rows": len(df)},
             )
 
-        results = await asyncio.to_thread(
-            match_party_names,
-            df=df,
-            tally_ledgers=ledgers,
-            tally_gstin_map=g_map,
-            party_col=party_col,
-            gstin_col=gstin_col,
-            progress_callback=report_match_progress,
-        )
+            await run_blocking(
+                log_admin_event,
+                user_id=user_id,
+                username=username,
+                event_type="tally_ledgers_loaded",
+                status_str="success",
+                details={
+                    "ledgers_fetched": len(ledgers),
+                    "tally_group": tally_group or "All",
+                },
+            )
 
-        reviewed_df = apply_match_results_to_dataframe(
-            df=df,
-            match_results=results,
-            party_col=party_col,
-        )
+            def report_match_progress(progress: dict) -> None:
+                task_progress_store.update(
+                    task_id,
+                    message="Matching Excel parties with Tally ledgers...",
+                    progress=progress,
+                )
+
+            results = await run_blocking(
+                match_party_names,
+                df=df,
+                tally_ledgers=ledgers,
+                tally_gstin_map=g_map,
+                party_col=party_col,
+                gstin_col=gstin_col,
+                progress_callback=report_match_progress,
+            )
+
+            reviewed_df = await run_blocking(
+                apply_match_results_to_dataframe,
+                df=df,
+                match_results=results,
+                party_col=party_col,
+            )
 
         session_id = str(uuid.uuid4())
         MATCH_SESSIONS[session_id] = {
@@ -1810,7 +1875,8 @@ async def _run_party_match_task(
         fuzzy_count = matched_count - exact_count
         duration_ms = int((time.perf_counter() - start_time) * 1000)
 
-        log_match_event(
+        await run_blocking(
+            log_match_event,
             user_id=user_id,
             username=username,
             status="success",
@@ -1821,7 +1887,8 @@ async def _run_party_match_task(
             ledgers_fetched=len(ledgers),
         )
 
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_party_complete",
@@ -1862,8 +1929,17 @@ async def _run_party_match_task(
                 "block_convert": unmatched_count > 0,
             },
         )
+        # #region agent log
+        _agent_debug_log(
+            "app.py:_run_party_match_task:complete",
+            "match task completed",
+            {"task_id": task_id, "user_id": user_id, "duration_ms": duration_ms},
+            hypothesis_id="B",
+        )
+        # #endregion
     except Exception as match_exception:
-        log_business_error(
+        await run_blocking(
+            log_business_error,
             user_id=user_id,
             username=username,
             event_type="match_party",
@@ -1884,7 +1960,7 @@ async def start_match_party_task(
 ):
     user_id = get_session_user_id(request)
     username = request.session.get("username", "anonymous")
-    allowed, message = can_use_feature(user_id, "party_matching")
+    allowed, message = await run_blocking(can_use_feature, user_id, "party_matching")
 
     if not allowed:
         return JSONResponse(
@@ -1981,10 +2057,7 @@ async def match_party(
     # Subscription Check
     # ===============================
 
-    allowed, message = can_use_feature(
-    user_id,
-    "party_matching"
-    )
+    allowed, message = await run_blocking(can_use_feature, user_id, "party_matching")
 
     if not allowed:
         return JSONResponse(
@@ -1996,23 +2069,17 @@ async def match_party(
         )
 
     try:
-        import io
         import json
-        import asyncio
 
         contents = await file.read()
         print("📄 Sheet received from frontend:", sheet_name)
 
-        if sheet_name and sheet_name.strip():
-            df = pd.read_excel(io.BytesIO(contents), sheet_name=sheet_name)
-        else:
-            print("⚠️ No sheet provided, using default Sheet1")
-            df = pd.read_excel(io.BytesIO(contents))
-
-        df = df.fillna("")
+        async with match_semaphore:
+            df = await run_blocking(_read_match_excel, contents, sheet_name)
 
         # --- BUSINESS EVENT LOGGING: EXCEL FILE LOADED ---
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_file_loaded",
@@ -2030,19 +2097,13 @@ async def match_party(
             match_party_names,
             apply_match_results_to_dataframe,
         )
-        from core.tally_service import (
-            parse_ledgers_with_gstin,
-            build_ledger_xml,
-        )
+        from core.tally_service import build_ledger_xml
 
         party_col = detect_party_column(df)
         gstin_col = detect_gstin_column(df)
 
         print("🧠 Detected party column:", party_col)
-        print(
-            "🧠 Detected GSTIN column:",
-            gantin_col if "gantin_col" in locals() else gstin_col,
-        )
+        print("🧠 Detected GSTIN column:", gstin_col)
 
         try:
             manual_cols = (
@@ -2050,7 +2111,7 @@ async def match_party(
                 if isinstance(manual_columns, str)
                 else manual_columns
             )
-        except:
+        except Exception:
             manual_cols = {}
 
         if manual_cols.get("party"):
@@ -2061,8 +2122,8 @@ async def match_party(
             gstin_col = manual_cols["gstin"]
             print("🔧 Using manual GSTIN column:", gstin_col)
 
-        # --- BUSINESS EVENT LOGGING: COLUMNS DETECTED ---
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_columns_detected",
@@ -2073,8 +2134,8 @@ async def match_party(
         if not party_col or not gstin_col:
             print("⚠️ Missing columns - returning manual_required")
 
-            # Record structural validation failure
-            log_business_error(
+            await run_blocking(
+                log_business_error,
                 user_id=user_id,
                 username=username,
                 event_type="match_party",
@@ -2091,13 +2152,11 @@ async def match_party(
         print("🔄 Fetching Tally ledgers...")
         user_id_str = get_session_user_id(request)
         print("CURRENT USER:", user_id_str)
-
         print("📦 MATCH using group:", tally_group)
 
         xml = build_ledger_xml(tally_group)
         RESULTS.pop(user_id_str, None)
         JOBS.setdefault(user_id_str, []).append({"xml": xml})
-        print("🧾 JOB ADDED:", JOBS)
 
         result = None
         for _ in range(20):
@@ -2108,7 +2167,8 @@ async def match_party(
 
         if not result:
             print("⏳ Waiting for connector response...")
-            log_business_error(
+            await run_blocking(
+                log_business_error,
                 user_id=user_id,
                 username=username,
                 event_type="match_party",
@@ -2118,64 +2178,41 @@ async def match_party(
             return {"status": "waiting"}
 
         raw_xml = result.get("data", "") or ""
-        ledgers, g_map = parse_ledgers_with_gstin(raw_xml)
 
-        group_norm = (tally_group or "").strip()
-        if group_norm and group_norm.lower() != "all":
-            from core.tally_service import parse_ledgers_with_parent
+        async with match_semaphore:
+            ledgers, g_map = await run_blocking(
+                _parse_tally_ledgers_for_match, raw_xml, tally_group
+            )
 
-            parsed = parse_ledgers_with_parent(raw_xml)
-            group_norm_lower = group_norm.lower()
-            allowed = {
-                i["name"]
-                for i in parsed
-                if i.get("parent", "").strip().lower() == group_norm_lower
-            }
+            await run_blocking(
+                log_admin_event,
+                user_id=user_id,
+                username=username,
+                event_type="tally_ledgers_loaded",
+                status_str="success",
+                details={
+                    "ledgers_fetched": len(ledgers),
+                    "tally_group": tally_group or "All",
+                },
+            )
 
-            if allowed:
-                ledgers = [l for l in ledgers if l in allowed]
-                g_map = {
-                    gstin: name for gstin, name in g_map.items() if name in allowed
-                }
-            else:
-                allowed = {
-                    i["name"]
-                    for i in parsed
-                    if group_norm_lower in i.get("parent", "").strip().lower()
-                }
-                if allowed:
-                    ledgers = [l for l in ledgers if l in allowed]
-                    g_map = {
-                        gstin: name for gstin, name in g_map.items() if name in allowed
-                    }
+            print(f"✅ Ledgers fetched: {len(ledgers)}")
 
-        # --- BUSINESS EVENT LOGGING: TALLY LEDGERS STREAMED ---
-        log_admin_event(
-            user_id=user_id,
-            username=username,
-            event_type="tally_ledgers_loaded",
-            status_str="success",
-            details={
-                "ledgers_fetched": len(ledgers),
-                "tally_group": tally_group or "All",
-            },
-        )
+            results = await run_blocking(
+                match_party_names,
+                df=df,
+                tally_ledgers=ledgers,
+                tally_gstin_map=g_map,
+                party_col=party_col,
+                gstin_col=gstin_col,
+            )
 
-        print(f"✅ Ledgers fetched: {len(ledgers)}")
-
-        results = match_party_names(
-            df=df,
-            tally_ledgers=ledgers,
-            tally_gstin_map=g_map,
-            party_col=party_col,
-            gstin_col=gstin_col,
-        )
-
-        reviewed_df = apply_match_results_to_dataframe(
-            df=df,
-            match_results=results,
-            party_col=party_col,
-        )
+            reviewed_df = await run_blocking(
+                apply_match_results_to_dataframe,
+                df=df,
+                match_results=results,
+                party_col=party_col,
+            )
 
         session_id = str(uuid.uuid4())
         MATCH_SESSIONS[session_id] = {
@@ -2194,14 +2231,10 @@ async def match_party(
         print("=" * 60)
         print("✅ CREATED MATCH SESSION")
         print("Session ID:", session_id)
-        print("Current MATCH_SESSIONS:")
-        print(list(MATCH_SESSIONS.keys()))
         print("=" * 60)
 
         unmatched_count = len([r for r in results if r.get("status") != "matched"])
         matched_count = len(results) - unmatched_count
-
-        # Approximate matching classification metadata metrics calculation safely
         exact_count = len(
             [
                 r
@@ -2210,10 +2243,10 @@ async def match_party(
             ]
         )
         fuzzy_count = matched_count - exact_count
-
-        # --- BUSINESS EVENT LOGGING: MATCH COMPLETE SUCCESS ---
         duration_ms = int((time.perf_counter() - start_time) * 1000)
-        log_match_event(
+
+        await run_blocking(
+            log_match_event,
             user_id=user_id,
             username=username,
             status="success",
@@ -2224,8 +2257,8 @@ async def match_party(
             ledgers_fetched=len(ledgers),
         )
 
-        # Log extended internal structured payload safely for cross-dashboard evaluation
-        log_admin_event(
+        await run_blocking(
+            log_admin_event,
             user_id=user_id,
             username=username,
             event_type="match_party_complete",
@@ -2254,8 +2287,8 @@ async def match_party(
     except Exception as match_exception:
         print("❌ MATCH ERROR:", str(match_exception))
 
-        # --- BUSINESS EVENT LOGGING: UNHANDLED EXCEPTION CORNER ---
-        log_business_error(
+        await run_blocking(
+            log_business_error,
             user_id=user_id,
             username=username,
             event_type="match_party",
