@@ -7,8 +7,8 @@ from typing import Callable, Dict, List, Optional
 import pandas as pd
 from rapidfuzz import fuzz, process
 
-MATCHED_THRESHOLD = 80
-REVIEW_THRESHOLD = 75
+MATCHED_THRESHOLD = 95
+REVIEW_THRESHOLD = 90
 
 REMOVE_WORDS = [
     "pvt ltd",
