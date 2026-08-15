@@ -16,7 +16,112 @@
         <button class="nav-link public" id="signup-btn" onclick="window.location.href='/signup'">📝 Sign Up</button>
         
         <!-- Logout (visible only when logged in) -->
-        <button class="nav-link protected" id="logout-btn" onclick="logout()">🚪 Logout <span id="username-display"></span></button>
+        <button class="nav-link protected" id="logout-btn" onclick="logout()">⏻ Logout <span id="username-display"></span></button>
+        <div class="form-group">
+          <div id="tallyStatusBox" style="
+                display: flex;
+                margin-top:30px;
+                align-items: center;
+                gap: 1rem;
+                padding: 6px 12px;
+                border-radius: 20px;
+                background: linear-gradient(135deg, #f4f7fd 0%, #edf2fb 100%);
+                border: 1.5px solid #e2ebf8;
+                box-shadow: 0 2px 8px rgba(22, 73, 224, 0.06);
+                position: relative;
+                overflow: hidden;
+              ">
+            <!-- left accent bar -->
+            <div id="tallyAccentBar" style="
+                  position: absolute;
+                  left: 0;
+                  top: 0;
+                  bottom: 0;
+                  width: 4px;
+                  background: #e2ebf8;
+                  border-radius: 4px 0 0 4px;
+                  transition: background 0.4s;
+                "></div>
+
+            <!-- icon -->
+            <div id="tallyIconBox" style="
+                  width: 32px;
+                  height: 32px;
+                  flex-shrink: 0;
+                  background: #fff;
+                  border: 1.5px solid #e2ebf8;
+                  border-radius: 12px;
+                  display: grid;
+                  place-items: center;
+                  font-size: 16px;
+                  box-shadow: 0 2px 6px rgba(10, 15, 30, 0.07);
+                  transition: all 0.4s;
+                  margin-left: 4px;
+                ">
+              🔴
+            </div>
+
+            <!-- text -->
+            <div style="flex: 1; min-width: 110px; display: flex; flex-direction: column; gap: 0.1rem;">
+              <div style="
+                    display: flex;
+                    align-items: center;
+                    gap: 0.5rem;
+                    margin-bottom: 0.22rem;
+                  ">
+                <span style="
+                      font-size: 0.64rem;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                      letter-spacing: 0.1em;
+                      color: #7688a8;
+                    ">Tally ERP</span>
+                <span id="tallyStatusBadge" style="
+                      display: inline-block;
+                      padding: 2px 8px;
+                      border-radius: 100px;
+                      font-size: 11px;
+                      font-weight: 700;
+                      text-transform: uppercase;
+                      letter-spacing: 0.08em;
+                      background: rgba(220, 38, 38, 0.1);
+                      color: #dc2626;
+                      border: 1px solid rgba(220, 38, 38, 0.2);
+                      transition: all 0.4s;
+                    ">Offline</span>
+              </div>
+              <div style="
+                    display: flex;
+                    align-items: baseline;
+                    gap: 0.5rem;
+                    flex-wrap: wrap;
+                  ">
+                <span id="tallyStatusText" style="font-size: 0.92rem; font-weight: 600; color: #1a2035">
+
+              </div>
+            </div>
+
+            <!-- company moved to the right side -->
+             <div style="
+                display:flex;
+                justify-content:center;
+                align-items:flex-end;
+                min-width:180px;
+            ">
+              <span id="tallyCompanyText" style="font-size: 0.82rem; font-weight: 600; color: #344260">—</span>
+            </div>
+
+            <!-- pulse dot -->
+            <div id="tallyPulseDot" style="
+                  width: 10px;
+                  height: 10px;
+                  border-radius: 50%;
+                  flex-shrink: 0;
+                  background: #e2ebf8;
+                  transition: background 0.4s;
+                "></div>
+          </div>
+        </div>
     </div>
 </div>
 
@@ -36,23 +141,30 @@ body {
 /* ════════════════════════════════════════
    SIDEBAR — vertical left nav (white theme)
 ════════════════════════════════════════ */
-.top-nav {
-    position: fixed;
-    left: 0; top: 0; bottom: 0;
-    width: 220px;
-    min-height: 100vh;
+.top-nav{
+    position:fixed;
+    top:0;
+    left:0;
+    right:0;
 
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: flex-start;
+    height:72px;
+    width:auto;
+    display:flex;
+    flex-direction:row;
+    align-items:center;
     justify-content: flex-start;
-    gap: 0;
-    padding: 0;
+
+    padding:0 36px;
+
+    background:#fff;
+    border-bottom:1px solid #e5e7eb;
+    box-shadow:0 4px 20px rgba(0,0,0,.05);
+
+    z-index:1000;
 
     /* White theme */
     background: #ffffff;
-    border-radius: 0 20px 20px 0;
+    border-radius:0;
     border: none;
     border-right: 1px solid #e2ebf7;
     box-shadow: 6px 0 30px rgba(0, 20, 60, 0.08);
@@ -70,47 +182,23 @@ body {
     box-shadow: 8px 0 36px rgba(0, 20, 60, 0.13);
 }
 
-/* Soft blue tint at top */
-.top-nav::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 180px;
-    background: radial-gradient(ellipse 130% 80% at 50% 0%,
-        rgba(59, 130, 246, 0.07) 0%, transparent 70%);
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Very subtle dot-grid */
-.top-nav::after {
-    content: '';
-    position: absolute; inset: 0;
-    background-image: radial-gradient(circle, rgba(59,130,246,0.06) 1px, transparent 1px);
-    background-size: 20px 20px;
-    pointer-events: none;
-    z-index: 0;
-}
-
 /* ── Logo ── */
-.logo {
-    width: 100%;
-    padding: 1.65rem 1.35rem 1.4rem;
-    border-bottom: 1px solid #e8f0fb;
-    flex-shrink: 0;
-    margin-bottom: 0;
-    position: relative; z-index: 1;
+.logo{
+    width:auto;
+    border:none;
+    padding:0;
+    margin:0;
 }
 
 .logo h2 {
     font-family: 'Syne', 'Segoe UI', sans-serif;
-    font-size: 1.06rem;
+    font-size: 1rem;
     font-weight: 800;
     background: linear-gradient(135deg, #1e2b4f, #2a4080);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: -0.03em;
-    line-height: 1.25;
+    line-height: 1;
 }
 
 .logo p {
@@ -144,34 +232,32 @@ body {
 }
 
 /* ── Nav links ── */
-.nav-links {
-    display: flex;
-    flex-direction: column;
-    flex-wrap: nowrap;
-    gap: 0.22rem;
-    width: 100%;
-    flex: 1;
-    padding: 0.9rem 0.72rem;
-    position: relative; z-index: 1;
-    justify-content: flex-start;
+.nav-links{
+    display:flex;
+    flex-direction:row;
+    align-items:center;
+    gap:8px;
+
+    margin-left:40px;   
+    flex:1;
 }
 
 .nav-link {
     display: flex;
     align-items: center;
     gap: 0.62rem;
-    width: 100%;
+    width: auto;
     text-align: left;
     white-space: nowrap;
-    padding: 0.64rem 0.95rem;
+    padding:12px 20px;
 
     font-family: 'DM Sans', 'Segoe UI', sans-serif;
     font-size: 0.875rem;
-    font-weight: 500;
+    font-weight: 600;
     color: #3a4e6e;
     letter-spacing: -0.01em;
 
-    border-radius: 11px;
+    border-radius: 12px;
     border: 1px solid transparent;
     background: transparent;
     cursor: pointer;
@@ -179,8 +265,8 @@ body {
     transition: all 0.18s cubic-bezier(0.22, 1, 0.36, 1);
     box-shadow: none;
     transform: none;
-    flex: none;
-    justify-content: flex-start;
+    flex: 0;
+    justify-content:center;
 }
 
 .nav-link:hover {
@@ -203,13 +289,10 @@ body {
 }
 
 /* ── Logout ── */
-#logout-btn {
-    margin-top: auto;
-    color: #c0392b;
-    border-top: 1px solid #e8f0fb;
-    border-radius: 0;
-    padding-top: 0.9rem;
-    margin-top: 0.65rem;
+#logout-btn{
+
+margin-left:auto;
+
 }
 
 #logout-btn:hover {
@@ -219,18 +302,21 @@ body {
 }
 
 /* ── Offset page content to the right of sidebar ── */
-.dashboard-container {
-    margin-left: 220px;
-    max-width: none;
-    width: auto;
-    padding: 2rem 2rem;
+.dashboard-container{
+
+margin-left:0;
+
+margin-top:72px;
+
+padding:32px;
+
 }
 
 /* Responsive: collapse to top bar on small screens */
 @media (max-width: 700px) {
     .top-nav {
         position: relative;
-        width: 100%;
+        width: auto;
         min-height: auto;
         border-radius: 0 0 18px 18px;
         border-right: none;
@@ -264,6 +350,11 @@ function updateNavbarVisibility() {
     const isLoggedIn = window.currentUser && window.currentUser !== '';
     const protectedLinks = document.querySelectorAll('.nav-link.protected');
     const publicLinks = document.querySelectorAll('.nav-link.public');
+    const tally = document.getElementById("tallyStatusBox");
+
+    if (tally) {
+        tally.style.display = isLoggedIn ? "flex" : "none";
+    }
     
     protectedLinks.forEach(btn => {
         btn.style.display = isLoggedIn ? 'flex' : 'none';

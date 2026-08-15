@@ -224,13 +224,18 @@ body {
 .login-shell {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  min-height: calc(100vh - 80px);
-  max-width: 1100px;
-  margin: 2rem auto;
-  border-radius: 24px;
+
+  width: min(1200px, calc(100vw - 80px));
+  max-width: 1450px;
+
+  min-height: calc(100vh - 90px);
+
+  margin: 100px auto;
+
+  border-radius: 28px;
   overflow: hidden;
-  box-shadow: 0 8px 40px rgba(0,20,60,0.12);
-  animation: fadeUp 0.5s ease both;
+
+  box-shadow: 0 12px 45px rgba(0,20,60,.12);
 }
 
 @keyframes fadeUp {

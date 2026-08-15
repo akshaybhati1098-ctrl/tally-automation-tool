@@ -55,17 +55,24 @@
     }
 
     .mapping-wrap {
-      position: relative; z-index: 1;
-      max-width: 1090px;
-      /* Sidebar grew by 90px; shift left by same amount so card re-centres in content area */
-      margin: 0 auto;
-      margin-left: max(1.5rem, calc(50vw - 545px - 20px));
-      font-family: 'DM Sans', sans-serif;
-      color: var(--ink);
-    }
+    position: relative;
+    z-index: 1;
+
+    width: 100%;
+    max-width: 1500px;
+
+    margin: 32px auto;
+    padding: 0 24px;
+
+    /* Shift page to the left */
+    margin-left: -100px;
+
+    font-family: 'DM Sans', sans-serif;
+    color: var(--ink);
+}
 
     @media (max-width: 900px) {
-      .mapping-wrap { margin-left: auto; }
+      .mapping-wrap { margin-left:10px auto; }
     }
 
     .page-header {
@@ -175,20 +182,20 @@
     .mapping-wrap .card-header-sub { font-size: 0.76rem; color: var(--muted); }
 
     /* ── LAYOUT: wider left column ── */
-    .mapping-wrap .mapping-container {
-      display: grid;
-      grid-template-columns: 500px 1fr;
-      gap: 0;
-      align-items: stretch;
-      min-height: 520px;
-    }
+    
+    .mapping-container{
+    display:grid;
+    grid-template-columns:320px 1fr;
+    gap:24px;
+    padding:24px;
+}
 
     /* ── LEFT PANEL ── */
     .mapping-wrap .company-panel {
       border-right: 1px solid var(--line);
       padding: 1.6rem 1.4rem;
       background: linear-gradient(180deg, var(--surface) 0%, rgba(244,247,253,0.4) 100%);
-      display: flex; flex-direction: column; gap: 1rem;
+      display: none; flex-direction: column; gap: 1rem;
     }
 
     /* ── RIGHT PANEL ── */
@@ -256,8 +263,8 @@
       box-shadow: var(--shadow-sm);
       scrollbar-width: thin;
       scrollbar-color: var(--line2) transparent;
-      min-height: 380px;   /* increased with sidebar width */
-      max-height: 520px;   /* increased max height */
+      min-height: 0;   /* increased with sidebar width */
+      max-height: none;   /* increased max height */
     }
     .mapping-wrap .company-list::-webkit-scrollbar { width: 4px; }
     .mapping-wrap .company-list::-webkit-scrollbar-thumb { background: var(--line2); border-radius: 4px; }
@@ -1146,102 +1153,668 @@
     @media (max-width: 760px) {
       .mapping-wrap .mapping-container { grid-template-columns: 1fr; }
       .mapping-wrap .company-panel { border-right: none; border-bottom: 1px solid var(--line); }
-      .mapping-wrap .card-header { padding: 1.4rem 1.3rem 1.2rem; }
+      .mapping-wrap .card-header { padding: 10px 20px; }
       .mapping-wrap .mapping-panel { padding: 1.4rem 1.3rem; }
       .mapping-wrap .company-panel { padding: 1.4rem 1.3rem; }
     }
+    .group-panel,
+    .editor-panel{
+
+        background:white;
+
+        border-radius:22px;
+
+        display:flex;
+
+        flex-direction:column;
+
+        padding:20px;
+
+        box-shadow:var(--shadow-sm);
+
+    }
+    .group-list{
+    flex:1;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+  }
+  .rate-list{
+    flex:1;
+    min-height:0;
+    max-height:none;
+    overflow:auto;
+}
+  .company-panel,
+  .group-panel,
+  .editor-panel{
+
+    height:calc(100vh - 230px);
+    min-height:0;
+
+  }
+  .card-header{
+
+    justify-content:space-between;
+
+  }
+
+  .editor-footer{
+
+      margin-top:auto;
+
+  }
+  .group-panel,
+  .editor-panel{
+      display:flex;
+      flex-direction:column;
+  }
+
+.group-list,
+.rate-list{
+    flex:1;
+    overflow:auto;
+}
+
+#addGroupBtn,
+#addRateBtn{
+    margin-top:auto;
+}
+/* ===== New Toolbar ===== */
+
+.card-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+    padding:18px 24px;
+
+    border-bottom:1px solid var(--line);
+
+    background:#fff;
+
+}
+
+.toolbar-left{
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:10px;
+
+}
+
+.toolbar-title{
+
+    font-size:22px;
+
+    font-weight:700;
+
+    color:#1f2937;
+
+}
+
+.toolbar-company{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.toolbar-label{
+
+    font-size:13px;
+
+    color:#6b7280;
+
+}
+
+.toolbar-right{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:16px;
+
+}
+
+.state-badge{
+
+    background:#EEF5FF;
+
+    color:#2563eb;
+
+    padding:8px 14px;
+
+    border-radius:10px;
+
+    font-size:13px;
+
+    font-weight:600;
+
+    border:1px solid #dbeafe;
+
+}
+
+.company-name{
+
+    background:#f3f4f6;
+
+    color:#111827;
+
+    border:none;
+
+    font-size:14px;
+
+    font-weight:600;
+
+}
+.toolbar-select{
+
+    min-width:260px;
+
+    height:42px;
+
+    padding:0 14px;
+
+    border:1px solid var(--line);
+
+    border-radius:10px;
+
+    background:white;
+
+    font-size:14px;
+
+    font-weight:600;
+
+    color:#1f2937;
+
+    outline:none;
+
+    transition:.2s;
+
+}
+
+.toolbar-select:hover{
+
+    border-color:#2563eb;
+
+}
+
+.toolbar-select:focus{
+
+    border-color:#2563eb;
+
+    box-shadow:0 0 0 3px rgba(37,99,235,.12);
+
+}
+.btn-add-company{
+
+    width:100%;
+
+    margin-top:14px;
+
+    border-top:1px solid #ececec;
+
+    padding-top:14px;
+
+}
+.company-selector{
+    position:relative;
+    width:300px;
+}
+
+.company-select-btn{
+    width:100%;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.company-dropdown-menu{
+
+    position:absolute;
+
+    top:110%;
+
+    left:0;
+
+    width:340px;
+
+    background:#fff;
+
+    border:1px solid #e5e7eb;
+
+    border-radius:16px;
+
+    box-shadow:0 20px 50px rgba(0,0,0,.15);
+
+    display:none;
+
+    z-index:9999;
+
+    overflow:hidden;
+
+}
+
+.company-dropdown-menu.show{
+
+    display:flex;
+
+    flex-direction:column;
+
+}
+
+.company-list{
+
+    max-height:300px;
+
+    overflow-y:auto;
+
+}
+
+.company-search-wrap{
+
+    padding:12px;
+
+    border-bottom:1px solid #ececec;
+
+}
+
+.btn-add-company{
+
+    margin:12px;
+
+}
+.company-menu-btn{
+    margin-left:auto;
+    border:none;
+    background:transparent;
+    cursor:pointer;
+    width:28px;
+    height:28px;
+    border-radius:8px;
+    font-size:18px;
+    color:#666;
+}
+
+.company-menu-btn:hover{
+    background:#f3f4f6;
+}
+
+.company-context-menu{
+    position:fixed;
+    display:none;
+    min-width:160px;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:12px;
+    box-shadow:0 10px 25px rgba(0,0,0,.15);
+    z-index:99999;
+    overflow:hidden;
+}
+
+.company-context-menu button{
+    display: block;
+    width: auto;
+    min-width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1.2;
+    box-sizing: border-box;
+}
+
+.company-context-menu button + button{
+    border-top: 1px solid #e5e7eb;
+}
+
+.company-context-menu button:hover{
+    background: #f5f5f5;
+}
+
+.company-context-menu button + button{
+    border-top: 1px solid #e5e7eb;
+}
+
+.company-context-menu button:hover{
+    background:#f5f5f5;
+}
+.company-context-menu{
+    z-index:999999;
+    pointer-events:auto;
+}
+
+.company-context-menu button + button{
+    border-top: 1px solid #e5e7eb;
+}
+.ledger-menu-btn{
+
+    border:none;
+    background:transparent;
+    cursor:pointer;
+
+    width:30px;
+    height:30px;
+
+    border-radius:8px;
+
+    font-size:18px;
+
+}
+
+.ledger-menu-btn:hover{
+
+    background:#f3f4f6;
+
+}
+.company-state-card{
+
+    background:#ffffff;
+
+    border:1px solid #dbeafe;
+
+    border-radius:14px;
+
+    padding:16px;
+
+    display:flex;
+
+    flex-direction:column;
+
+    gap:12px;
+
+    box-shadow:0 4px 12px rgba(15,23,42,.05);
+
+}
+
+.company-state-header{
+
+    display:flex;
+
+    align-items:center;
+
+    gap:10px;
+
+}
+
+.company-state-icon{
+
+    width:40px;
+
+    height:40px;
+
+    border-radius:12px;
+
+    background:linear-gradient(135deg,#2563eb,#1d4ed8);
+
+    display:flex;
+
+    align-items:center;
+
+    justify-content:center;
+
+    font-size:18px;
+
+    color:#fff;
+
+}
+
+.company-state-title{
+
+    font-size:15px;
+
+    font-weight:700;
+
+    color:#111827;
+
+    margin-bottom:2px;
+
+}
+
+.company-state-subtitle{
+
+    font-size:11px;
+
+    color:#6b7280;
+
+    line-height:1.4;
+
+}
+
+.company-state-value{
+
+    display:inline-flex;
+
+    align-items:center;
+
+    width:max-content;
+
+    padding:8px 16px;
+
+    border-radius:999px;
+
+    background:#eef4ff;
+
+    border:1px solid #bfdbfe;
+
+    color:#2563eb;
+
+    font-size:18px;
+
+    font-weight:700;
+
+}
+.company-selector-row{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.company-dropdown{
+    flex:1;
+}
+
+.add-company-btn{
+    width:44px;
+    height:44px;
+    border:none;
+    border-radius:12px;
+    background:linear-gradient(135deg,#4f8cff,#2563eb);
+    color:#fff;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    cursor:pointer;
+    flex-shrink:0;
+    transition:.2s;
+    box-shadow:0 6px 16px rgba(37,99,235,.25);
+}
+
+.add-company-btn svg{
+    width:20px;
+    height:20px;
+    fill:none;
+    stroke:currentColor;
+    stroke-width:2.6;
+    stroke-linecap:round;
+}
+
+.add-company-btn:hover{
+    transform:translateY(-2px);
+    box-shadow:0 10px 24px rgba(37,99,235,.35);
+}
+
+.add-company-btn:active{
+    transform:translateY(1px);
+}
   </style>
 </head>
 <body>
 <div class="mapping-wrap">
 
-  <div class="page-header">
-    <div class="badge">🗂️ Tally Configuration</div>
-    <h1>Ledger <span>Mapping</span> Editor</h1>
-    <p>Map GST rates to Tally ledger names per company</p>
-  </div>
-
   <div class="card">
 
-    <div class="card-header">
-      <div class="card-header-icon">🗂️</div>
-      <div class="card-header-text">
-        <div class="card-eyebrow">Tally Configuration</div>
-        <h3>Ledger Mapping Editor</h3>
-        <p class="card-header-sub">Map GST rates to Tally ledger names per company</p>
-      </div>
-    </div>
+     <div class="card-header">
 
-    <div class="mapping-container">
+    <div class="toolbar-left">
 
-      <!-- ══ LEFT: Company sidebar ══ -->
-      <div class="company-panel">
-        <div class="panel-head">
-          <div class="panel-title">🏢 Companies</div>
-          <button class="btn btn-success btn-sm" id="addCompanyBtn" title="Add new company">➕ Add</button>
+        <div class="toolbar-title">
+
+             🗂️ Ledger Mapping
+
         </div>
 
-        <!-- SEARCH INPUT — NEW -->
-        <div class="company-search-wrap">
-          <span class="company-search-icon">🔍</span>
-          <input
-            type="text"
-            id="companySearchInput"
-            class="company-search-input"
-            placeholder="Search companies…"
-            autocomplete="off"
-            spellcheck="false"
-          />
-          <button class="company-search-clear" id="companySearchClear" aria-label="Clear search">✕</button>
+        <div class="toolbar-company">
+
+    <label class="toolbar-label">
+        Company
+    </label>
+
+    <div class="company-selector-row">
+
+        <!-- Company Dropdown -->
+        <div class="company-selector">
+
+            <button
+                id="companyDropdownBtn"
+                type="button"
+                class="toolbar-select company-select-btn">
+
+                <span id="selectedCompany">Select Company</span>
+                <span>▾</span>
+
+            </button>
+
+            <div
+                id="companyDropdownMenu"
+                class="company-dropdown-menu">
+
+                <div class="company-search-wrap">
+
+                    <span class="company-search-icon">🔍</span>
+
+                    <input
+                        id="companySearchInput"
+                        class="company-search-input"
+                        placeholder="Search company...">
+
+                    <button
+                        id="companySearchClear"
+                        class="company-search-clear">
+
+                        ✕
+
+                    </button>
+
+                </div>
+
+                <div
+                    id="companyList"
+                    class="company-list">
+
+                    <div
+                        id="companyNoResults"
+                        class="company-no-results">
+
+                        No companies found
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </div>
 
-        <div id="companyList" class="company-list">
-          <div class="company-no-results" id="companyNoResults">No companies match your search.</div>
-        </div>
+        <!-- Add Company Button -->
+        <button
+            id="addCompanyBtn"
+            class="add-company-btn"
+            title="Add Company"
+            aria-label="Add Company">
 
-        <button class="btn btn-add-company" id="addCompanyBtn2" style="display:none;">
-          ➕ Add New Company
+            <svg viewBox="0 0 24 24">
+                <path d="M12 5V19M5 12H19"/>
+            </svg>
+
         </button>
 
-        <p class="company-hint">Select a company to view and edit its ledger groups and GST rate mappings.</p>
-      </div>
+    </div>
 
-      <!-- ══ RIGHT: Mapping panel ══ -->
-      <div class="mapping-panel">
+    </div>
 
-        <div class="group-panel">
-          <div class="panel-head">
-            <h4>
-              📋 Ledger Groups for
-              <span id="selectedCompany" class="company-name">Select a company</span>
-            </h4>
-          </div>
-          <div class="company-action-bar" id="companyActionBar" style="display:none;">
-            <button class="btn-company-action btn-company-rename" id="renameCompanyBtn" title="Rename company">
-              <span class="ca-icon">✏️</span>
-              <span class="ca-label">Rename</span>
-            </button>
-            <button class="btn-company-action btn-company-delete" id="deleteCompanyBtn" title="Delete company">
-              <span class="ca-icon">🗑️</span>
-              <span class="ca-label">Delete</span>
-            </button>
-          </div>
-          <div id="groupList" class="group-list"></div>
-          <button class="btn btn-success btn-sm" id="addGroupBtn" style="margin-top:0.6rem;width:100%;justify-content:center;">➕ Add Ledger Group</button>
-        </div>
+</div>
 
-        <div class="rate-panel">
-          <h4 id="currentGroupTitle">Select a group</h4>
-          <div id="rateList" class="rate-list"></div>
-          <div class="action-row">
-            <button class="btn btn-success" id="addRateBtn">➕ Add Rate</button>
-            <button class="btn btn-primary" id="saveMappingBtn">💾 Save Mapping</button>
-          </div>
-        </div>
+    <div class="toolbar-right">
 
-      </div>
+
+        <button
+            id="saveMappingBtn"
+            class="btn btn-primary">
+
+            💾 Save Mapping
+
+        </button>
+
     </div>
   </div>
+
+<div class="mapping-container">
+
+    <!-- LEFT -->
+    <div class="group-panel">
+
+        <div class="panel-head">
+            <div class="panel-title">
+                📂 Ledger Groups
+            </div>
+        </div>
+
+        <div id="groupList" class="group-list"></div>
+
+    </div>
+
+    <!-- RIGHT -->
+
+<div class="editor-panel">
+
+    <div class="editor-header">
+
+        <h4 id="currentGroupTitle">
+
+            Select Group
+
+        </h4>
+
+    </div>
+
+    <div id="rateList" class="rate-list"></div>
+
+    <div class="editor-footer">
+
+        <button
+            class="btn btn-success"
+            id="addRateBtn">
+
+            ➕ Add Rate
+
+        </button>
+
+    </div>
+
+</div>
 
   <!-- Add Rate Modal -->
   <div id="rateModal" class="modal">
@@ -1387,6 +1960,7 @@
     </div>
   </div>
 
+
   <!-- Change State Modal -->
   <div id="changeStateModal" class="modal">
     <div class="modal-content change-state-modal-content">
@@ -1459,9 +2033,15 @@
     </div>
   </div>
 
+
 </div><!-- /mapping-wrap -->
+</div> <!-- card -->
+
+</div> <!-- mapping-wrap -->
+
 
 <div id="toast-container"></div>
+
 
 <script>
 (function() {
@@ -1821,10 +2401,7 @@
 
         const actions = document.createElement('div');
         actions.className = 'group-item-actions';
-        actions.innerHTML = `
-          <button class="gi-edit"   title="Rename group" data-group="${groupKey}">✏️</button>
-          <button class="gi-remove" title="Remove group" data-group="${groupKey}">🗑️</button>
-        `;
+        actions.innerHTML = "";
 
         item.textContent = '';
         item.appendChild(labelSpan);
@@ -1840,10 +2417,12 @@
     new MutationObserver(upgradeGroupItems).observe(groupListEl, { childList: true });
     upgradeGroupItems();
 
-    const addGroupBtn = document.getElementById('addGroupBtn');
-    if (addGroupBtn) {
-      addGroupBtn.addEventListener('click', () => openAddGroupModal(null));
-    }
+    const labelSpan = document.createElement("span");
+    labelSpan.className = "group-item-label";
+    labelSpan.textContent = item.textContent.trim();
+
+    item.textContent = "";
+    item.appendChild(labelSpan);
 
     function getBridge() { return window.__groupBridge || {}; }
 
@@ -2098,7 +2677,6 @@
     (function() {
         document.addEventListener('DOMContentLoaded', function() {
             const groupNames = [
-                'COMPANY_STATE',
                 'SALES',
                 'SALES_INTER',
                 'PURCHASE',
@@ -2109,6 +2687,7 @@
                 'CGST_PURCHASE',
                 'SGST_PURCHASE',
                 'IGST_PURCHASE',
+                'COMPANY_STATE',
             ];
 
             let companies = [];
@@ -2141,43 +2720,172 @@
             const modalCancel = document.getElementById('modalCancelBtn');
 
             async function loadCompaniesForMapping() {
-                if (!companyListEl) return;
-                try {
-                    const response = await fetch('/api/companies');
-                    const data = await response.json();
-                    companies = data.companies || [];
-                    renderCompanyList();
-                    if (companies.length > 0) selectCompany(companies[0]);
-                } catch (err) {
-                    alert('Failed to load companies. Is the server running?');
+
+                    if (!companyListEl) return;
+
+                    try {
+
+                        const response = await fetch('/api/companies');
+
+                        const data = await response.json();
+
+                        companies = data.companies || [];
+
+
+                        renderCompanyList();
+
+                         // Auto-select only if there is no valid selected company
+                        if (companies.length > 0) {
+
+                            if (!currentCompany || !companies.includes(currentCompany)) {
+                                await selectCompany(companies[0]);
+                            }
+
+                        }
+
+                    } catch (err) {
+
+                        alert('Failed to load companies. Is the server running?');
+
+                    }
+
                 }
-            }
+
 
             function renderCompanyList() {
+
                 if (!companyListEl) return;
-                // Remove all existing company-items (keep the no-results div)
-                companyListEl.querySelectorAll('.company-item').forEach(el => el.remove());
+
+                const search = document
+                    .getElementById("companySearchInput")
+                    ?.value
+                    .trim()
+                    .toLowerCase() || "";
+
+                // Remove existing company items
+                companyListEl.querySelectorAll(".company-item").forEach(el => el.remove());
+
+                let found = 0;
+
                 companies.forEach(name => {
-                    const div = document.createElement('div');
-                    div.className = 'company-item' + (name === currentCompany ? ' active' : '');
+
+                    if (search && !name.toLowerCase().includes(search))
+                        return;
+
+                    found++;
+
+                    const div = document.createElement("div");
+
+                    div.className =
+                        "company-item" +
+                        (name === currentCompany ? " active" : "");
+
                     div.dataset.name = name;
-                    // Label span — highlight is injected here, never touches ::before emoji
-                    const label = document.createElement('span');
-                    label.className = 'company-item-text';
+
+                    const label = document.createElement("span");
+                    label.className = "company-item-text";
                     label.textContent = name;
+
+                    const menuBtn = document.createElement("button");
+                    menuBtn.className = "company-menu-btn";
+                    menuBtn.innerHTML = "⋮";
+
                     div.appendChild(label);
-                    div.addEventListener('click', () => selectCompany(name));
+                    div.appendChild(menuBtn);
+
+                    menuBtn.addEventListener("click", function (e) {
+
+                        e.preventDefault();
+                        e.stopPropagation();
+
+                        const menu = document.getElementById("companyContextMenu");
+
+                        // If this company's menu is already open, close it
+                        if (
+                            menu.style.display === "block" &&
+                            menu.dataset.company === name
+                        ) {
+                            menu.style.display = "none";
+                            return;
+                        }
+
+                        menu.dataset.company = name;
+
+                        const rect = menuBtn.getBoundingClientRect();
+
+                        menu.style.display = "block";
+
+                        const menuWidth = menu.offsetWidth;
+
+                        menu.style.left = Math.min(
+                            rect.right - menuWidth,
+                            window.innerWidth - menuWidth - 10
+                        ) + "px";
+
+                        menu.style.top = (rect.bottom + 6) + "px";
+                    });   
+                        div.addEventListener("click", function (e) {
+
+                        if (e.target.closest(".company-menu-btn")) {
+                            return;
+                        }
+
+                        selectCompany(name);
+
+                    });
+
                     companyListEl.appendChild(div);
+
                 });
+
+                const noResults = document.getElementById("companyNoResults");
+
+                if (noResults)
+                    noResults.style.display = found ? "none" : "block";
+
+            }
+            const companySearchInput = document.getElementById("companySearchInput");
+
+            if (companySearchInput) {
+
+                companySearchInput.addEventListener("input", renderCompanyList);
+
+            }
+            const clearBtn = document.getElementById("companySearchClear");
+
+            if (clearBtn && companySearchInput) {
+
+                clearBtn.addEventListener("click", () => {
+
+                    companySearchInput.value = "";
+
+                    renderCompanyList();
+
+                    companySearchInput.focus();
+
+                });
+
             }
 
-            async function selectCompany(name) {
+             async function selectCompany(name) {
+
                 currentCompany = name;
                 window.__currentCompanyForCore = name;
-                if (selectedCompanySpan) selectedCompanySpan.textContent = name;
+
+                if (selectedCompanySpan)
+                    selectedCompanySpan.textContent = name;
+
+                // Close the dropdown after selecting a company
+                const dropdown = document.getElementById("companyDropdownMenu");
+                if (dropdown) {
+                    dropdown.classList.remove("show");
+                }
+
                 document.querySelectorAll('#companyList .company-item').forEach(item => {
                     item.classList.toggle('active', item.dataset.name === name);
                 });
+
+                
                 const isDefault = (name === 'Default');
                 const actionBar = document.getElementById('companyActionBar');
                 if (actionBar) actionBar.style.display = isDefault ? 'none' : 'flex';
@@ -2221,7 +2929,7 @@
                 document.querySelectorAll('#groupList .group-item').forEach(item => {
                     item.classList.toggle('active', item.dataset.key === name);
                 });
-                if (currentGroupTitle) currentGroupTitle.textContent = `Editing: ${name}`;
+                if (currentGroupTitle) currentGroupTitle.textContent = `: ${name}`;
                 renderRateList(name);
             }
 
@@ -2242,56 +2950,100 @@
                     };
                 } else if (group === 'COMPANY_STATE') {
                     const value = data || 'Not set';
-                    rateListEl.innerHTML = `<div class="rate-item">Current State: ${value}</div>`;
+                    rateListEl.innerHTML = `
+<div class="company-state-card">
+
+    <div class="company-state-header">
+
+        <div class="company-state-icon">
+            📍
+        </div>
+
+        <div>
+
+            <div class="company-state-title">
+                Current Company State
+            </div>
+
+            <div class="company-state-subtitle">
+                Used for GST Calculation & XML Generation
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="company-state-value">
+
+        ${value}
+
+    </div>
+
+</div>
+`;
                     addRateBtn.textContent = 'Change State';
-                    addRateBtn.onclick = () => {
-                        const newState = prompt('Enter company state:', value);
-                        if (newState) {
-                            currentMapping.COMPANY_STATE = newState;
-                            renderRateList(group);
-                        }
-                    };
-                } else {
-                    rateListEl.innerHTML = '';
-                    if (!data || Object.keys(data).length === 0) {
-                        rateListEl.innerHTML = '<div class="rate-item">No mappings found. Click "Add Rate" to create one.</div>';
-                    } else {
-                        Object.entries(data)
-                            .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
-                            .forEach(([rate, ledger]) => {
-                                const item = document.createElement('div');
-                                item.className = 'rate-item';
-                                item.innerHTML = `
-                                    <span><b>${rate}%</b> → ${ledger}</span>
-                                    <div class="rate-actions">
-                                        <button class="btn-edit" data-group="${group}" data-rate="${rate}" data-ledger="${ledger}">✏️</button>
-                                        <button class="btn-delete" data-group="${group}" data-rate="${rate}">🗑️</button>
-                                    </div>
-                                `;
-                                rateListEl.appendChild(item);
-                            });
-                        document.querySelectorAll('.btn-edit').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const group = btn.dataset.group;
-                                const rate = btn.dataset.rate;
-                                const ledger = btn.dataset.ledger;
-                                editRate(group, rate, ledger);
-                            });
-                        });
-                        document.querySelectorAll('.btn-delete').forEach(btn => {
-                            btn.addEventListener('click', (e) => {
-                                e.stopPropagation();
-                                const group = btn.dataset.group;
-                                const rate = btn.dataset.rate;
-                                deleteRate(group, rate);
-                            });
-                        });
-                    }
-                    addRateBtn.textContent = '➕ Add Rate';
-                    addRateBtn.onclick = () => addRate(group);
+                    addRateBtn.onclick = async () => {
+
+                    const newState = await prompt(
+                        'Enter company state:',
+                        value
+                    );
+
+                    if (!newState) return;
+
+                    currentMapping.COMPANY_STATE = newState;
+
+                    renderRateList(group);
+                };
+                }else {
+
+    // Always reset button for ledger groups
+    addRateBtn.textContent = '➕ Add Rate';
+    addRateBtn.onclick = () => addRate(group);
+
+    rateListEl.innerHTML = '';
+
+    if (!data || Object.keys(data).length === 0) {
+
+        rateListEl.innerHTML =
+            '<div class="rate-item">No mappings found. Click "Add Rate" to create one.</div>';
+
+    } else {
+
+        Object.entries(data)
+            .sort((a, b) => parseFloat(a[0]) - parseFloat(b[0]))
+            .forEach(([rate, ledger]) => {
+
+                const item = document.createElement('div');
+
+                item.className = 'rate-item';
+
+                item.innerHTML = `
+                    <span><b>${rate}%</b> → ${ledger}</span>
+
+                    <div class="rate-actions">
+
+                        <button
+                            class="ledger-menu-btn"
+                            data-group="${group}"
+                            data-rate="${rate}"
+                            data-ledger="${ledger}">
+                            ⋮
+                        </button>
+
+                    </div>
+                `;
+
+                rateListEl.appendChild(item);
+
+            });
+
                 }
-            }
+
+              }
+              
+            } 
+          
 
             function addRate(group) {
                 currentModalGroup = group;
@@ -2301,13 +3053,19 @@
                 rateModal.classList.add('show');
             }
 
-            function editRate(group, rate, oldLedger) {
-                const newLedger = prompt(`Edit ledger for ${rate}%:`, oldLedger);
-                if (newLedger) {
-                    currentMapping[group][rate] = newLedger;
-                    renderRateList(group);
-                }
-            }
+             async function editRate(group, rate, oldLedger) {
+
+                  const newLedger = await prompt(
+                      `Edit ledger for ${rate}%:`,
+                      oldLedger
+                  );
+
+                  if (!newLedger) return;
+
+                  currentMapping[group][rate] = newLedger;
+
+                  renderRateList(group);
+              }
 
             function deleteRate(group, rate) {
                 if (confirm(`Delete mapping for ${rate}%?`)) {
@@ -2315,6 +3073,87 @@
                     renderRateList(group);
                 }
             }
+             const ledgerMenu =
+              document.getElementById("ledgerContextMenu");
+
+           let activeLedgerButton = null;
+
+          rateListEl.addEventListener("click", function(e){
+
+              const btn = e.target.closest(".ledger-menu-btn");
+
+              if(!btn) return;
+
+              e.preventDefault();
+              e.stopPropagation();
+
+              // Toggle same button
+              if (
+                  activeLedgerButton === btn &&
+                  ledgerMenu.style.display === "block"
+              ){
+                  ledgerMenu.style.display = "none";
+                  activeLedgerButton = null;
+                  return;
+              }
+
+              activeLedgerButton = btn;
+
+              ledgerMenu.dataset.group = btn.dataset.group;
+              ledgerMenu.dataset.rate = btn.dataset.rate;
+              ledgerMenu.dataset.ledger = btn.dataset.ledger;
+
+              const rect = btn.getBoundingClientRect();
+
+              ledgerMenu.style.left = rect.left + "px";
+              ledgerMenu.style.top = (rect.bottom + 6) + "px";
+
+              ledgerMenu.style.display = "block";
+
+          });
+
+
+            document
+            .getElementById("ledgerEditMenu")
+            .onclick=function(){
+
+                ledgerMenu.style.display="none";
+
+                editRate(
+
+                    ledgerMenu.dataset.group,
+
+                    ledgerMenu.dataset.rate,
+
+                    ledgerMenu.dataset.ledger
+
+                );
+
+            };
+            document
+            .getElementById("ledgerDeleteMenu")
+            .onclick=function(){
+
+                ledgerMenu.style.display="none";
+
+                deleteRate(
+
+                    ledgerMenu.dataset.group,
+
+                    ledgerMenu.dataset.rate
+
+                );
+
+            };
+            document.addEventListener("click",function(e){
+
+                  if(ledgerMenu.contains(e.target)) return;
+
+                  if(e.target.closest(".ledger-menu-btn")) return;
+
+                  ledgerMenu.style.display="none";
+
+              });
 
             if (modalOk) {
                 modalOk.addEventListener('click', () => {
@@ -2349,7 +3188,7 @@
                     currentModalGroup = null;
                 });
             }
-
+           
             if (modalCancel) {
                 modalCancel.addEventListener('click', () => {
                     if (rateModal) rateModal.classList.remove('show');
@@ -2367,19 +3206,29 @@
                 });
             }
 
-            if (renameCompanyBtn) {
-                renameCompanyBtn.addEventListener('click', () => {
-                    if (!currentCompany || currentCompany === 'Default') {
-                        alert('Cannot rename the Default company');
-                        return;
-                    }
-                    companyModalMode = 'rename';
-                    oldCompanyName = currentCompany;
-                    if (companyModalTitle) companyModalTitle.textContent = 'Rename Company';
-                    if (companyNameInput) companyNameInput.value = currentCompany;
-                    if (companyModal) companyModal.classList.add('show');
-                });
+            function openRenameCompanyModal() {
+
+            if (!currentCompany || currentCompany === 'Default') {
+                alert('Cannot rename the Default company');
+                return;
             }
+
+            companyModalMode = 'rename';
+            oldCompanyName = currentCompany;
+
+            if (companyModalTitle)
+                companyModalTitle.textContent = 'Rename Company';
+
+            if (companyNameInput)
+                companyNameInput.value = currentCompany;
+
+            if (companyModal)
+                companyModal.classList.add('show');
+        }
+
+        if (renameCompanyBtn) {
+            renameCompanyBtn.addEventListener("click", openRenameCompanyModal);
+        }
 
             if (companyModalOk) {
                 companyModalOk.addEventListener('click', async () => {
@@ -2392,8 +3241,15 @@
                     }
 
                     if (companyModalMode === 'add') {
+                         // Close instantly so UI doesn't feel frozen
+                        companyModal.classList.remove('show');
+                        companyNameInput.value = "";
+                        companyModalMode = "add";
+                        oldCompanyName = null;
+
                         const formData = new FormData();
                         formData.append('name', newName);
+
                         try {
                             const response = await fetch('/api/companies', {
                                 method: 'POST',
@@ -2401,6 +3257,10 @@
                             });
                             if (response.ok) {
                                 await loadCompaniesForMapping();
+
+                                currentCompany = newName;
+                                renderCompanyList();
+
                                 await selectCompany(newName);
                                 if (typeof loadCompaniesForConverter === 'function') {
                                     loadCompaniesForConverter();
@@ -2417,7 +3277,7 @@
                             companyModal.classList.remove('show');
                             return;
                         }
-                        if (confirm('Rename will delete the old company and create a new one. Continue?')) {
+
                             try {
                                 const mappingCopy = { ...currentMapping };
                                 const deleteRes = await fetch(`/api/companies/${encodeURIComponent(oldCompanyName)}`, {
@@ -2426,6 +3286,9 @@
                                 if (!deleteRes.ok) throw new Error('Failed to delete old company');
                                 const formData = new FormData();
                                 formData.append('name', newName);
+                                companyModal.classList.remove('show');
+                                companyModalMode = 'add';
+                                oldCompanyName = null;
                                 const createRes = await fetch('/api/companies', {
                                     method: 'POST',
                                     body: formData
@@ -2445,12 +3308,9 @@
                             } catch (error) {
                                 alert('Failed to rename company: ' + error.message);
                             }
-                        }
                     }
 
-                    companyModal.classList.remove('show');
-                    companyModalMode = 'add';
-                    oldCompanyName = null;
+                    
                 });
             }
 
@@ -2462,28 +3322,124 @@
                 });
             }
 
-            if (deleteCompanyBtn) {
-                deleteCompanyBtn.addEventListener('click', async () => {
-                    if (!currentCompany || currentCompany === 'Default') return;
-                    if (!confirm(`Are you sure you want to delete company "${currentCompany}"?`)) return;
-                    try {
-                        const response = await fetch(`/api/companies/${encodeURIComponent(currentCompany)}`, {
-                            method: 'DELETE'
-                        });
-                        if (response.ok) {
-                            await loadCompaniesForMapping();
-                            if (typeof loadCompaniesForConverter === 'function') {
-                                loadCompaniesForConverter();
-                            }
-                        } else {
-                            const err = await response.text();
-                            alert('Failed to delete company: ' + err);
-                        }
-                    } catch (err) {
-                        alert('Error: ' + err.message);
-                    }
-                });
+            function openDeleteCompanyModal() {
+            const deleteCompanyModal =
+                document.getElementById("deleteCompanyConfirmModal");
+
+            const deleteCompanyOk =
+                document.getElementById("deleteCompanyModalOkBtn");
+
+            const deleteCompanyCancel =
+                document.getElementById("deleteCompanyModalCancelBtn");
+
+            const deleteCompanyClose =
+                document.getElementById("deleteCompanyModalCloseX");
+
+            deleteCompanyCancel.onclick = () => {
+                deleteCompanyModal.classList.remove("show");
+            };
+
+            deleteCompanyClose.onclick = () => {
+                deleteCompanyModal.classList.remove("show");
+            };
+            deleteCompanyOk.onclick = async () => {
+
+                  if (!currentCompany || currentCompany === "Default")
+                      return;
+
+                  try {
+
+                      const response = await fetch(
+                          `/api/companies/${encodeURIComponent(currentCompany)}`,
+                          {
+                              method: "DELETE"
+                          }
+                      );
+
+                      if (response.ok) {
+
+                          deleteCompanyModal.classList.remove("show");
+
+                          await loadCompaniesForMapping();
+
+                          if (typeof loadCompaniesForConverter === "function") {
+                              loadCompaniesForConverter();
+                          }
+
+                      } else {
+
+                          const err = await response.text();
+
+                          alert("Failed to delete company: " + err);
+
+                      }
+
+                  } catch (err) {
+
+                      alert("Error: " + err.message);
+
+                  }
+
+              };
+
+            if (!currentCompany || currentCompany === "Default") {
+                return;
             }
+
+            document.getElementById("deleteCompanyNameSpan").textContent = currentCompany;
+
+            document
+                .getElementById("deleteCompanyConfirmModal")
+                .classList.add("show");
+        }
+
+        if (deleteCompanyBtn) {
+            deleteCompanyBtn.addEventListener(
+                "click",
+                openDeleteCompanyModal
+            );
+        }
+        const companyContextMenu = document.getElementById("companyContextMenu");
+
+document.getElementById("renameCompanyMenu").addEventListener("click", function (e) {
+
+    e.stopPropagation();
+
+    companyContextMenu.style.display = "none";
+
+    currentCompany = companyContextMenu.dataset.company;
+
+    openRenameCompanyModal();
+
+});
+
+document.getElementById("deleteCompanyMenu").addEventListener("click", function (e) {
+
+    e.stopPropagation();
+
+    companyContextMenu.style.display = "none";
+
+    currentCompany = companyContextMenu.dataset.company;
+
+    openDeleteCompanyModal();
+
+});
+
+ document.addEventListener("click", function (e) {
+
+    const menu = document.getElementById("companyContextMenu");
+
+    // Click inside company context menu
+    if (menu.contains(e.target)) return;
+
+    // Click on company ⋮ button
+    if (e.target.closest(".company-menu-btn")) return;
+
+    // Hide company menu
+    menu.style.display = "none";
+    
+
+});
 
             if (saveMappingBtn) {
                 saveMappingBtn.addEventListener('click', async () => {
@@ -2514,12 +3470,47 @@
                 if (e.target === rateModal) {
                     rateModal.classList.remove('show');
                     currentModalGroup = null;
-                }
+             }
             });
 
             loadCompaniesForMapping();
         });
     })();
+    const btn=document.getElementById("companyDropdownBtn");
+
+    const menu=document.getElementById("companyDropdownMenu");
+
+    btn.onclick=()=>{
+
+        menu.classList.toggle("show");
+
+    };
+
+    document.addEventListener("click",(e)=>{
+
+        if(!menu.contains(e.target) && !btn.contains(e.target))
+
+            menu.classList.remove("show");
+
+    });
+    
 </script>
+<div id="companyContextMenu" class="company-context-menu">
+    <button id="renameCompanyMenu">Rename</button>
+    <button id="deleteCompanyMenu">Delete</button>
+</div>
+<div id="ledgerContextMenu" class="company-context-menu">
+
+    <button id="ledgerEditMenu">
+        Edit
+    </button>
+
+    <button id="ledgerDeleteMenu">
+        Delete
+    </button>
+
+</div>
+
+</body>
 </body>
 </html>

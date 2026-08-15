@@ -43,6 +43,11 @@
     font-size:14px;
     margin-top:2px;
   }
+  .page-container{
+    width: min(1200px, calc(100vw - 64px));
+    margin: 0 auto;
+    transform: translateX(-100px);   /* Shift page left */
+}
 
   /* ---------- Summary cards ---------- */
   .subscription-page .card{
@@ -213,10 +218,66 @@
     color:#fff !important;
     opacity:1;
   }
+  /* ===== Centered modal ===== */
+.subscription-page #upgradeModal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,.45);
+  z-index: 9999;
+  padding: 20px;
+}
+
+.subscription-page #upgradeModal.show{
+  display: flex;
+}
+
+.subscription-page #upgradeModal .modal-dialog{
+  width: 100%;
+  max-width: 520px;
+  margin: 0;
+}
+
+.subscription-page #upgradeModal .modal-content{
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.18);
+  overflow: hidden;
+}
+/* ===== Perfect centered modal ===== */
+.subscription-page #upgradeModal{
+  position: fixed;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15,23,42,.45);
+  z-index: 9999;
+  padding: 24px;
+}
+
+.subscription-page #upgradeModal.show{
+  display: flex;
+}
+
+.subscription-page #upgradeModal .modal-dialog{
+  width: 100%;
+  max-width: 520px;
+  margin: auto;
+}
+
+.subscription-page #upgradeModal .modal-content{
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 24px 60px rgba(0,0,0,.18);
+  overflow: hidden;
+}
 </style>
 
 <div class="subscription-page">
-<div class="container-fluid py-4">
+<div class="container-fluid page-container py-4">
 
     <div class="mb-4">
         <h2 class="page-title">
@@ -339,6 +400,42 @@
 
     <!-- Pricing -->
 
+    <!-- Upgrade Request Status -->
+<div class="row mb-4" id="upgradeRequestRow" style="display:none;">
+  <div class="col-12">
+    <div class="card border-0 shadow-sm rounded-4">
+      <div class="card-body p-4 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3">
+
+        <div class="d-flex align-items-start gap-3">
+          <div id="requestIcon" style="width:52px;height:52px;border-radius:14px;background:#fff7e8;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:24px;">
+            ⏳
+          </div>
+
+          <div>
+            <div class="eyebrow mb-1">Upgrade Request</div>
+            <h5 id="requestTitle" class="mb-1 fw-bold">Request Pending</h5>
+            <div id="requestText" class="text-muted" style="font-size:14px;">
+              We will contact you on WhatsApp or phone for activation.
+            </div>
+            <div id="requestMeta" class="mt-2" style="font-size:13px;color:#6b7280;"></div>
+          </div>
+        </div>
+
+        <div class="d-flex flex-wrap gap-2">
+          <button id="requestAgainBtn" class="btn btn-outline-primary rounded-3" style="display:none;">
+            🔁 Request Again
+          </button>
+
+          <button id="contactSupportBtn" class="btn btn-primary rounded-3">
+            💬 Contact Support
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
     <div class="row">
 
         <!-- BASIC -->
@@ -385,13 +482,9 @@
 
                     </ul>
 
-                    <button
-                        id="btnBasic"
-                        class="btn btn-primary w-100 mt-3">
-
-                        Upgrade to Basic
-
-                    </button>
+                    <button id="btnBasic" class="btn btn-primary w-100 mt-3">
+                        🚀 Request Basic
+                        </button>
 
                 </div>
 
@@ -447,12 +540,8 @@
 
                     </ul>
 
-                    <button
-                        id="btnPro"
-                        class="btn btn-warning w-100 mt-3">
-
-                        Upgrade to Pro
-
+                     <button id="btnPro" class="btn btn-warning w-100 mt-3">
+                            🚀 Request Pro
                     </button>
 
                 </div>
@@ -462,6 +551,67 @@
         </div>
 
     </div>
+    <!-- Upgrade Request Modal -->
+<div class="modal fade" id="upgradeModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow-lg">
+      <div class="modal-header border-0 pb-0">
+        <h5 class="modal-title fw-bold">🚀 Upgrade Request</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body pt-2">
+
+        <div class="alert alert-light border rounded-3 mb-3">
+          <div class="fw-semibold">Selected Plan</div>
+          <div id="selectedPlanText" class="text-primary">Pro Plan</div>
+        </div>
+
+        <form id="upgradeRequestForm">
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Full Name</label>
+            <input type="text" class="form-control rounded-3" id="reqName" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <input type="email" class="form-control rounded-3" id="reqEmail" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Phone / WhatsApp</label>
+            <input type="tel" class="form-control rounded-3" id="reqPhone" required>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Message (Optional)</label>
+            <textarea class="form-control rounded-3" id="reqMessage" rows="3"></textarea>
+          </div>
+
+          <div class="small text-muted mb-3">
+            No payment is required now. We will contact you on WhatsApp or phone for activation.
+          </div>
+
+         <div class="d-flex gap-3 mt-2">
+            <button type="button"
+                    id="cancelUpgradeBtn"
+                    class="btn btn-light border rounded-3 py-2 fw-semibold"
+                    style="width:120px;">
+                Cancel
+            </button>
+
+            <button type="submit"
+                    class="btn btn-primary rounded-3 py-2 fw-semibold flex-grow-1">
+                Send Request
+            </button>
+            </div>
+
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
 
 </div>
 </div>
@@ -511,6 +661,53 @@ function formatExpiry(dateStr){
 
     return { text, relative, cls };
 
+}
+function setRequestUI(status, planName = "", requestedAt = "") {
+
+    const row = document.getElementById("upgradeRequestRow");
+    const icon = document.getElementById("requestIcon");
+    const title = document.getElementById("requestTitle");
+    const text = document.getElementById("requestText");
+    const meta = document.getElementById("requestMeta");
+    const againBtn = document.getElementById("requestAgainBtn");
+
+    row.style.display = "none";
+    againBtn.style.display = "none";
+
+    if (!status || status === "none") return;
+
+    row.style.display = "block";
+
+    if (status === "pending") {
+        icon.innerHTML = "⏳";
+        icon.style.background = "#fff7e8";
+        icon.style.color = "#d97706";
+
+        title.innerText = "Request Pending";
+        text.innerText = "We will contact you on WhatsApp or phone for activation.";
+        meta.innerText = planName ? `Requested plan: ${planName}` : "";
+    }
+
+    if (status === "approved") {
+        icon.innerHTML = "✅";
+        icon.style.background = "#ecfdf5";
+        icon.style.color = "#16a34a";
+
+        title.innerText = `${planName} Active`;
+        text.innerText = "Your subscription has been activated successfully.";
+        meta.innerText = requestedAt ? `Activated on: ${requestedAt}` : "";
+    }
+
+    if (status === "rejected" || status === "expired") {
+        icon.innerHTML = "⚠️";
+        icon.style.background = "#fef2f2";
+        icon.style.color = "#dc2626";
+
+        title.innerText = status === "expired" ? "Request Expired" : "Request Rejected";
+        text.innerText = "You can submit a new upgrade request.";
+        meta.innerText = "";
+        againBtn.style.display = "inline-flex";
+    }
 }
 
 async function loadSubscription(){
@@ -597,12 +794,86 @@ async function loadSubscription(){
         document.getElementById("btnPro").disabled=true;
 
     }
+    // TEMPORARY UI DEMO (remove after backend)
+    const requestStatus = "none";
+    const requestPlan = "";
+
+    // Examples:
+    // setRequestUI("approved", "Pro", "12 Aug 2026");
+    // setRequestUI("rejected");
+    // setRequestUI("expired");
 
 }
+var selectedPlan = "";
 
-document.addEventListener(
-    "DOMContentLoaded",
-    loadSubscription
-);
+function initUpgradeUI() {
+
+    const basicBtn = document.getElementById("btnBasic");
+    const proBtn = document.getElementById("btnPro");
+    const form = document.getElementById("upgradeRequestForm");
+    const modalEl = document.getElementById("upgradeModal");
+    const cancelBtn = document.getElementById("cancelUpgradeBtn");
+    function closeModal(){
+    modalEl.classList.remove("show");
+    modalEl.style.display = "none";
+    modalEl.setAttribute("aria-hidden", "true");
+    document.body.classList.remove("modal-open");
+    }
+    if(cancelBtn){
+    cancelBtn.onclick = closeModal;
+    }
+
+    if (basicBtn) {
+        basicBtn.onclick = function () {
+            selectedPlan = "Basic";
+            document.getElementById("selectedPlanText").innerText = "Basic Plan";
+            modalEl.classList.add("show");
+            modalEl.style.display = "flex";
+            modalEl.removeAttribute("aria-hidden");
+            document.body.classList.add("modal-open");
+        };
+    }
+
+    if (proBtn) {
+        proBtn.onclick = function () {
+            selectedPlan = "Pro";
+            document.getElementById("selectedPlanText").innerText = "Pro Plan";
+            modalEl.classList.add("show");
+            modalEl.style.display = "flex";
+            modalEl.removeAttribute("aria-hidden");
+            document.body.classList.add("modal-open");
+        };
+    }
+
+    if (form) {
+        form.onsubmit = function (e) {
+            e.preventDefault();
+
+            closeModal();
+            const cancelBtn = document.getElementById("cancelUpgradeBtn");
+
+            if(cancelBtn){
+                cancelBtn.onclick = closeModal;
+            }
+
+            setRequestUI("pending", selectedPlan);
+
+            if (selectedPlan === "Basic") {
+                basicBtn.innerHTML = "🟡 Request Pending";
+                basicBtn.disabled = true;
+            }
+
+            if (selectedPlan === "Pro") {
+                proBtn.innerHTML = "🟡 Request Pending";
+                proBtn.disabled = true;
+            }
+        };
+    }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    loadSubscription();
+    initUpgradeUI();
+});
 
 </script>

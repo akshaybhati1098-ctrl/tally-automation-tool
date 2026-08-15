@@ -2,6 +2,9 @@ from email.mime import message
 import os
 from dotenv import load_dotenv
 from fastapi import Request
+from fastapi import HTTPException
+from fastapi.responses import Response
+import pandas as pd
 
 load_dotenv()
 import io
@@ -74,6 +77,7 @@ from core.subscription import (
     increment_feature_usage,
 )
 from core.match_service import apply_match_results_to_dataframe
+from pydantic import BaseModel
 
 import openpyxl
 import pandas as pd
@@ -104,6 +108,7 @@ from core.mapping import (
     save_company_mapping,
 )
 from core.process_service import image_to_excel
+from core.xml_generator import generate_xml_bytes
 
 # New Admin Enterprise Layer Dependencies
 from core.admin_telemetry import log_admin_event, ensure_admin_schema
@@ -216,6 +221,14 @@ def _agent_debug_log(location: str, message: str, data: dict | None = None, hypo
     except Exception:
         pass
     # #endregion
+class MasterLedger(BaseModel):
+    party_name: str
+    gstin: str = ""
+
+
+class MasterRequest(BaseModel):
+    parent_group: str
+    ledgers: list[MasterLedger]
 
 
 # =========================================================
@@ -2410,7 +2423,49 @@ async def api_download_reviewed_excel(payload: dict):
     except Exception as exc:
         print("❌ ERROR:", str(exc))
         raise HTTPException(status_code=500, detail=str(exc))
-    
+
+
+@app.post("/api/generate-master-xml")
+async def generate_master_xml(req: MasterRequest):
+    try:
+
+        df = pd.DataFrame([
+            {
+                "Party Name": x.party_name,
+                "GSTIN": x.gstin,
+            }
+            for x in req.ledgers
+        ])
+
+        if df.empty:
+            raise HTTPException(
+                status_code=400,
+                detail="No ledgers found."
+            )
+
+        xml_bytes = generate_xml_bytes(
+            df=df,
+            parent_group=req.parent_group,
+        )
+
+        return Response(
+            content=xml_bytes,
+            media_type="application/xml",
+            headers={
+                "Content-Disposition":
+                    "attachment; filename=Master.xml"
+            },
+        )
+
+    except HTTPException:
+        raise
+
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=str(exc),
+        )
+
 @app.post("/api/convert")
 async def convert_excel_api(
     request: Request,

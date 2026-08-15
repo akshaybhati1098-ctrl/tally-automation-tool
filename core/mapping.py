@@ -109,7 +109,23 @@ def get_default_mapping():
             "28": "INPUT IGST 28%"
         }
     }
+def get_blank_company_mapping():
+    mapping = get_default_mapping().copy()
 
+    # Keep settings
+    company_state = mapping["COMPANY_STATE"]
+    debug = mapping["DEBUG"]
+
+    # Clear all ledger groups
+    for key, value in mapping.items():
+        if isinstance(value, dict):
+            mapping[key] = {}
+
+    # Restore settings
+    mapping["COMPANY_STATE"] = company_state
+    mapping["DEBUG"] = debug
+
+    return mapping
 # ==================== POSTGRES ====================
 def load_all_mappings_postgres(user_id):
     conn = get_db_connection()
@@ -185,7 +201,11 @@ def add_company(name, user_id):
     if name in companies:
         raise ValueError("Company exists")
 
-    save_company_mapping_postgres(name, get_default_mapping(), user_id)
+    save_company_mapping_postgres(
+    name,
+    get_blank_company_mapping(),
+    user_id
+    )
 
 
 def delete_company(name, user_id):
