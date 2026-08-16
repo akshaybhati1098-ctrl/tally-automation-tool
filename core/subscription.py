@@ -12,6 +12,19 @@ class XMLConversionLimitError(Exception):
     """Raised when an XML conversion exceeds the separate row allowance."""
 
 
+def _ensure_pause_columns():
+    """Ensure pause metadata exists for older production databases."""
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_paused_at TIMESTAMP")
+        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_pause_remaining_seconds BIGINT")
+        conn.commit()
+    finally:
+        cur.close()
+        conn.close()
+
+
 def _xml_limit_from_plan_name(plan_name):
     name = str(plan_name or "").strip().lower()
     if name == "trial":
@@ -24,10 +37,12 @@ def _xml_limit_from_plan_name(plan_name):
 
 
 def get_user_plan(user_id: int):
+    _ensure_pause_columns()
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
     cur.execute("""
         SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
+               u.subscription_paused_at, u.subscription_pause_remaining_seconds,
                p.plan_name, p.price, p.match_limit, p.connector_enabled,
                p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active
         FROM users u
@@ -38,8 +53,6 @@ def get_user_plan(user_id: int):
 
     if data:
         xml_limit = _xml_limit_from_plan_name(data["plan_name"])
-        # Use the SQL-configured XML limit when the migration has been applied.
-        # Fall back to the constants so older databases keep working safely.
         try:
             cur.execute("SELECT xml_row_limit FROM subscription_plans WHERE id=%s", (data["plan_id"],))
             xml_limit_row = cur.fetchone()
@@ -53,6 +66,7 @@ def get_user_plan(user_id: int):
         data["xml_row_limit"] = xml_limit
         data["xml_used_count"] = xml_used
         data["xml_remaining"] = max(0, xml_limit - xml_used)
+        data["is_paused"] = str(data.get("subscription_status") or "").upper() == "PAUSED"
 
     cur.close()
     conn.close()
@@ -137,6 +151,10 @@ def check_xml_conversion_quota(user_id: int, row_count: int):
     plan = get_user_plan(user_id)
     if not plan:
         raise XMLConversionLimitError("Unable to verify your XML conversion allowance.")
+    if plan.get("is_paused"):
+        raise XMLConversionLimitError(
+            "⏸️ Your subscription is currently paused. Excel → Tally XML conversion is unavailable until your subscription is resumed."
+        )
     limit = int(plan.get("xml_row_limit", 0))
     usage = get_feature_usage(user_id, "xml_conversion")
     used = int(usage["used_count"]) if usage else 0
@@ -165,6 +183,10 @@ def increment_xml_conversion_usage(user_id: int, row_count: int):
         """, (user_id,))
 
         plan = get_user_plan(user_id)
+        if plan and plan.get("is_paused"):
+            raise XMLConversionLimitError(
+                "⏸️ Your subscription is currently paused. Excel → Tally XML conversion is unavailable until your subscription is resumed."
+            )
         limit = int(plan.get("xml_row_limit", 0)) if plan else 0
         cur.execute("""
             SELECT used_count FROM feature_usage
@@ -198,6 +220,10 @@ def can_use_feature(user_id: int, feature_name: str):
     if not has_feature(user_id, feature_name):
         return False, "Your current plan does not include this feature."
     plan = get_user_plan(user_id)
+    if plan.get("is_paused"):
+        if feature_name == "party_matching":
+            return False, "⏸️ Your subscription is currently paused. Party Matching is unavailable until your subscription is resumed."
+        return False, "⏸️ Your subscription is currently paused."
     if plan["plan_expiry"] is not None and datetime.now() > plan["plan_expiry"]:
         return False, "Your subscription has expired."
     remaining = get_remaining_feature_usage(user_id, feature_name)
@@ -236,36 +262,85 @@ def reset_feature_usage(user_id: int, feature_name: str):
 
 
 def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subscription_status: str, plan_expiry):
+    """Update a subscription; PAUSED/ACTIVE transitions preserve existing usage."""
+    _ensure_pause_columns()
     conn = get_db_connection()
-    cur = conn.cursor()
-    if plan_id == 1:
-        match_limit = 10
-    elif plan_id == 2:
-        match_limit = 30
-    elif plan_id == 3:
-        match_limit = -1
-    if plan_expiry is None:
-        plan_expiry = datetime.now() + timedelta(days=30)
-    cur.execute("""
-        UPDATE users SET plan_id=%s, subscription_status=%s, plan_start=NOW(), plan_expiry=%s
-        WHERE id=%s
-    """, (plan_id, subscription_status, plan_expiry, user_id))
-    cur.execute("""
-        INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
-        VALUES (%s, 'party_matching', 0, CURRENT_DATE)
-        ON CONFLICT (user_id, feature_name)
-        DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
-    """, (user_id,))
-    cur.execute("""
-        INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
-        VALUES (%s, 'xml_conversion', 0, CURRENT_DATE)
-        ON CONFLICT (user_id, feature_name)
-        DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
-    """, (user_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
-    return True
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("""
+            SELECT plan_id, subscription_status, plan_expiry,
+                   subscription_paused_at, subscription_pause_remaining_seconds
+            FROM users WHERE id=%s FOR UPDATE
+        """, (user_id,))
+        current = cur.fetchone()
+        if not current:
+            raise ValueError("User not found.")
+
+        requested_status = str(subscription_status or "ACTIVE").upper()
+        current_status = str(current["subscription_status"] or "").upper()
+
+        if requested_status == "PAUSED":
+            if current_status != "PAUSED":
+                expiry = current["plan_expiry"]
+                remaining_seconds = max(0, int((expiry - datetime.now()).total_seconds())) if expiry else 0
+                cur.execute("""
+                    UPDATE users
+                    SET subscription_status='PAUSED',
+                        subscription_paused_at=NOW(),
+                        subscription_pause_remaining_seconds=%s
+                    WHERE id=%s
+                """, (remaining_seconds, user_id))
+            conn.commit()
+            return True
+
+        if requested_status == "ACTIVE" and current_status == "PAUSED":
+            remaining_seconds = int(current["subscription_pause_remaining_seconds"] or 0)
+            new_expiry = datetime.now() + timedelta(seconds=max(0, remaining_seconds))
+            cur.execute("""
+                UPDATE users
+                SET subscription_status='ACTIVE',
+                    plan_expiry=%s,
+                    plan_start=COALESCE(plan_start, NOW()),
+                    subscription_paused_at=NULL,
+                    subscription_pause_remaining_seconds=NULL
+                WHERE id=%s
+            """, (new_expiry, user_id))
+            conn.commit()
+            return True
+
+        if plan_id == 1:
+            match_limit = 10
+        elif plan_id == 2:
+            match_limit = 30
+        elif plan_id == 3:
+            match_limit = -1
+        if plan_expiry is None:
+            plan_expiry = datetime.now() + timedelta(days=30)
+        cur.execute("""
+            UPDATE users SET plan_id=%s, subscription_status=%s, plan_start=NOW(), plan_expiry=%s,
+                subscription_paused_at=NULL, subscription_pause_remaining_seconds=NULL
+            WHERE id=%s
+        """, (plan_id, requested_status, plan_expiry, user_id))
+        cur.execute("""
+            INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
+            VALUES (%s, 'party_matching', 0, CURRENT_DATE)
+            ON CONFLICT (user_id, feature_name)
+            DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
+        """, (user_id,))
+        cur.execute("""
+            INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
+            VALUES (%s, 'xml_conversion', 0, CURRENT_DATE)
+            ON CONFLICT (user_id, feature_name)
+            DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
+        """, (user_id,))
+        conn.commit()
+        return True
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
 
 
 def assign_trial_plan(user_id: int):
