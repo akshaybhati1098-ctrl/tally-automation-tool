@@ -3,27 +3,21 @@ import json
 import logging
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
-import psycopg2
 from psycopg2.extras import RealDictCursor
+from database import get_db_connection
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 logger = logging.getLogger("admin_telemetry")
 
+
 def get_telemetry_db_connection():
-    """Establishes thread-isolated relational mappings with error fail-safes."""
-    db_url = os.environ.get("DATABASE_URL")
-    if not db_url:
-        raise RuntimeError("DATABASE_URL environment registry key is not configured.")
+    """Reuse the application's bounded PostgreSQL pool for telemetry."""
     try:
-        ssl_mode = os.environ.get("DB_SSLMODE", "require")
-        if "127.0.0.1" in db_url or "localhost" in db_url:
-            ssl_mode = "disable"
-        if ssl_mode == "disable":
-            return psycopg2.connect(db_url)
-        return psycopg2.connect(db_url, sslmode=ssl_mode)
+        return get_db_connection()
     except Exception as e:
         logger.error(f"PostgreSQL connection initialization failed: {e}")
         raise
+
 
 def ensure_admin_schema() -> None:
     """Create telemetry tables and keep their columns backward compatible."""
@@ -58,8 +52,6 @@ def ensure_admin_schema() -> None:
         for name, dtype in logs_cols:
             cur.execute(f"ALTER TABLE admin_logs ADD COLUMN IF NOT EXISTS {name} {dtype};")
 
-        # Security Guard uses admin_events. Keep both action and event_type
-        # so older readers and the current Security Guard remain compatible.
         events_cols = [
             ("user_id", "INTEGER"),
             ("username", "TEXT"),
@@ -83,6 +75,7 @@ def ensure_admin_schema() -> None:
             cur.close()
         if conn:
             conn.close()
+
 
 def log_admin_event(
     user_id: Any = None,
@@ -112,8 +105,6 @@ def log_admin_event(
             status_str, execution_time_ms, error_message, details_json
         ))
 
-        # Mirror the same event into admin_events. Populate both action and
-        # event_type because the Security Guard route reads event_type.
         cur.execute("""
             INSERT INTO admin_events (
                 user_id, username, action, event_type, endpoint, status,
@@ -136,6 +127,7 @@ def log_admin_event(
             cur.close()
         if conn:
             conn.close()
+
 
 def ensure_business_events_table():
     conn = None
@@ -171,6 +163,7 @@ def ensure_business_events_table():
         if conn:
             conn.close()
 
+
 def log_match_event(user_id, username, status, duration_ms, rows_processed, matched_rows, unmatched_rows):
     ensure_business_events_table()
     conn = None; cur = None
@@ -187,6 +180,7 @@ def log_match_event(user_id, username, status, duration_ms, rows_processed, matc
     finally:
         if cur: cur.close()
         if conn: conn.close()
+
 
 def log_conversion_event(user_id, username, status, duration_ms, rows_processed, voucher_type):
     ensure_business_events_table()
@@ -205,6 +199,7 @@ def log_conversion_event(user_id, username, status, duration_ms, rows_processed,
         if cur: cur.close()
         if conn: conn.close()
 
+
 def log_ocr_event(user_id, username, status, duration_ms, pages_processed):
     ensure_business_events_table()
     conn = None; cur = None
@@ -222,6 +217,7 @@ def log_ocr_event(user_id, username, status, duration_ms, pages_processed):
         if cur: cur.close()
         if conn: conn.close()
 
+
 def log_business_error(user_id, username, event_type, error_message):
     ensure_business_events_table()
     conn = None; cur = None
@@ -238,6 +234,7 @@ def log_business_error(user_id, username, event_type, error_message):
     finally:
         if cur: cur.close()
         if conn: conn.close()
+
 
 def fetch_dashboard_counters() -> Dict[str, int]:
     metrics = {"total_users": 0, "error_count_24h": 0, "avg_latency_7d": 0, "total_logs": 0}
@@ -266,6 +263,7 @@ def fetch_dashboard_counters() -> Dict[str, int]:
         if cur: cur.close()
         if conn: conn.close()
     return metrics
+
 
 def gather_traffic_trends_7d() -> Dict[str, List]:
     trends = {"labels": [], "api_data": [], "error_data": []}
