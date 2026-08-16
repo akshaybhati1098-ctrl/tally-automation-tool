@@ -28,6 +28,13 @@
   margin-bottom: 8px;
 }
 
+/* Keep the layout balanced when the request card is hidden.
+   The hidden row takes no space, so create the same visual separation
+   before the Basic / Pro cards. */
+.subscription-page #upgradeRequestRow[style*="display: none"] + .row {
+  margin-top: 24px !important;
+}
+
 .subscription-page #upgradeRequestRow .card {
   border-radius: 18px !important;
 }
@@ -119,6 +126,10 @@
   .subscription-page #upgradeRequestRow {
     margin-top: 8px;
     margin-bottom: 8px;
+  }
+
+  .subscription-page #upgradeRequestRow[style*="display: none"] + .row {
+    margin-top: 20px !important;
   }
 
   .subscription-page #upgradeRequestRow .card-body {
