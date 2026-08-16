@@ -120,6 +120,19 @@ async def reject_upgrade_request(request_id: int, request: Request, admin_user: 
     finally:
         cur.close(); conn.close()
 
+@business_router.delete("/api/upgrade-requests/clear-completed")
+async def clear_completed_upgrade_requests(request: Request, admin_user: str = Depends(enforce_admin_clearance)):
+    conn = get_telemetry_db_connection(); cur = conn.cursor()
+    try:
+        cur.execute("DELETE FROM upgrade_requests WHERE status IN ('approved', 'rejected')")
+        deleted = cur.rowcount
+        conn.commit()
+        return {"success": True, "deleted": deleted, "message": f"Cleared {deleted} completed request(s)."}
+    except Exception:
+        conn.rollback(); raise
+    finally:
+        cur.close(); conn.close()
+
 @business_router.get("/match-analytics", response_class=HTMLResponse)
 async def view_match_analytics(request: Request, admin_user: str = Depends(enforce_admin_clearance)):
     context=get_safe_base_context(request,admin_user); conn=get_telemetry_db_connection(); cur=conn.cursor(cursor_factory=RealDictCursor)
