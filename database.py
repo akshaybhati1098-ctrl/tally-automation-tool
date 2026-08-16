@@ -15,10 +15,10 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 if not DATABASE_URL:
     raise RuntimeError("DATABASE_URL environment variable not set")
 
-# Keep the application-side pool deliberately below Supabase's connection limit.
+# Keep the application-side pool deliberately below Supabase's session limit.
+# The pool is shared by all modules that import get_db_connection().
 DB_POOL_MIN = max(1, int(os.getenv("DB_POOL_MIN", "1")))
 DB_POOL_MAX = max(DB_POOL_MIN, int(os.getenv("DB_POOL_MAX", "5")))
-DB_POOL_WAIT_SECONDS = max(1, int(os.getenv("DB_POOL_WAIT_SECONDS", "5")))
 
 _db_pool = None
 _pool_init_lock = threading.Lock()
@@ -59,6 +59,8 @@ class _PooledConnection:
             return
         self._returned = True
         try:
+            # A request that calls close() is finished. Roll back any unfinished
+            # transaction before making this connection available to another request.
             self._connection.rollback()
         except Exception:
             pass
@@ -86,7 +88,7 @@ def get_db_connection(
 ):
     """Return a pooled PostgreSQL connection with the existing API preserved."""
     for attempt in range(retries):
-        acquired = _pool_slots.acquire(timeout=DB_POOL_WAIT_SECONDS)
+        acquired = _pool_slots.acquire(timeout=30)
         if not acquired:
             if attempt == retries - 1:
                 raise psycopg2.OperationalError(
