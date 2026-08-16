@@ -125,6 +125,37 @@ loadSettings();// common js logic
         initTheme();
     }
 })();
+
+// ---------- EXCEL → TALLY VOUCHER TYPES ----------
+// The converter page keeps its existing voucher selector and conversion flow.
+// Add Credit Note / Debit Note here so the page can expose the new voucher types
+// without changing the existing Sales / Purchase UI logic.
+(function addNoteVoucherTypes() {
+    function addOptions() {
+        const select = document.getElementById('voucherSelect');
+        if (!select) return;
+
+        const options = [
+            { value: 'credit_note', label: '↩️ Credit Note' },
+            { value: 'debit_note', label: '↪️ Debit Note' }
+        ];
+
+        options.forEach(({ value, label }) => {
+            if (select.querySelector(`option[value="${value}"]`)) return;
+            const option = document.createElement('option');
+            option.value = value;
+            option.textContent = label;
+            select.appendChild(option);
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', addOptions);
+    } else {
+        addOptions();
+    }
+})();
+
 // Template download function
 function downloadTemplate() {
     // Define headers
