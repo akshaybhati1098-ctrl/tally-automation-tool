@@ -2,8 +2,6 @@ from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from datetime import datetime, timedelta
 
-from database import get_db_connection
-
 XML_TRIAL_ROW_LIMIT = 10
 XML_BASIC_ROW_LIMIT = 100
 XML_PRO_ROW_LIMIT = 250
@@ -12,14 +10,40 @@ class XMLConversionLimitError(Exception):
     """Raised when an XML conversion exceeds the separate row allowance."""
 
 
+# Schema migrations must not run on every request. ALTER TABLE takes an
+# ACCESS EXCLUSIVE lock and can block normal users when the users table is busy.
+# The pause migration is therefore handled separately by sql/subscription_pause.sql.
+_pause_columns_available_cache = None
+
+
 def _ensure_pause_columns():
-    """Ensure pause metadata exists for older production databases."""
+    """Check pause-column availability without performing DDL during requests.
+
+    Returns True when both pause columns exist. Older databases can continue to
+    read subscription data safely until the migration is applied, instead of
+    blocking a request on ALTER TABLE.
+    """
+    global _pause_columns_available_cache
+
+    if _pause_columns_available_cache is not None:
+        return _pause_columns_available_cache
+
     conn = get_db_connection()
     cur = conn.cursor()
     try:
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_paused_at TIMESTAMP")
-        cur.execute("ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_pause_remaining_seconds BIGINT")
-        conn.commit()
+        cur.execute("""
+            SELECT COUNT(*)
+            FROM information_schema.columns
+            WHERE table_schema = current_schema()
+              AND table_name = 'users'
+              AND column_name IN (
+                  'subscription_paused_at',
+                  'subscription_pause_remaining_seconds'
+              )
+        """)
+        count = int(cur.fetchone()[0] or 0)
+        _pause_columns_available_cache = count == 2
+        return _pause_columns_available_cache
     finally:
         cur.close()
         conn.close()
@@ -37,12 +61,15 @@ def _xml_limit_from_plan_name(plan_name):
 
 
 def get_user_plan(user_id: int):
-    _ensure_pause_columns()
+    has_pause_columns = _ensure_pause_columns()
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
-    cur.execute("""
+
+    pause_select = "u.subscription_paused_at, u.subscription_pause_remaining_seconds," if has_pause_columns else "NULL AS subscription_paused_at, NULL AS subscription_pause_remaining_seconds,"
+
+    cur.execute(f"""
         SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
-               u.subscription_paused_at, u.subscription_pause_remaining_seconds,
+               {pause_select}
                p.plan_name, p.price, p.match_limit, p.connector_enabled,
                p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active
         FROM users u
@@ -258,118 +285,3 @@ def reset_feature_usage(user_id: int, feature_name: str):
     """, (user_id, feature_name))
     conn.commit()
     cur.close()
-    conn.close()
-
-
-def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subscription_status: str, plan_expiry):
-    """Update a subscription; PAUSED/ACTIVE transitions preserve existing usage."""
-    _ensure_pause_columns()
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    try:
-        cur.execute("""
-            SELECT plan_id, subscription_status, plan_expiry,
-                   subscription_paused_at, subscription_pause_remaining_seconds
-            FROM users WHERE id=%s FOR UPDATE
-        """, (user_id,))
-        current = cur.fetchone()
-        if not current:
-            raise ValueError("User not found.")
-
-        requested_status = str(subscription_status or "ACTIVE").upper()
-        current_status = str(current["subscription_status"] or "").upper()
-
-        if requested_status == "PAUSED":
-            if current_status != "PAUSED":
-                expiry = current["plan_expiry"]
-                remaining_seconds = max(0, int((expiry - datetime.now()).total_seconds())) if expiry else 0
-                cur.execute("""
-                    UPDATE users
-                    SET subscription_status='PAUSED',
-                        subscription_paused_at=NOW(),
-                        subscription_pause_remaining_seconds=%s
-                    WHERE id=%s
-                """, (remaining_seconds, user_id))
-            conn.commit()
-            return True
-
-        if requested_status == "ACTIVE" and current_status == "PAUSED":
-            remaining_seconds = int(current["subscription_pause_remaining_seconds"] or 0)
-            new_expiry = datetime.now() + timedelta(seconds=max(0, remaining_seconds))
-            cur.execute("""
-                UPDATE users
-                SET subscription_status='ACTIVE',
-                    plan_expiry=%s,
-                    plan_start=COALESCE(plan_start, NOW()),
-                    subscription_paused_at=NULL,
-                    subscription_pause_remaining_seconds=NULL
-                WHERE id=%s
-            """, (new_expiry, user_id))
-            conn.commit()
-            return True
-
-        if plan_id == 1:
-            match_limit = 10
-        elif plan_id == 2:
-            match_limit = 30
-        elif plan_id == 3:
-            match_limit = -1
-        if plan_expiry is None:
-            plan_expiry = datetime.now() + timedelta(days=30)
-        cur.execute("""
-            UPDATE users SET plan_id=%s, subscription_status=%s, plan_start=NOW(), plan_expiry=%s,
-                subscription_paused_at=NULL, subscription_pause_remaining_seconds=NULL
-            WHERE id=%s
-        """, (plan_id, requested_status, plan_expiry, user_id))
-        cur.execute("""
-            INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
-            VALUES (%s, 'party_matching', 0, CURRENT_DATE)
-            ON CONFLICT (user_id, feature_name)
-            DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
-        """, (user_id,))
-        cur.execute("""
-            INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
-            VALUES (%s, 'xml_conversion', 0, CURRENT_DATE)
-            ON CONFLICT (user_id, feature_name)
-            DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
-        """, (user_id,))
-        conn.commit()
-        return True
-    except Exception:
-        conn.rollback()
-        raise
-    finally:
-        cur.close()
-        conn.close()
-
-
-def assign_trial_plan(user_id: int):
-    conn = get_db_connection()
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute("""
-        SELECT id, trial_days FROM subscription_plans WHERE code='TRIAL'
-    """)
-    plan = cur.fetchone()
-    if not plan:
-        raise Exception("TRIAL plan not found.")
-    expiry = datetime.now() + timedelta(days=plan["trial_days"])
-    cur.execute("""
-        UPDATE users SET plan_id=%s, subscription_status='TRIAL', plan_start=NOW(), plan_expiry=%s
-        WHERE id=%s
-    """, (plan["id"], expiry, user_id))
-    conn.commit()
-    cur.close()
-    conn.close()
-
-
-def initialize_feature_usage(user_id: int):
-    conn = get_db_connection()
-    cur = conn.cursor()
-    cur.execute("""
-        INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
-        VALUES (%s, 'party_matching', 0, CURRENT_DATE)
-        ON CONFLICT (user_id, feature_name) DO NOTHING
-    """, (user_id,))
-    conn.commit()
-    cur.close()
-    conn.close()
