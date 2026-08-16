@@ -68,11 +68,17 @@ def first_non_empty(row, *keys):
     return ""
 
 
-def add_entry(v, ledger, positive, amt):
+def add_entry(v, ledger, positive, amt, display_positive=False):
     e = ET.SubElement(v, "ALLLEDGERENTRIES.LIST")
     ET.SubElement(e, "LEDGERNAME").text = str(ledger).strip()
     ET.SubElement(e, "ISDEEMEDPOSITIVE").text = "Yes" if positive else "No"
-    ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
+    # Credit Note uses the same accounting direction as Sales, but its
+    # amounts are emitted as positive values so Tally does not display
+    # the unwanted minus sign in the voucher particulars.
+    if display_positive:
+        ET.SubElement(e, "AMOUNT").text = f"{abs(amt):.2f}"
+    else:
+        ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
 
 
 # ---------------- MAIN FUNCTION ----------------
@@ -89,7 +95,7 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
 
     use_excel_ledgers = bool(use_excel_ledgers)
 
-    # ✅ SMART MAPPING
+    # SMART MAPPING
     if not use_excel_ledgers and not is_already_normalized(mapping):
         mapping = normalize_mapping(mapping)
 
@@ -241,19 +247,20 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
             if gstin:
                 ET.SubElement(V, "CONSIGNEEGSTIN").text = gstin
 
-            add_entry(V, party, True, voucher_total)
+            credit_note_display = vtype == "credit_note"
+            add_entry(V, party, True, voucher_total, display_positive=credit_note_display)
 
             if sales_ledger:
-                add_entry(V, sales_ledger, False, taxable)
+                add_entry(V, sales_ledger, False, taxable, display_positive=credit_note_display)
 
             if cgst_ledger and cgst:
-                add_entry(V, cgst_ledger, False, cgst)
+                add_entry(V, cgst_ledger, False, cgst, display_positive=credit_note_display)
 
             if sgst_ledger and sgst:
-                add_entry(V, sgst_ledger, False, sgst)
+                add_entry(V, sgst_ledger, False, sgst, display_positive=credit_note_display)
 
             if igst_ledger and igst:
-                add_entry(V, igst_ledger, False, igst)
+                add_entry(V, igst_ledger, False, igst, display_positive=credit_note_display)
 
         # ================= PURCHASE / DEBIT NOTE =================
         else:
