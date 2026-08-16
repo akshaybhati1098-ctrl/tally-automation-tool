@@ -6,6 +6,7 @@
   border: 1px solid #e2e5ea;
   border-radius: 18px;
   padding: 16px 22px !important;
+  margin-top: 10px !important;
   margin-bottom: 12px !important;
   box-shadow: 0 4px 14px rgba(17, 24, 39, .04);
   display: flex;
@@ -143,6 +144,7 @@
     flex-direction: column;
     gap: 4px;
     padding: 14px 16px !important;
+    margin-top: 8px !important;
   }
 
   .subscription-page .row:has(#remainingMatches) {
