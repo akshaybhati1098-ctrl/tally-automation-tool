@@ -21,7 +21,13 @@
   height: 100%;
 }
 
-/* ===== Upgrade request card ===== */
+/* ===== Upgrade request card =====
+   Keep a small visual gap above and below the request card. */
+.subscription-page #upgradeRequestRow {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
 .subscription-page #upgradeRequestRow .card-body {
   min-height: 92px;
 }
@@ -55,6 +61,11 @@
   .subscription-page .row:has(#remainingMatches) > .col-lg-6 {
     flex: 0 0 100%;
     max-width: 100%;
+  }
+
+  .subscription-page #upgradeRequestRow {
+    margin-top: 8px;
+    margin-bottom: 8px;
   }
 
   .subscription-page .row:has(> .col-lg-6 > #basicCard) {
