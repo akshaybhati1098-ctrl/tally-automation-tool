@@ -16,43 +16,14 @@ def tally_date(d):
         return ""
 
 GST_STATE = {
-    "01": "Jammu and Kashmir",
-    "02": "Himachal Pradesh",
-    "03": "Punjab",
-    "04": "Chandigarh",
-    "05": "Uttarakhand",
-    "06": "Haryana",
-    "07": "Delhi",
-    "08": "Rajasthan",
-    "09": "Uttar Pradesh",
-    "10": "Bihar",
-    "11": "Sikkim",
-    "12": "Arunachal Pradesh",
-    "13": "Nagaland",
-    "14": "Manipur",
-    "15": "Mizoram",
-    "16": "Tripura",
-    "17": "Meghalaya",
-    "18": "Assam",
-    "19": "West Bengal",
-    "20": "Jharkhand",
-    "21": "Odisha",
-    "22": "Chhattisgarh",
-    "23": "Madhya Pradesh",
-    "24": "Gujarat",
-    "25": "Daman and Diu",
-    "26": "Dadra and Nagar Haveli",
-    "27": "Maharashtra",
-    "28": "Goa",
-    "29": "Karnataka",
-    "30": "Andaman and Nicobar Islands",
-    "31": "Lakshadweep",
-    "32": "Delhi",
-    "33": "Tamil Nadu",
-    "34": "Puducherry",
-    "35": "Kerala",
-    "36": "Telangana",
-    "37": "Andhra Pradesh"
+    "01": "Jammu and Kashmir", "02": "Himachal Pradesh", "03": "Punjab", "04": "Chandigarh",
+    "05": "Uttarakhand", "06": "Haryana", "07": "Delhi", "08": "Rajasthan", "09": "Uttar Pradesh",
+    "10": "Bihar", "11": "Sikkim", "12": "Arunachal Pradesh", "13": "Nagaland", "14": "Manipur",
+    "15": "Mizoram", "16": "Tripura", "17": "Meghalaya", "18": "Assam", "19": "West Bengal",
+    "20": "Jharkhand", "21": "Odisha", "22": "Chhattisgarh", "23": "Madhya Pradesh", "24": "Gujarat",
+    "25": "Daman and Diu", "26": "Dadra and Nagar Haveli", "27": "Maharashtra", "28": "Goa",
+    "29": "Karnataka", "30": "Andaman and Nicobar Islands", "31": "Lakshadweep", "32": "Delhi",
+    "33": "Tamil Nadu", "34": "Puducherry", "35": "Kerala", "36": "Telangana", "37": "Andhra Pradesh"
 }
 def state_from_gstin(gstin):
     gstin = clean_text(gstin)
@@ -116,7 +87,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
     else:
         print(df[["Recipient Name"]].head(10))
 
-
     use_excel_ledgers = bool(use_excel_ledgers)
 
     # ✅ SMART MAPPING
@@ -151,6 +121,22 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
 
         COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
 
+    # Credit Note follows the existing Sales accounting branch.
+    # Debit Note follows the existing Purchase accounting branch.
+    sales_style_types = {"sale", "credit_note"}
+    purchase_style_types = {"purchase", "debit_note"}
+
+    if vtype not in sales_style_types | purchase_style_types:
+        raise ValueError(f"Unsupported voucher type: {vtype}")
+
+    voucher_type_names = {
+        "sale": "Sales",
+        "purchase": "Purchase",
+        "credit_note": "Credit Note",
+        "debit_note": "Debit Note",
+    }
+    tally_voucher_name = voucher_type_names[vtype]
+
     ENV = ET.Element("ENVELOPE")
 
     HDR = ET.SubElement(ENV, "HEADER")
@@ -171,14 +157,12 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
         sgst = num(first_non_empty(row, "SGST", "SGST Amount"))
         igst = num(first_non_empty(row, "IGST", "IGST Amount"))
 
-
         invoice_no = clean_text(first_non_empty(row, "Invoice Number"))
         invoice_date = first_non_empty(row, "Invoice date", "Date")
         invoice_value = num(first_non_empty(row, "Invoice Value", "Total"))
 
         calc_total = taxable + cgst + sgst + igst
         voucher_total = calc_total if abs(invoice_value - calc_total) <= 10 else invoice_value
-
 
         full_rate = 0 if taxable == 0 else round((cgst + sgst + igst) / taxable * 100, 2)
 
@@ -187,43 +171,41 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
 
         # CGST / SGST key (HALF)
         half_rate = round(full_rate / 2, 2)
-
-        # convert to clean string like "9", "2.5"
         rk_half = str(half_rate).rstrip("0").rstrip(".")
-
 
         gstin = clean_text(first_non_empty(row, "GSTIN"))
         party_state = state_from_gstin(gstin) or COMPANY_STATE
         interstate = is_interstate(gstin, COMPANY_STATE)
 
-
         msg = ET.SubElement(REQ, "TALLYMESSAGE")
-        V = ET.SubElement(msg, "VOUCHER",
-                          VCHTYPE=("Sales" if vtype == "sale" else "Purchase"),
-                          ACTION="Create")
-        
-        if vtype == "sale":
-           ET.SubElement(V, "ISINVOICE").text = "Yes"
-           ET.SubElement(V, "USEFORGOODS").text = "No"
-           ET.SubElement(V, "PERSISTEDVIEW").text = "Accounting Voucher View"
+        V = ET.SubElement(
+            msg,
+            "VOUCHER",
+            VCHTYPE=tally_voucher_name,
+            ACTION="Create"
+        )
+
+        # Preserve the existing Sales XML behavior for Sales and Credit Note.
+        if vtype in sales_style_types:
+            ET.SubElement(V, "ISINVOICE").text = "Yes"
+            ET.SubElement(V, "USEFORGOODS").text = "No"
+            ET.SubElement(V, "PERSISTEDVIEW").text = "Accounting Voucher View"
 
         date_str = tally_date(invoice_date)
         if date_str:
             ET.SubElement(V, "DATE").text = date_str
 
-        ET.SubElement(V, "VOUCHERTYPENAME").text = "Sales" if vtype == "sale" else "Purchase"
+        ET.SubElement(V, "VOUCHERTYPENAME").text = tally_voucher_name
 
-
-        party = clean_text(first_non_empty(row, "Final Party Name","Recipient Name", "Party"))
-        party = clean_text(first_non_empty(row, "Final Party Name", "Party","Recipient Name" ))
+        party = clean_text(first_non_empty(row, "Final Party Name", "Recipient Name", "Party"))
+        party = clean_text(first_non_empty(row, "Final Party Name", "Party", "Recipient Name"))
         print(f"Row {i}")
         print("Recipient Name :", row.get("Recipient Name"))
         print("Final Party Name :", row.get("Final Party Name"))
         print("Party used :", party)
 
-
-        # ================= SALES =================
-        if vtype == "sale":
+        # ================= SALES / CREDIT NOTE =================
+        if vtype in sales_style_types:
 
             if use_excel_ledgers:
                 sales_ledger = clean_text(first_non_empty(row, "Sales Ledger"))
@@ -241,7 +223,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
                 sgst_ledger = SGST_SALES.get(rk_half)
                 igst_ledger = None
 
-
             ET.SubElement(V, "PARTYLEDGERNAME").text = party
             ET.SubElement(V, "VOUCHERNUMBER").text = invoice_no
             ET.SubElement(V, "STATENAME").text = party_state
@@ -249,12 +230,11 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
             ET.SubElement(V, "PLACEOFSUPPLY").text = party_state
 
             if gstin:
-               ET.SubElement(V, "PARTYGSTIN").text = gstin
-               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Regular"
+                ET.SubElement(V, "PARTYGSTIN").text = gstin
+                ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Regular"
             else:
-               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
+                ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
 
-            # Consignee (same as party)
             ET.SubElement(V, "CONSIGNEENAME").text = party
             ET.SubElement(V, "CONSIGNEESTATENAME").text = party_state
 
@@ -275,7 +255,7 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
             if igst_ledger and igst:
                 add_entry(V, igst_ledger, False, igst)
 
-        # ================= PURCHASE =================
+        # ================= PURCHASE / DEBIT NOTE =================
         else:
 
             if use_excel_ledgers:
@@ -288,13 +268,11 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
                 igst_ledger = IGST_PURCHASE.get(rk)
                 cgst_ledger = None
                 sgst_ledger = None
-
             else:
                 purchase_ledger = PURCHASE.get(rk)
                 cgst_ledger = CGST_PURCHASE.get(rk_half)
                 sgst_ledger = SGST_PURCHASE.get(rk_half)
                 igst_ledger = None
-
 
             ET.SubElement(V, "PARTYLEDGERNAME").text = party
             ET.SubElement(V, "REFERENCE").text = invoice_no
@@ -306,9 +284,8 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
                 ET.SubElement(V, "PARTYGSTIN").text = gstin
                 ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Regular"
             else:
-               ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
+                ET.SubElement(V, "GSTREGISTRATIONTYPE").text = "Unregistered/Consumer"
 
-            # ✅ Consignee same as Buyer
             ET.SubElement(V, "CONSIGNEENAME").text = party
             ET.SubElement(V, "CONSIGNEESTATENAME").text = party_state
 
