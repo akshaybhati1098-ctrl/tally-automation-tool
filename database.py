@@ -24,19 +24,29 @@ _db_pool = None
 _pool_init_lock = threading.Lock()
 _pool_slots = threading.BoundedSemaphore(DB_POOL_MAX)
 
+_RAW_PSYCOPG2_CONNECT = psycopg2.connect
+
 
 def _get_pool():
     global _db_pool
     if _db_pool is None:
         with _pool_init_lock:
             if _db_pool is None:
-                _db_pool = ThreadedConnectionPool(
-                    DB_POOL_MIN,
-                    DB_POOL_MAX,
-                    DATABASE_URL,
-                    sslmode="require",
-                    connect_timeout=10,
-                )
+                # ThreadedConnectionPool internally calls psycopg2.connect().
+                # Temporarily restore the original function so our compatibility
+                # bridge below does not recursively call itself during pool creation.
+                current_connect = psycopg2.connect
+                psycopg2.connect = _RAW_PSYCOPG2_CONNECT
+                try:
+                    _db_pool = ThreadedConnectionPool(
+                        DB_POOL_MIN,
+                        DB_POOL_MAX,
+                        DATABASE_URL,
+                        sslmode="require",
+                        connect_timeout=10,
+                    )
+                finally:
+                    psycopg2.connect = current_connect
     return _db_pool
 
 
@@ -121,3 +131,22 @@ def get_db(cursor_factory=RealDictCursor):
         yield conn
     finally:
         conn.close()
+
+
+# ---------------------------------------------------------------------------
+# Backward compatibility for legacy direct psycopg2.connect() calls
+# ---------------------------------------------------------------------------
+# app.py still has a legacy get_db_connection() that calls psycopg2.connect()
+# directly. Route only DATABASE_URL connections through the bounded pool so the
+# existing application code does not need a large refactor.
+def _pooled_psycopg2_connect(dsn=None, *args, **kwargs):
+    if dsn is None or dsn == DATABASE_URL:
+        cursor_factory = kwargs.get("cursor_factory")
+        return get_db_connection(cursor_factory=cursor_factory)
+    return _RAW_PSYCOPG2_CONNECT(dsn, *args, **kwargs)
+
+
+# Do NOT initialize the pool here. Keeping initialization lazy prevents the
+# module import itself from making a database connection and blocking Uvicorn
+# startup. The pool is created only when the application actually needs DB access.
+psycopg2.connect = _pooled_psycopg2_connect
