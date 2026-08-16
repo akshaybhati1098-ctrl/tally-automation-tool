@@ -21,6 +21,10 @@ from core.match_service import (
     match_party_names,
 )
 from core.tally_service import parse_ledgers_with_gstin
+from core.subscription import (
+    check_xml_conversion_quota,
+    increment_xml_conversion_usage,
+)
 
 CANONICAL_COLUMNS = {
     "invoice_number": "Invoice Number",
@@ -101,7 +105,7 @@ def dataframe_to_xml(
     """
     print("🔥 INSIDE DATAFRAME XML FUNCTION. Corrections received:", tally_corrections)
 
-    # Ensure clean columns and drop empty string null records 
+    # Ensure clean columns and drop empty string null records
     df.columns = [str(c).strip() for c in df.columns]
     df = df.fillna("")
 
@@ -121,16 +125,13 @@ def dataframe_to_xml(
                 except (ValueError, IndexError):
                     continue
 
-    # ════════════════════════════════════════════════════════════
-    # CRITICAL FIX: Prevent uncorrected original columns from clobbering reviewed data
-    # ════════════════════════════════════════════════════════════
+    # Prevent uncorrected original columns from clobbering reviewed data
     if column_mapping and "party_name" in column_mapping:
         orig_party_col = str(column_mapping["party_name"]).strip()
-        # If the matched data lives in "Recipient Name", synchronize it back to the original mapped column
         if "Recipient Name" in df.columns and orig_party_col in df.columns and orig_party_col != "Recipient Name":
             df[orig_party_col] = df["Recipient Name"]
 
-    # ✅ APPLY COLUMN MAPPING FOR THE TEMPLATE ENGINE
+    # Apply column mapping for the template engine
     if column_mapping:
         rename_map = {}
         for field_key, source_col in column_mapping.items():
@@ -140,11 +141,15 @@ def dataframe_to_xml(
         if rename_map:
             df = df.rename(columns=rename_map)
 
-    # Re-verify post-rename to ensure template matches target variables
     final_party_col = CANONICAL_COLUMNS.get("party_name", "Recipient Name")
-    print("✅ FINAL RUNTIME CHECK FOR XML PARTY COLUMN:")
     if final_party_col in df.columns:
+        print("✅ FINAL RUNTIME CHECK FOR XML PARTY COLUMN:")
         print(df[[final_party_col]].head(10))
+
+    # convert_menu.convert_excel_to_xml creates one voucher for every row in df,
+    # so len(df) is the exact number of rows that this conversion will process.
+    xml_row_count = len(df)
+    check_xml_conversion_quota(user_id, xml_row_count)
 
     use_excel_ledgers = str(company).strip() == "__EXCEL_LEDGERS__"
     mapping = {} if use_excel_ledgers else get_company_mapping(company, user_id)
@@ -160,6 +165,10 @@ def dataframe_to_xml(
         )
         with open(xml_path, "r", encoding="utf-8") as f:
             xml_content = f.read()
+
+        # Deduct only after XML generation succeeds, using the exact count
+        # returned by the XML generator.
+        increment_xml_conversion_usage(user_id, record_count)
         return xml_content, record_count
     finally:
         shutil.rmtree(out_dir, ignore_errors=True)
@@ -181,7 +190,7 @@ def excel_to_xml(
     df.columns = [str(c).strip() for c in df.columns]
     df = df.fillna("")
 
-    # ✅ APPLY COLUMN MAPPING
+    # Apply column mapping
     if column_mapping:
         rename_map = {}
         for field_key, source_col in column_mapping.items():
@@ -193,26 +202,23 @@ def excel_to_xml(
 
     try:
         party_col = detect_party_column(df)
-
         if party_col:
-            # ✅ APPLY CORRECTIONS (FINAL FIX)
             corrected = {
                 int(k): v
                 for k, v in (tally_corrections or {}).items()
                 if str(v).strip()
             }
-
-            # Apply manual overrides from UI (match-party step).
             for idx, value in corrected.items():
                 if idx in df.index:
                     df.at[idx, party_col] = value
-
-            # 🔍 DEBUG
             print("✅ FINAL CORRECTED DF:")
             print(df[[party_col]].head(10))
-
     except Exception as e:
         print(f"⚠️ Tally Matching Skipped: {e}")
+
+    # Every dataframe row becomes one voucher in convert_menu.convert_excel_to_xml.
+    xml_row_count = len(df)
+    check_xml_conversion_quota(user_id, xml_row_count)
 
     use_excel_ledgers = str(company).strip() == "__EXCEL_LEDGERS__"
     mapping = {} if use_excel_ledgers else get_company_mapping(company, user_id)
@@ -228,6 +234,8 @@ def excel_to_xml(
         )
         with open(xml_path, "r", encoding="utf-8") as f:
             xml_content = f.read()
+
+        increment_xml_conversion_usage(user_id, record_count)
         return xml_content, record_count
     finally:
         shutil.rmtree(out_dir, ignore_errors=True)
