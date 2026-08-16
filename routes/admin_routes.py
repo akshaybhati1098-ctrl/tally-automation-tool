@@ -684,11 +684,11 @@ async def view_activity_and_jobs(
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         # 1. Populate the filter dropdown safely
-        cur.execute("SELECT DISTINCT username FROM business_events WHERE username IS NOT NULL AND username != '' ORDER BY username ASC")
+        cur.execute("SELECT DISTINCT username FROM business_events WHERE username IS NOT NULL AND username != '' AND created_at >= NOW() - INTERVAL '7 days' ORDER BY username ASC")
         context["filter_users"] = [r["username"] for r in cur.fetchall()]
         
         # 2. Compile dynamic SQL filters
-        where_clauses = ["event_type = 'match_party'"]
+        where_clauses = ["event_type = 'match_party'", "created_at >= NOW() - INTERVAL '7 days'"]
         params = []
         
         if user_filter != "all":
