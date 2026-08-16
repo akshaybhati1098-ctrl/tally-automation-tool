@@ -1,5 +1,6 @@
 import os
 import time
+import threading
 from contextlib import contextmanager
 
 import psycopg2
@@ -20,23 +21,27 @@ DB_POOL_MIN = max(1, int(os.getenv("DB_POOL_MIN", "1")))
 DB_POOL_MAX = max(DB_POOL_MIN, int(os.getenv("DB_POOL_MAX", "5")))
 
 _db_pool = None
+_pool_init_lock = threading.Lock()
+_pool_slots = threading.BoundedSemaphore(DB_POOL_MAX)
 
 
 def _get_pool():
     global _db_pool
     if _db_pool is None:
-        _db_pool = ThreadedConnectionPool(
-            DB_POOL_MIN,
-            DB_POOL_MAX,
-            DATABASE_URL,
-            sslmode="require",
-            connect_timeout=10,
-        )
+        with _pool_init_lock:
+            if _db_pool is None:
+                _db_pool = ThreadedConnectionPool(
+                    DB_POOL_MIN,
+                    DB_POOL_MAX,
+                    DATABASE_URL,
+                    sslmode="require",
+                    connect_timeout=10,
+                )
     return _db_pool
 
 
 class _PooledConnection:
-    """Small compatibility wrapper whose close() returns the connection to the pool."""
+    """Compatibility wrapper whose close() returns the connection to the pool."""
 
     def __init__(self, pool, connection, cursor_factory=None):
         self._pool = pool
@@ -66,6 +71,14 @@ class _PooledConnection:
                 self._connection.close()
             except Exception:
                 pass
+        finally:
+            self._pool_slots_release()
+
+    def _pool_slots_release(self):
+        try:
+            _pool_slots.release()
+        except ValueError:
+            pass
 
     def __getattr__(self, name):
         return getattr(self._connection, name)
@@ -78,16 +91,27 @@ def get_db_connection(
 ):
     """Return a pooled PostgreSQL connection with the existing API preserved."""
     for attempt in range(retries):
+        acquired = _pool_slots.acquire(timeout=30)
+        if not acquired:
+            if attempt == retries - 1:
+                raise psycopg2.OperationalError("Timed out waiting for an available database connection")
+            time.sleep(backoff * (2 ** attempt))
+            continue
+
         try:
             pool = _get_pool()
             connection = pool.getconn()
             return _PooledConnection(pool, connection, cursor_factory=cursor_factory)
         except psycopg2.OperationalError:
+            _pool_slots.release()
             if attempt == retries - 1:
                 raise
             wait = backoff * (2 ** attempt)
             print(f"Retrying database connection in {wait}s...")
             time.sleep(wait)
+        except Exception:
+            _pool_slots.release()
+            raise
 
 
 @contextmanager
