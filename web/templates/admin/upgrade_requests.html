@@ -5,12 +5,26 @@
 
 {% block content %}
 <div class="container-fluid py-3">
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
     <div>
       <h4 class="mb-1">Subscription Upgrade Requests</h4>
       <div class="text-muted">Review customer requests, contact them, receive payment, then activate the plan.</div>
     </div>
-    <button class="btn btn-outline-secondary" onclick="loadRequests()">↻ Refresh</button>
+    <div class="d-flex gap-2">
+      <button class="btn btn-outline-danger" onclick="clearCompletedRequests()">🗑 Clear Approved &amp; Rejected</button>
+      <button class="btn btn-outline-secondary" onclick="loadRequests()">↻ Refresh</button>
+    </div>
+  </div>
+
+  <div class="card shadow-sm border-0 mb-3">
+    <div class="card-body">
+      <div class="input-group">
+        <span class="input-group-text bg-white">🔎</span>
+        <input id="requestSearch" type="search" class="form-control" placeholder="Search by username or email..." autocomplete="off">
+        <button id="clearSearchBtn" class="btn btn-outline-secondary" type="button" style="display:none;">Clear</button>
+      </div>
+      <div id="searchSummary" class="small text-muted mt-2"></div>
+    </div>
   </div>
 
   <div class="card shadow-sm border-0">
@@ -38,6 +52,8 @@
 
 {% block scripts %}
 <script>
+let allRequests = [];
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replaceAll("&", "&amp;")
@@ -62,18 +78,13 @@ function statusBadge(status) {
   return map[status] || `<span class="badge text-bg-secondary">${escapeHtml(status)}</span>`;
 }
 
-async function loadRequests() {
+function renderRequests(requests) {
   const body = document.getElementById("requestsBody");
-  try {
-    const response = await fetch("/admin/api/upgrade-requests", { cache: "no-store" });
-    if (!response.ok) throw new Error("Unable to load requests");
-    const requests = await response.json();
+  const summary = document.getElementById("searchSummary");
 
-    if (!requests.length) {
-      body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">No upgrade requests yet.</td></tr>';
-      return;
-    }
-
+  if (!requests.length) {
+    body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">No matching upgrade requests.</td></tr>';
+  } else {
     body.innerHTML = requests.map(r => `
       <tr>
         <td>
@@ -99,6 +110,38 @@ async function loadRequests() {
         </td>
       </tr>
     `).join("");
+  }
+
+  summary.innerText = document.getElementById("requestSearch").value.trim()
+    ? `Showing ${requests.length} of ${allRequests.length} requests`
+    : `${allRequests.length} request${allRequests.length === 1 ? "" : "s"}`;
+}
+
+function filterRequests() {
+  const query = document.getElementById("requestSearch").value.trim().toLowerCase();
+  document.getElementById("clearSearchBtn").style.display = query ? "inline-block" : "none";
+
+  if (!query) {
+    renderRequests(allRequests);
+    return;
+  }
+
+  const filtered = allRequests.filter(r =>
+    String(r.username || "").toLowerCase().includes(query) ||
+    String(r.account_email || "").toLowerCase().includes(query) ||
+    String(r.email || "").toLowerCase().includes(query)
+  );
+
+  renderRequests(filtered);
+}
+
+async function loadRequests() {
+  const body = document.getElementById("requestsBody");
+  try {
+    const response = await fetch("/admin/api/upgrade-requests", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to load requests");
+    allRequests = await response.json();
+    filterRequests();
   } catch (error) {
     body.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-5">${escapeHtml(error.message)}</td></tr>`;
   }
@@ -127,6 +170,33 @@ async function rejectRequest(id) {
   loadRequests();
 }
 
-document.addEventListener("DOMContentLoaded", loadRequests);
+async function clearCompletedRequests() {
+  const completed = allRequests.filter(r => r.status === "approved" || r.status === "rejected");
+  if (!completed.length) {
+    alert("There are no approved or rejected requests to clear.");
+    return;
+  }
+
+  if (!confirm(`Clear ${completed.length} approved/rejected request(s)? This will permanently remove them from the request list.`)) return;
+
+  const response = await fetch("/admin/api/upgrade-requests/clear-completed", { method: "DELETE" });
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    alert(data.detail || data.message || "Unable to clear requests.");
+    return;
+  }
+
+  alert(data.message || "Completed requests cleared.");
+  loadRequests();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("requestSearch").addEventListener("input", filterRequests);
+  document.getElementById("clearSearchBtn").addEventListener("click", () => {
+    document.getElementById("requestSearch").value = "";
+    filterRequests();
+  });
+  loadRequests();
+});
 </script>
 {% endblock %}
