@@ -22,14 +22,67 @@
 }
 
 /* ===== Upgrade request card =====
-   Keep a small visual gap above and below the request card. */
+   Compact horizontal status presentation. Visual only. */
 .subscription-page #upgradeRequestRow {
   margin-top: 8px;
   margin-bottom: 8px;
 }
 
+.subscription-page #upgradeRequestRow .card {
+  border-radius: 18px !important;
+}
+
 .subscription-page #upgradeRequestRow .card-body {
-  min-height: 92px;
+  min-height: 0;
+  padding: 18px 24px !important;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.subscription-page #upgradeRequestRow .card-body > .d-flex:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.subscription-page #upgradeRequestRow #requestIcon {
+  width: 44px !important;
+  height: 44px !important;
+  min-width: 44px;
+  border-radius: 12px !important;
+  font-size: 20px !important;
+}
+
+.subscription-page #upgradeRequestRow #requestTitle {
+  font-size: 15px;
+  line-height: 1.25;
+  margin-bottom: 2px !important;
+}
+
+.subscription-page #upgradeRequestRow #requestText {
+  font-size: 13px !important;
+  line-height: 1.4;
+}
+
+.subscription-page #upgradeRequestRow #requestMeta {
+  font-size: 12px !important;
+  margin-top: 4px !important;
+}
+
+.subscription-page #upgradeRequestRow .d-flex.flex-wrap.gap-2:last-child {
+  flex: 0 0 auto;
+}
+
+.subscription-page #upgradeRequestRow #contactSupportBtn,
+.subscription-page #upgradeRequestRow #requestAgainBtn {
+  width: auto !important;
+  min-width: 150px;
+  padding: 9px 18px !important;
+  border-radius: 10px !important;
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 /* ===== Basic / Pro plan cards ===== */
@@ -66,6 +119,21 @@
   .subscription-page #upgradeRequestRow {
     margin-top: 8px;
     margin-bottom: 8px;
+  }
+
+  .subscription-page #upgradeRequestRow .card-body {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 18px !important;
+  }
+
+  .subscription-page #upgradeRequestRow .d-flex.flex-wrap.gap-2:last-child {
+    width: 100%;
+  }
+
+  .subscription-page #upgradeRequestRow #contactSupportBtn,
+  .subscription-page #upgradeRequestRow #requestAgainBtn {
+    width: 100% !important;
   }
 
   .subscription-page .row:has(> .col-lg-6 > #basicCard) {
