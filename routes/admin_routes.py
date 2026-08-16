@@ -853,8 +853,18 @@ async def view_security_events(
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
         query = """
-            SELECT id, event_type, status, execution_time_ms, details, created_at 
-            FROM admin_events
+            SELECT
+                ae.id,
+                ae.user_id,
+                COALESCE(NULLIF(ae.username, ''), u.username, 'System') AS username,
+                ae.event_type,
+                ae.endpoint,
+                ae.status,
+                ae.execution_time_ms,
+                ae.details,
+                ae.created_at
+            FROM admin_events ae
+            LEFT JOIN users u ON u.id = ae.user_id
         """
         params = []
         if current_filter:
