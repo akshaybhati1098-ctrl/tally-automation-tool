@@ -1,5 +1,36 @@
 /* Subscription page visual layout only. No subscription logic is changed. */
 
+/* ===== Subscription header card ===== */
+.subscription-page > .page-container > .mb-4:first-child {
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 18px;
+  padding: 16px 22px !important;
+  margin-bottom: 12px !important;
+  box-shadow: 0 4px 14px rgba(17, 24, 39, .04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.subscription-page > .page-container > .mb-4:first-child .page-title {
+  margin: 0 !important;
+  font-size: 23px;
+  line-height: 1.15;
+}
+
+.subscription-page > .page-container > .mb-4:first-child .page-title .icon-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  font-size: 19px;
+}
+
+.subscription-page > .page-container > .mb-4:first-child .page-subtitle {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
 /* ===== Top summary cards ===== */
 .subscription-page .row:has(#remainingMatches) {
   display: flex;
@@ -21,8 +52,7 @@
   height: 100%;
 }
 
-/* ===== Upgrade request card =====
-   Compact horizontal status presentation. Visual only. */
+/* ===== Upgrade request card ===== */
 .subscription-page #upgradeRequestRow {
   margin-top: 8px;
   margin-bottom: 8px;
@@ -85,9 +115,7 @@
   white-space: nowrap;
 }
 
-/* ===== Basic / Pro plan cards =====
-   Always keep a small visual gap above the plan section.
-   This remains correct whether the Upgrade Request row is visible or hidden. */
+/* ===== Basic / Pro plan cards ===== */
 .subscription-page .row:has(> .col-lg-6 > #basicCard) {
   display: flex;
   flex-wrap: wrap;
@@ -110,6 +138,13 @@
 }
 
 @media (max-width: 991.98px) {
+  .subscription-page > .page-container > .mb-4:first-child {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px !important;
+  }
+
   .subscription-page .row:has(#remainingMatches) {
     gap: 0;
   }
