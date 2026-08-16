@@ -28,13 +28,6 @@
   margin-bottom: 8px;
 }
 
-/* Keep the layout balanced when the request card is hidden.
-   The hidden row takes no space, so create the same visual separation
-   before the Basic / Pro cards. */
-.subscription-page #upgradeRequestRow[style*="display: none"] + .row {
-  margin-top: 24px !important;
-}
-
 .subscription-page #upgradeRequestRow .card {
   border-radius: 18px !important;
 }
@@ -92,12 +85,15 @@
   white-space: nowrap;
 }
 
-/* ===== Basic / Pro plan cards ===== */
+/* ===== Basic / Pro plan cards =====
+   Always keep a small visual gap above the plan section.
+   This remains correct whether the Upgrade Request row is visible or hidden. */
 .subscription-page .row:has(> .col-lg-6 > #basicCard) {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
   gap: 12px;
+  margin-top: 16px !important;
 }
 
 .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 {
@@ -128,8 +124,9 @@
     margin-bottom: 8px;
   }
 
-  .subscription-page #upgradeRequestRow[style*="display: none"] + .row {
-    margin-top: 20px !important;
+  .subscription-page .row:has(> .col-lg-6 > #basicCard) {
+    gap: 0;
+    margin-top: 16px !important;
   }
 
   .subscription-page #upgradeRequestRow .card-body {
@@ -145,10 +142,6 @@
   .subscription-page #upgradeRequestRow #contactSupportBtn,
   .subscription-page #upgradeRequestRow #requestAgainBtn {
     width: 100% !important;
-  }
-
-  .subscription-page .row:has(> .col-lg-6 > #basicCard) {
-    gap: 0;
   }
 
   .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 {
