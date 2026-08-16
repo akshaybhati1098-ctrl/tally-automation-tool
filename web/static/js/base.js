@@ -157,11 +157,11 @@ loadSettings();// common js logic
 })();
 
 // ---------- EXCEL LEDGER COLUMN SELECTION ----------
-// Only runs on the Excel → XML page.  The existing converter expects the
-// ledger-column headers below.  If the user selects "Use Excel Ledgers" but
+// Only runs on the Excel → XML page. The existing converter expects the
+// ledger-column headers below. If the user selects "Use Excel Ledgers" but
 // their workbook uses different headers (for example "sale", "cgst", "sgst"),
-// this small pre-conversion step lets them map those Excel columns to the
-// existing names.  The original conversion/XML logic is not changed.
+// this pre-conversion step lets them map those Excel columns to the existing
+// names. The original conversion/XML logic is not changed.
 (function addExcelLedgerColumnSelection() {
     const DEFAULT_HEADERS = {
         sales: 'Sales Ledger',
@@ -215,13 +215,7 @@ loadSettings();// common js logic
         const existing = document.getElementById('excelLedgerColumnOverlay');
         if (existing) existing.remove();
 
-        const detected = {};
-        const needsMapping = roles.filter(role => {
-            const exact = findHeader(headers, role.header);
-            detected[role.key] = exact;
-            return !exact;
-        });
-
+        const needsMapping = roles.filter(role => !findHeader(headers, role.header));
         if (!needsMapping.length) {
             onConfirm({});
             return;
@@ -269,7 +263,7 @@ loadSettings();// common js logic
                 </div>
                 <div style="margin-top:16px;display:flex;flex-direction:column;gap:12px;">
                     ${needsMapping.map(role => `
-                        <div data-excel-ledger-role="${role.key}" style="padding:13px 14px;border:1px solid #e2ebf8;border-radius:12px;background:#f8fbff;">
+                        <div style="padding:13px 14px;border:1px solid #e2ebf8;border-radius:12px;background:#f8fbff;">
                             <div style="font-size:.78rem;font-weight:800;color:#1a2035;margin-bottom:7px;">
                                 ${escape(role.label)}
                                 <span style="font-weight:500;color:#7688a8;"> · expected: ${escape(role.header)}</span>
@@ -372,7 +366,7 @@ loadSettings();// common js logic
         if (!form || !fileInput || !companySelect || !sheetSelect || !voucherSelect) return;
 
         // Capture phase runs before the existing converter submit handler.
-        form.addEventListener('submit', async function(event) {
+        form.addEventListener('submit', function(event) {
             if (window.__excelLedgerMappingBypass) {
                 window.__excelLedgerMappingBypass = false;
                 return;
@@ -384,43 +378,51 @@ loadSettings();// common js logic
             const sheetName = sheetSelect.value;
             if (!file || !sheetName) return;
 
-            try {
-                const buffer = await file.arrayBuffer();
-                const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
-                const ws = workbook.Sheets[sheetName];
-                if (!ws) return;
+            // Excel-ledger conversions are paused immediately while we inspect
+            // the headers. This must happen before any await so the existing
+            // submit handler cannot start the conversion first.
+            event.preventDefault();
+            event.stopImmediatePropagation();
 
-                const vtype = voucherSelect.value;
-                const { headers, roles } = getRequiredRoles(ws, vtype);
-                const needsMapping = roles.some(role => !findHeader(headers, role.header));
-                if (!needsMapping) return;
+            (async () => {
+                try {
+                    const buffer = await file.arrayBuffer();
+                    const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+                    const ws = workbook.Sheets[sheetName];
+                    if (!ws) throw new Error('Could not read the selected Excel sheet.');
 
-                event.preventDefault();
-                event.stopImmediatePropagation();
+                    const vtype = voucherSelect.value;
+                    const { headers, roles } = getRequiredRoles(ws, vtype);
+                    const needsMapping = roles.some(role => !findHeader(headers, role.header));
 
-                showLedgerColumnPopup(headers, roles, file.name, async mapping => {
-                    try {
-                        const mappedFile = await prepareMappedExcelFile(file, sheetName, mapping);
-                        replaceInputFile(fileInput, mappedFile);
+                    if (!needsMapping) {
                         window.__excelLedgerMappingBypass = true;
                         form.requestSubmit(document.getElementById('submitBtn'));
-                    } catch (err) {
-                        if (typeof window.showErrorPopup === 'function') {
-                            window.showErrorPopup(err.message || 'Unable to prepare Excel ledger mapping.');
-                        } else {
-                            alert(err.message || 'Unable to prepare Excel ledger mapping.');
-                        }
+                        return;
                     }
-                });
-            } catch (err) {
-                event.preventDefault();
-                event.stopImmediatePropagation();
-                if (typeof window.showErrorPopup === 'function') {
-                    window.showErrorPopup(err.message || 'Unable to inspect Excel ledger columns.');
-                } else {
-                    alert(err.message || 'Unable to inspect Excel ledger columns.');
+
+                    showLedgerColumnPopup(headers, roles, file.name, async mapping => {
+                        try {
+                            const mappedFile = await prepareMappedExcelFile(file, sheetName, mapping);
+                            replaceInputFile(fileInput, mappedFile);
+                            window.__excelLedgerMappingBypass = true;
+                            form.requestSubmit(document.getElementById('submitBtn'));
+                        } catch (err) {
+                            if (typeof window.showErrorPopup === 'function') {
+                                window.showErrorPopup(err.message || 'Unable to prepare Excel ledger mapping.');
+                            } else {
+                                alert(err.message || 'Unable to prepare Excel ledger mapping.');
+                            }
+                        }
+                    });
+                } catch (err) {
+                    if (typeof window.showErrorPopup === 'function') {
+                        window.showErrorPopup(err.message || 'Unable to inspect Excel ledger columns.');
+                    } else {
+                        alert(err.message || 'Unable to inspect Excel ledger columns.');
+                    }
                 }
-            }
+            })();
         }, true);
     }
 
@@ -465,7 +467,7 @@ function downloadTemplate() {
         ).join(',');
         csvContent += escapedRow + '\n';
     });
-
+    
     // Create download
     const blob = new Blob([csvContent], { type: 'application/vnd.ms-excel' });
     const url = window.URL.createObjectURL(blob);
