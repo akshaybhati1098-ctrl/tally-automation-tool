@@ -88,6 +88,12 @@ def log_admin_event(
     details: dict = None
 ) -> bool:
     """Write operational telemetry and a matching Security Guard event."""
+
+    # Login/signup requests are intentionally not recorded as admin telemetry.
+    # They are high-frequency, low-value events and add unnecessary DB overhead.
+    if endpoint in ("/login", "/signup"):
+        return True
+
     conn = None
     cur = None
     try:
@@ -186,7 +192,7 @@ def log_conversion_event(user_id, username, status, duration_ms, rows_processed,
     ensure_business_events_table()
     conn = None; cur = None
     try:
-        conn = get_telemetry_db_connection(); cur = conn.cursor()
+        conn = get_telemetry_db_connection(); cur = cur = conn.cursor()
         cur.execute("""
             INSERT INTO business_events (user_id, username, event_type, status, duration_ms, rows_processed, voucher_type)
             VALUES (%s,%s,%s,%s,%s,%s,%s)
