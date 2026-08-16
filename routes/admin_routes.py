@@ -195,12 +195,18 @@ async def view_core_dashboard(
 
 @admin_router.get("/users", response_class=HTMLResponse)
 async def view_user_management(
-    request: Request, 
+    request: Request,
     admin_user: str = Depends(enforce_admin_clearance),
     page: int = Query(1, alias="page"),
     current_filter: str = Query("", alias="filter")
 ):
-    # 🔥 FIX: Safe import at the absolute top of the function
+    """
+    Render User Management with one aggregated database query.
+
+    Do not call get_user_plan() once per user here. It performs additional
+    database work and pause-column compatibility checks, creating an N+1
+    connection/query pattern that can make this page appear to hang.
+    """
     try:
         from app import CONNECTOR_STATUS
     except ImportError:
@@ -208,154 +214,199 @@ async def view_user_management(
 
     context = get_safe_base_context(request, admin_user)
     context.update({"page": page, "current_filter": current_filter})
-    
+
     conn = None
     cur = None
+
     try:
         conn = get_telemetry_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
-        
+
         query = """
-            SELECT 
-                u.id, u.username, u.email, u.is_admin, u.is_active, u.created_at,
-                COUNT(CASE WHEN b.event_type = 'convert_xml' THEN 1 END) AS conversions,
-                COUNT(CASE WHEN b.event_type = 'match_party' THEN 1 END) AS match_jobs,
-                COUNT(CASE WHEN b.event_type = 'ocr' THEN 1 END) AS ocr_jobs,
-                
-                MAX(b.created_at) AS last_activity,
-                MAX(CASE WHEN b.event_type = 'convert_xml' THEN b.created_at END) as last_conversion_date,
-                MAX(CASE WHEN b.status = 'error' THEN b.details->>'error_message' END) as last_error,
-                
-                COALESCE((
-                    SELECT ROUND(((be.details->>'matched_rows')::numeric / NULLIF((be.details->>'rows_processed')::numeric, 0) * 100), 1)
-                    FROM business_events be 
-                    WHERE be.user_id = u.id AND be.event_type = 'match_party' AND be.status = 'success'
-                    ORDER BY be.created_at DESC LIMIT 1
-                ), 0) as last_match_pct
-                
+            WITH event_stats AS (
+                SELECT
+                    user_id,
+                    COUNT(*) FILTER (WHERE event_type = 'convert_xml') AS conversions,
+                    COUNT(*) FILTER (WHERE event_type = 'match_party') AS match_jobs,
+                    COUNT(*) FILTER (WHERE event_type = 'ocr') AS ocr_jobs,
+                    MAX(created_at) AS last_activity,
+                    MAX(created_at) FILTER (
+                        WHERE event_type = 'convert_xml'
+                    ) AS last_conversion_date,
+                    MAX(details->>'error_message') FILTER (
+                        WHERE status = 'error'
+                    ) AS last_error
+                FROM business_events
+                GROUP BY user_id
+            ),
+            last_match AS (
+                SELECT DISTINCT ON (user_id)
+                    user_id,
+                    COALESCE(
+                        ROUND(
+                            (
+                                (details->>'matched_rows')::numeric
+                                / NULLIF(
+                                    (details->>'rows_processed')::numeric,
+                                    0
+                                )
+                                * 100
+                            ),
+                            1
+                        ),
+                        0
+                    ) AS last_match_pct
+                FROM business_events
+                WHERE event_type = 'match_party'
+                  AND status = 'success'
+                ORDER BY user_id, created_at DESC
+            )
+            SELECT
+                u.id,
+                u.username,
+                u.email,
+                u.is_admin,
+                u.is_active,
+                u.created_at,
+
+                COALESCE(es.conversions, 0) AS conversions,
+                COALESCE(es.match_jobs, 0) AS match_jobs,
+                COALESCE(es.ocr_jobs, 0) AS ocr_jobs,
+                es.last_activity,
+                es.last_conversion_date,
+                es.last_error,
+
+                COALESCE(lm.last_match_pct, 0) AS last_match_pct,
+
+                COALESCE(p.plan_name, 'Basic') AS plan_name,
+                COALESCE(u.subscription_status, 'ACTIVE') AS subscription_status,
+                u.plan_expiry,
+                COALESCE(p.match_limit, 0) AS match_limit
+
             FROM users u
-            LEFT JOIN business_events b ON u.id = b.user_id
+            LEFT JOIN subscription_plans p
+                ON p.id = u.plan_id
+            LEFT JOIN event_stats es
+                ON es.user_id = u.id
+            LEFT JOIN last_match lm
+                ON lm.user_id = u.id
         """
-        
+
         params = []
+
         if current_filter:
-            query += " WHERE u.username ILIKE %s OR u.email ILIKE %s"
-            params.extend([f"%{current_filter}%", f"%{current_filter}%"])
-            
-        query += " GROUP BY u.id, u.username, u.email, u.is_admin, u.is_active, u.created_at ORDER BY u.id ASC"
-        
+            query += """
+                WHERE u.username ILIKE %s
+                   OR u.email ILIKE %s
+            """
+            params.extend([
+                f"%{current_filter}%",
+                f"%{current_filter}%"
+            ])
+
+        query += " ORDER BY u.id ASC"
+
         cur.execute(query, tuple(params))
-        records = cur.fetchall()
-        
-        # 🔥 FIX 1: Use a dictionary to guarantee absolutely no duplicates
-        unique_users = {}
-        
-        if records:
-            for row in records:
-                user_data = dict(row)
-                try:
-                    subscription = get_user_plan(user_data["id"])
+        records = cur.fetchall() or []
 
-                    if subscription:
+        # Build connector status once, rather than scanning the connector map
+        # for every user.
+        connector_status_by_user = {}
+        now = datetime.now()
 
-                        user_data["plan_name"] = subscription["plan_name"]
-
-                        user_data["subscription_status"] = subscription["subscription_status"]
-
-                        user_data["plan_expiry"] = subscription["plan_expiry"]
-
-                        user_data["match_limit"] = subscription["match_limit"]
-
-                    else:
-
-                        user_data["plan_name"] = "Basic"
-
-                        user_data["subscription_status"] = "ACTIVE"
-
-                        user_data["plan_expiry"] = None
-
-                        user_data["match_limit"] = 0
-
-                except Exception:
-
-                    user_data["plan_name"] = "Basic"
-
-                    user_data["subscription_status"] = "ACTIVE"
-
-                    user_data["plan_expiry"] = None
-
-                    user_data["match_limit"] = 0
-
-                # If user already added, skip to prevent duplicates
-                if user_data["id"] in unique_users:
+        try:
+            for device_data in CONNECTOR_STATUS.values():
+                device_user_id = device_data.get("user_id")
+                if device_user_id is None:
                     continue
-                
-                if user_data.get("is_active") is None:
-                    user_data["is_active"] = True
-                    
-                # Fix Timestamps
-                for time_key in ["created_at", "last_activity", "last_conversion_date"]:
-                    val = user_data.get(time_key)
-                    if val:
-                        dt_obj = None
-                        if hasattr(val, 'strftime'):
-                            dt_obj = val
-                        else:
-                            raw_str = str(val).replace('T', ' ').split('.')[0].strip()
-                            try:
-                                dt_obj = datetime.strptime(raw_str, '%Y-%m-%d %H:%M:%S')
-                            except ValueError:
-                                try:
-                                    dt_obj = datetime.strptime(raw_str, '%Y-%m-%d %I:%M:%S %p')
-                                except ValueError:
-                                    dt_obj = None
 
-                        if dt_obj:
-                            local_time = dt_obj + timedelta(hours=5, minutes=30)
-                            user_data[time_key] = local_time.strftime('%Y-%m-%d %I:%M %p')
-                        else:
-                            user_data[time_key] = str(val).replace('T', ' ').split('.')[0]
+                last_seen = device_data.get("last_seen")
+                if not last_seen:
+                    continue
+
+                try:
+                    seen_time = datetime.fromisoformat(last_seen)
+                    if (now - seen_time).total_seconds() < 15:
+                        connector_status_by_user[str(device_user_id)] = "online"
+                except Exception:
+                    continue
+        except Exception:
+            pass
+
+        users = []
+
+        for row in records:
+            user_data = dict(row)
+
+            if user_data.get("is_active") is None:
+                user_data["is_active"] = True
+
+            # Preserve the existing template timestamp format.
+            for time_key in [
+                "created_at",
+                "last_activity",
+                "last_conversion_date"
+            ]:
+                val = user_data.get(time_key)
+
+                if val:
+                    dt_obj = None
+
+                    if hasattr(val, "strftime"):
+                        dt_obj = val
                     else:
-                        user_data[time_key] = 'Never'
-                
-                # 🔥 FIX 2: Single, clean connection check
-                is_online = False
-                now = datetime.now()
+                        raw_str = (
+                            str(val)
+                            .replace("T", " ")
+                            .split(".")[0]
+                            .strip()
+                        )
 
-                for device_id, device_data in CONNECTOR_STATUS.items():
+                        try:
+                            dt_obj = datetime.strptime(
+                                raw_str,
+                                "%Y-%m-%d %H:%M:%S"
+                            )
+                        except ValueError:
+                            try:
+                                dt_obj = datetime.strptime(
+                                    raw_str,
+                                    "%Y-%m-%d %I:%M:%S %p"
+                                )
+                            except ValueError:
+                                dt_obj = None
 
-                    if str(device_data.get("user_id")) == str(user_data["id"]):
+                    if dt_obj:
+                        local_time = dt_obj + timedelta(hours=5, minutes=30)
+                        user_data[time_key] = local_time.strftime(
+                            "%Y-%m-%d %I:%M %p"
+                        )
+                    else:
+                        user_data[time_key] = (
+                            str(val).replace("T", " ").split(".")[0]
+                        )
+                else:
+                    user_data[time_key] = "Never"
 
-                       last_seen = device_data.get("last_seen")
+            user_data["conn_status"] = connector_status_by_user.get(
+                str(user_data["id"]),
+                "offline"
+            )
 
-                       if last_seen:
-                           try:
-                               seen_time = datetime.fromisoformat(last_seen)
+            users.append(user_data)
 
-                               # Consider online only if heartbeat received in last 15 seconds
-                               if (now - seen_time).total_seconds() < 15:
-                                   is_online = True
+        context["users"] = users
 
-                           except Exception:
-                               pass
-
-                    break
-
-                user_data["conn_status"] = "online" if is_online else "offline"
-                
-                # Save the completed user into the unique dictionary
-                unique_users[user_data["id"]] = user_data
-                
-        # Convert dictionary to list for the frontend
-        context["users"] = list(unique_users.values())
-        
     except Exception as e:
-        logger.error(f"User management ledger visualization payload processing generation error: {e}")
+        logger.exception("User management data load failed: %s", e)
         context["users"] = []
+
     finally:
-        if cur: cur.close()
-        if conn: conn.close()
-        
+        if cur:
+            cur.close()
+        if conn:
+            conn.close()
+
     return templates.TemplateResponse("admin/users.html", context)
 @admin_router.get("/connectors", response_class=HTMLResponse)
 async def view_connectors(
