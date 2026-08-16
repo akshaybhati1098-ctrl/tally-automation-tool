@@ -2,6 +2,7 @@
   "use strict";
 
   let loadedForVisiblePage = false;
+  let popupWrapped = false;
 
   function ensureCard() {
     if (document.getElementById("xmlConversionUsageCol")) return;
@@ -57,6 +58,20 @@
     }
   }
 
+  function enhanceLimitPopup() {
+    if (popupWrapped || typeof window.showErrorPopup !== "function") return;
+
+    const originalShowErrorPopup = window.showErrorPopup;
+    window.showErrorPopup = function (message, ...args) {
+      const text = String(message || "");
+      if (text.includes("XML conversion rows remaining")) {
+        message = `⚠️ XML Conversion Limit\n\n${text}`;
+      }
+      return originalShowErrorPopup.call(this, message, ...args);
+    };
+    popupWrapped = true;
+  }
+
   async function refresh() {
     try {
       const response = await fetch("/api/subscription/me", {
@@ -87,6 +102,7 @@
 
   document.addEventListener("DOMContentLoaded", function () {
     handleVisibility();
+    enhanceLimitPopup();
 
     const page = document.getElementById("subscription");
     if (page) {
@@ -98,6 +114,7 @@
       if (document.getElementById("subscription")?.classList.contains("active")) {
         refresh();
       }
-    }, 10000);
+      enhanceLimitPopup();
+    }, 1000);
   });
 })();
