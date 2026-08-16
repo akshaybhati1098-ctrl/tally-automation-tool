@@ -11,14 +11,14 @@
     </div>
 
     {% set ns = namespace(success=0, failed=0, blocked=0, total=0) %}
-    {% for e in events %}
+    {% for e in security_events %}
         {% set ns.total = ns.total + 1 %}
         {% if e.status == 'success' %}
             {% set ns.success = ns.success + 1 %}
         {% else %}
             {% set ns.failed = ns.failed + 1 %}
         {% endif %}
-        {% if 'admin' in (e.action|string)|lower and e.status != 'success' %}
+        {% if 'admin' in (e.event_type|string)|lower and e.status != 'success' %}
             {% set ns.blocked = ns.blocked + 1 %}
         {% endif %}
     {% endfor %}
@@ -31,7 +31,7 @@
                     <div class="d-flex align-items-center gap-2 mt-2">
                         <span class="badge rounded-pill bg-success">🟢 Secure</span>
                     </div>
-                    <div class="small text-muted mt-2">No separate threat engine is running; this page monitors recorded security events.</div>
+                    <div class="small text-muted mt-2">This page shows security events recorded by the application.</div>
                 </div>
             </div>
         </div>
@@ -40,7 +40,7 @@
                 <div class="card-body">
                     <div class="text-muted small text-uppercase fw-semibold">Successful Events</div>
                     <div class="fs-2 fw-bold text-success mt-1">{{ ns.success }}</div>
-                    <div class="small text-muted">Recorded in the loaded security history</div>
+                    <div class="small text-muted">Recorded successful events</div>
                 </div>
             </div>
         </div>
@@ -69,7 +69,7 @@
         <div class="fs-4">🚨</div>
         <div>
             <div class="fw-bold">Unauthorized admin access activity detected</div>
-            <div class="small">Review the flagged events below. Only the designated admin account should access the admin workspace.</div>
+            <div class="small">Review the flagged events below.</div>
         </div>
     </div>
     {% endif %}
@@ -79,7 +79,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
                 <div>
                     <h5 class="mb-1">📋 Recent Security Activity</h5>
-                    <div class="small text-muted">Login, logout, access and security events recorded by the application.</div>
+                    <div class="small text-muted">Login, access and security events recorded by the application.</div>
                 </div>
                 <span class="badge bg-light text-dark border">{{ ns.total }} events</span>
             </div>
@@ -96,21 +96,23 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for e in events %}
+                        {% for e in security_events %}
                         <tr>
-                            <td class="text-muted small text-nowrap">{{ e.created_at.strftime('%d %b %Y, %I:%M %p') }}</td>
-                            <td>
-                                <div class="fw-semibold">{{ e.username or 'Unknown' }}</div>
+                            <td class="text-muted small text-nowrap">
+                                {% if e.created_at %}{{ e.created_at.strftime('%d %b %Y, %I:%M %p') }}{% else %}-{% endif %}
                             </td>
                             <td>
-                                <span class="badge bg-light text-dark border font-monospace text-uppercase">{{ e.action or '-' }}</span>
+                                <div class="fw-semibold">{{ e.username or 'System' }}</div>
+                            </td>
+                            <td>
+                                <span class="badge bg-light text-dark border font-monospace text-uppercase">{{ e.event_type or '-' }}</span>
                             </td>
                             <td class="small font-monospace text-muted">{{ e.endpoint or '-' }}</td>
                             <td>
                                 {% if e.status == 'success' %}
                                 <span class="badge rounded-pill bg-success-subtle text-success border border-success">🟢 Success</span>
                                 {% else %}
-                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger">🔴 Blocked / Failed</span>
+                                <span class="badge rounded-pill bg-danger-subtle text-danger border border-danger">🔴 Failed / Blocked</span>
                                 {% endif %}
                             </td>
                         </tr>
