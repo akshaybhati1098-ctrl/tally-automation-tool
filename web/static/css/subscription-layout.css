@@ -1,7 +1,31 @@
-/* Subscription plan layout only. No subscription logic is changed. */
+/* Subscription page visual layout only. No subscription logic is changed. */
 
-/* Scope the custom 2-column grid ONLY to the Basic/Pro plan row.
-   Do not affect Current Plan, Party Matching, XML usage, or request cards. */
+/* ===== Top summary cards =====
+   Keep these three cards equal-width/equal-height without affecting
+   the upgrade-request card or the plan cards below. */
+.subscription-page > .page-container > .row:first-of-type {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: stretch;
+}
+
+.subscription-page > .page-container > .row:first-of-type > .col-lg-6 {
+  display: flex;
+}
+
+.subscription-page > .page-container > .row:first-of-type > .col-lg-6 > .card {
+  width: 100%;
+  height: 100%;
+}
+
+/* ===== Upgrade request card =====
+   Compact horizontal status card; does not alter request behavior. */
+.subscription-page #upgradeRequestRow .card-body {
+  min-height: 92px;
+}
+
+/* ===== Basic / Pro plan cards =====
+   Only target the row containing #basicCard and #proCard. */
 .subscription-page .row:has(> .col-lg-6 > #basicCard) {
   display: flex;
   flex-wrap: wrap;
@@ -21,6 +45,11 @@
 }
 
 @media (max-width: 991.98px) {
+  .subscription-page > .page-container > .row:first-of-type > .col-lg-6 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
   .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 {
     flex: 0 0 100%;
     max-width: 100%;
