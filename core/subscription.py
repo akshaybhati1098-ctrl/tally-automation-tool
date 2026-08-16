@@ -35,16 +35,27 @@ def get_user_plan(user_id: int):
         WHERE u.id = %s
     """, (user_id,))
     data = cur.fetchone()
-    cur.close()
-    conn.close()
 
     if data:
-        xml_usage = get_feature_usage(user_id, "xml_conversion")
         xml_limit = _xml_limit_from_plan_name(data["plan_name"])
+        # Use the SQL-configured XML limit when the migration has been applied.
+        # Fall back to the constants so older databases keep working safely.
+        try:
+            cur.execute("SELECT xml_row_limit FROM subscription_plans WHERE id=%s", (data["plan_id"],))
+            xml_limit_row = cur.fetchone()
+            if xml_limit_row and xml_limit_row[0] is not None:
+                xml_limit = int(xml_limit_row[0])
+        except Exception:
+            conn.rollback()
+
+        xml_usage = get_feature_usage(user_id, "xml_conversion")
         xml_used = int(xml_usage["used_count"]) if xml_usage else 0
         data["xml_row_limit"] = xml_limit
         data["xml_used_count"] = xml_used
         data["xml_remaining"] = max(0, xml_limit - xml_used)
+
+    cur.close()
+    conn.close()
     return data
 
 
