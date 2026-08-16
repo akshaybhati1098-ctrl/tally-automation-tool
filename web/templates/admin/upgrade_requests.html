@@ -1,0 +1,132 @@
+{% extends "admin/base.html" %}
+
+{% block title %}Upgrade Requests{% endblock %}
+{% block page_title %}Upgrade Requests{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-3">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+      <h4 class="mb-1">Subscription Upgrade Requests</h4>
+      <div class="text-muted">Review customer requests, contact them, receive payment, then activate the plan.</div>
+    </div>
+    <button class="btn btn-outline-secondary" onclick="loadRequests()">↻ Refresh</button>
+  </div>
+
+  <div class="card shadow-sm border-0">
+    <div class="table-responsive">
+      <table class="table table-hover align-middle mb-0">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Plan</th>
+            <th>Contact</th>
+            <th>Message</th>
+            <th>Status</th>
+            <th>Requested</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody id="requestsBody">
+          <tr><td colspan="7" class="text-center text-muted py-5">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function formatDate(value) {
+  if (!value) return "-";
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? value : d.toLocaleString("en-IN");
+}
+
+function statusBadge(status) {
+  const map = {
+    pending: '<span class="badge text-bg-warning">Pending</span>',
+    approved: '<span class="badge text-bg-success">Approved</span>',
+    rejected: '<span class="badge text-bg-danger">Rejected</span>'
+  };
+  return map[status] || `<span class="badge text-bg-secondary">${escapeHtml(status)}</span>`;
+}
+
+async function loadRequests() {
+  const body = document.getElementById("requestsBody");
+  try {
+    const response = await fetch("/admin/api/upgrade-requests", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to load requests");
+    const requests = await response.json();
+
+    if (!requests.length) {
+      body.innerHTML = '<tr><td colspan="7" class="text-center text-muted py-5">No upgrade requests yet.</td></tr>';
+      return;
+    }
+
+    body.innerHTML = requests.map(r => `
+      <tr>
+        <td>
+          <div class="fw-semibold">${escapeHtml(r.full_name)}</div>
+          <div class="small text-muted">${escapeHtml(r.username)}</div>
+          <div class="small text-muted">${escapeHtml(r.account_email)}</div>
+        </td>
+        <td><span class="fw-semibold">${escapeHtml(r.plan_name)}</span></td>
+        <td>
+          <div>${escapeHtml(r.phone)}</div>
+          <div class="small text-muted">${escapeHtml(r.email)}</div>
+        </td>
+        <td style="max-width:240px;white-space:normal;">${escapeHtml(r.message || "-")}</td>
+        <td>${statusBadge(r.status)}</td>
+        <td class="small">${formatDate(r.created_at)}</td>
+        <td class="text-end">
+          ${r.status === "pending" ? `
+            <div class="d-flex justify-content-end gap-2">
+              <button class="btn btn-sm btn-success" onclick="approveRequest(${r.id})">Approve</button>
+              <button class="btn btn-sm btn-outline-danger" onclick="rejectRequest(${r.id})">Reject</button>
+            </div>` : `
+            <span class="small text-muted">${escapeHtml(r.reviewed_by || "")}</span>`}
+        </td>
+      </tr>
+    `).join("");
+  } catch (error) {
+    body.innerHTML = `<tr><td colspan="7" class="text-center text-danger py-5">${escapeHtml(error.message)}</td></tr>`;
+  }
+}
+
+async function approveRequest(id) {
+  if (!confirm("Have you received payment from this customer? Approve and activate the plan?")) return;
+  const response = await fetch(`/admin/api/upgrade-requests/${id}/approve`, { method: "POST" });
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    alert(data.detail || data.message || "Unable to approve request.");
+    return;
+  }
+  alert("Plan activated successfully.");
+  loadRequests();
+}
+
+async function rejectRequest(id) {
+  if (!confirm("Reject this upgrade request?")) return;
+  const response = await fetch(`/admin/api/upgrade-requests/${id}/reject`, { method: "POST" });
+  const data = await response.json();
+  if (!response.ok || !data.success) {
+    alert(data.detail || data.message || "Unable to reject request.");
+    return;
+  }
+  loadRequests();
+}
+
+document.addEventListener("DOMContentLoaded", loadRequests);
+</script>
+{% endblock %}
