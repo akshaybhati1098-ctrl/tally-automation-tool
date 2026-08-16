@@ -66,23 +66,35 @@ def get_safe_base_context(request: Request, username: str = "") -> dict:
 # =========================================================
 def enforce_admin_clearance(request: Request) -> str:
     """
-    Unified Security Gate: Checks for active login session signatures.
-    If no session exists, it redirects cleanly to the login screen instead of throwing a 401 error.
+    Allow admin panel access only to the designated admin account.
     """
-    # 1. Check the session keys used by your main application layer
-    session_user = request.session.get("user") or request.session.get("admin_user") or request.session.get("username")
-    
-    # 2. If no valid login signature is found in browser cookies, redirect to login
+    session_user = (
+        request.session.get("user")
+        or request.session.get("admin_user")
+        or request.session.get("username")
+    )
+
+    # No active login session
     if not session_user:
-        # We raise a custom exception that we can catch, or return a direct RedirectResponse.
-        # For a clean FastAPI dependency that returns an HTML page, a direct raise is safest if caught, 
-        # but since this returns a string value to routes, we can raise a clear 401, or redirect:
         raise HTTPException(
-            status_code=401, 
-            detail="Session expired or invalid administrative clearance credentials."
+            status_code=401,
+            detail="Authentication required."
         )
-        
-    return session_user
+
+    # Handle both dictionary-style and string-style sessions
+    if isinstance(session_user, dict):
+        username = str(session_user.get("username", "")).strip()
+    else:
+        username = str(session_user).strip()
+
+    # Only the designated admin account can access admin routes
+    if username.lower() != "akshay1098":
+        raise HTTPException(
+            status_code=403,
+            detail="Admin access denied."
+        )
+
+    return username
 
 # =========================================================
 # INTERFACE NAVIGATION ROUTING ENDPOINTS
