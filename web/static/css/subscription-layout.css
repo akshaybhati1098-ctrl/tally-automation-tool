@@ -1,58 +1,45 @@
 /* Subscription page visual layout only. No subscription logic is changed. */
 
-/* ===== Top summary cards =====
-   The XML usage card is inserted dynamically into the same row as
-   Current Plan and Party Matching. Keep the three cards joined. */
+/* ===== Top summary cards ===== */
 .subscription-page .row:has(#remainingMatches) {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
+  gap: 8px;
 }
 
 .subscription-page .row:has(#remainingMatches) > .col-lg-6 {
-  flex: 0 0 33.333333%;
-  max-width: 33.333333%;
+  flex: 1 1 0;
+  max-width: none;
   box-sizing: border-box;
   display: flex;
-  padding-left: 0;
-  padding-right: 0;
+  min-width: 0;
 }
 
 .subscription-page .row:has(#remainingMatches) > .col-lg-6 > .card {
   width: 100%;
   height: 100%;
-  margin: 0;
-  border-radius: 0 !important;
 }
 
-/* Keep the outer corners rounded while the three cards touch each other. */
-.subscription-page .row:has(#remainingMatches) > .col-lg-6:first-child > .card {
-  border-radius: 20px 0 0 20px !important;
-}
-
-.subscription-page .row:has(#remainingMatches) > .col-lg-6:last-child > .card {
-  border-radius: 0 20px 20px 0 !important;
-}
-
-/* ===== Upgrade request card =====
-   Keep it independent from the summary and plan-card grids. */
+/* ===== Upgrade request card ===== */
 .subscription-page #upgradeRequestRow .card-body {
   min-height: 92px;
 }
 
-/* ===== Basic / Pro plan cards =====
-   Only target the row containing #basicCard. */
+/* ===== Basic / Pro plan cards ===== */
 .subscription-page .row:has(> .col-lg-6 > #basicCard) {
   display: flex;
   flex-wrap: wrap;
   align-items: stretch;
+  gap: 12px;
 }
 
 .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 {
-  flex: 0 0 50%;
-  max-width: 50%;
+  flex: 1 1 0;
+  max-width: none;
   box-sizing: border-box;
   display: flex;
+  min-width: 0;
 }
 
 .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 > .plan-card {
@@ -61,15 +48,17 @@
 }
 
 @media (max-width: 991.98px) {
+  .subscription-page .row:has(#remainingMatches) {
+    gap: 0;
+  }
+
   .subscription-page .row:has(#remainingMatches) > .col-lg-6 {
     flex: 0 0 100%;
     max-width: 100%;
-    padding-left: 0;
-    padding-right: 0;
   }
 
-  .subscription-page .row:has(#remainingMatches) > .col-lg-6 > .card {
-    border-radius: 20px !important;
+  .subscription-page .row:has(> .col-lg-6 > #basicCard) {
+    gap: 0;
   }
 
   .subscription-page .row:has(> .col-lg-6 > #basicCard) > .col-lg-6 {
