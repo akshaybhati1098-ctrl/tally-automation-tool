@@ -58,12 +58,13 @@ def ensure_admin_schema() -> None:
         for name, dtype in logs_cols:
             cur.execute(f"ALTER TABLE admin_logs ADD COLUMN IF NOT EXISTS {name} {dtype};")
 
-        # Security Guard uses admin_events. Keep it compatible with the
-        # existing schema while giving it the same useful identity/action data.
+        # Security Guard uses admin_events. Keep both action and event_type
+        # so older readers and the current Security Guard remain compatible.
         events_cols = [
             ("user_id", "INTEGER"),
             ("username", "TEXT"),
             ("action", "TEXT"),
+            ("event_type", "TEXT"),
             ("endpoint", "TEXT"),
             ("status", "TEXT"),
             ("execution_time_ms", "INTEGER DEFAULT 0"),
@@ -97,8 +98,6 @@ def log_admin_event(
     conn = None
     cur = None
     try:
-        # Keep schema creation out of every request path; app startup already
-        # calls ensure_admin_schema(). The INSERT remains lightweight.
         conn = get_telemetry_db_connection()
         cur = conn.cursor()
         details_json = json.dumps(details or {})
@@ -113,15 +112,15 @@ def log_admin_event(
             status_str, execution_time_ms, error_message, details_json
         ))
 
-        # Mirror the same event into admin_events so Security Guard has a
-        # real data source instead of depending on an unused empty table.
+        # Mirror the same event into admin_events. Populate both action and
+        # event_type because the Security Guard route reads event_type.
         cur.execute("""
             INSERT INTO admin_events (
-                user_id, username, action, endpoint, status,
+                user_id, username, action, event_type, endpoint, status,
                 execution_time_ms, details, created_at
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, NOW())
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW())
         """, (
-            user_id, username, event_type, endpoint,
+            user_id, username, event_type, event_type, endpoint,
             status_str, execution_time_ms, details_json
         ))
 
