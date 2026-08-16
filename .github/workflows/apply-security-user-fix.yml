@@ -2,25 +2,21 @@ name: Apply Security User Detail Fix
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
 
 permissions:
   contents: write
 
 jobs:
-  apply-fix:
-    if: ${{ !startsWith(github.event.head_commit.message, 'Fix security user details') }}
+  patch:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
-      - name: Patch security events query
-        shell: python
+      - name: Apply patch
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           path = Path("routes/admin_routes.py")
@@ -49,16 +45,16 @@ jobs:
 '''
 
           if old not in text:
-              raise SystemExit("Expected security events query was not found; no changes made.")
+              raise SystemExit("Expected security events query was not found.")
 
           path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
 
-      - name: Commit and push fix
-        shell: bash
+      - name: Commit fix and remove temporary workflow
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add routes/admin_routes.py .github/workflows/apply-security-user-fix.yml
+          git add routes/admin_routes.py
           git rm .github/workflows/apply-security-user-fix.yml
           git commit -m "Fix security user details"
           git push origin HEAD:main
