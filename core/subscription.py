@@ -245,6 +245,12 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
         ON CONFLICT (user_id, feature_name)
         DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
     """, (user_id,))
+    cur.execute("""
+        INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
+        VALUES (%s, 'xml_conversion', 0, CURRENT_DATE)
+        ON CONFLICT (user_id, feature_name)
+        DO UPDATE SET used_count=0, reset_date=CURRENT_DATE
+    """, (user_id,))
     conn.commit()
     cur.close()
     conn.close()
