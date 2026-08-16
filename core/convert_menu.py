@@ -68,17 +68,11 @@ def first_non_empty(row, *keys):
     return ""
 
 
-def add_entry(v, ledger, positive, amt, display_positive=False):
+def add_entry(v, ledger, positive, amt):
     e = ET.SubElement(v, "ALLLEDGERENTRIES.LIST")
     ET.SubElement(e, "LEDGERNAME").text = str(ledger).strip()
     ET.SubElement(e, "ISDEEMEDPOSITIVE").text = "Yes" if positive else "No"
-    # Credit Note uses the same accounting direction as Sales, but its
-    # amounts are emitted as positive values so Tally does not display
-    # the unwanted minus sign in the voucher particulars.
-    if display_positive:
-        ET.SubElement(e, "AMOUNT").text = f"{abs(amt):.2f}"
-    else:
-        ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
+    ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
 
 
 # ---------------- MAIN FUNCTION ----------------
@@ -127,8 +121,8 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
 
         COMPANY_STATE = mapping.get("COMPANY_STATE") or "Uttar Pradesh"
 
-    # Credit Note follows the existing Sales accounting branch.
-    # Debit Note follows the existing Purchase accounting branch.
+    # Credit Note follows the existing Sales ledger selection/tax branch.
+    # Debit Note follows the existing Purchase ledger selection/tax branch.
     sales_style_types = {"sale", "credit_note"}
     purchase_style_types = {"purchase", "debit_note"}
 
@@ -191,7 +185,6 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
             ACTION="Create"
         )
 
-        # Preserve the existing Sales XML behavior for Sales and Credit Note.
         if vtype in sales_style_types:
             ET.SubElement(V, "ISINVOICE").text = "Yes"
             ET.SubElement(V, "USEFORGOODS").text = "No"
@@ -247,20 +240,38 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
             if gstin:
                 ET.SubElement(V, "CONSIGNEEGSTIN").text = gstin
 
-            credit_note_display = vtype == "credit_note"
-            add_entry(V, party, True, voucher_total, display_positive=credit_note_display)
+            if vtype == "credit_note":
+                # Tally does not reverse the ledger signs merely because the
+                # voucher type is Credit Note. Reverse the Sales-style entries
+                # so the note is displayed as a positive credit-note reversal.
+                add_entry(V, party, False, voucher_total)
 
-            if sales_ledger:
-                add_entry(V, sales_ledger, False, taxable, display_positive=credit_note_display)
+                if sales_ledger:
+                    add_entry(V, sales_ledger, True, taxable)
 
-            if cgst_ledger and cgst:
-                add_entry(V, cgst_ledger, False, cgst, display_positive=credit_note_display)
+                if cgst_ledger and cgst:
+                    add_entry(V, cgst_ledger, True, cgst)
 
-            if sgst_ledger and sgst:
-                add_entry(V, sgst_ledger, False, sgst, display_positive=credit_note_display)
+                if sgst_ledger and sgst:
+                    add_entry(V, sgst_ledger, True, sgst)
 
-            if igst_ledger and igst:
-                add_entry(V, igst_ledger, False, igst, display_positive=credit_note_display)
+                if igst_ledger and igst:
+                    add_entry(V, igst_ledger, True, igst)
+            else:
+                # Existing Sales behavior remains unchanged.
+                add_entry(V, party, True, voucher_total)
+
+                if sales_ledger:
+                    add_entry(V, sales_ledger, False, taxable)
+
+                if cgst_ledger and cgst:
+                    add_entry(V, cgst_ledger, False, cgst)
+
+                if sgst_ledger and sgst:
+                    add_entry(V, sgst_ledger, False, sgst)
+
+                if igst_ledger and igst:
+                    add_entry(V, igst_ledger, False, igst)
 
         # ================= PURCHASE / DEBIT NOTE =================
         else:
