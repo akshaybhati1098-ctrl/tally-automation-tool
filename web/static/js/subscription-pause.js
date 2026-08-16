@@ -41,9 +41,21 @@
       if (banner) banner.style.display = paused ? "block" : "none";
 
       const status = document.getElementById("planStatus");
-      if (status && paused) {
-        status.textContent = "⏸ PAUSED";
-        status.className = "text-warning fw-bold";
+      const expiry = document.getElementById("planExpiry");
+      const relative = document.getElementById("planExpiryRelative");
+
+      if (paused) {
+        if (status) {
+          status.textContent = "⏸ PAUSED";
+          status.className = "text-warning fw-bold";
+        }
+        if (expiry) expiry.textContent = "Frozen while paused";
+        if (relative) {
+          relative.textContent = "Subscription time is preserved";
+          relative.className = "expiry-relative expiry-soon";
+        }
+      } else if (status) {
+        status.className = "";
       }
     } catch (error) {
       console.error("Unable to refresh subscription pause state:", error);
