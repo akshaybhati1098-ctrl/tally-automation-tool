@@ -2,10 +2,6 @@ from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from datetime import datetime, timedelta
 
-XML_TRIAL_ROW_LIMIT = 10
-XML_BASIC_ROW_LIMIT = 100
-XML_PRO_ROW_LIMIT = 250
-
 class XMLConversionLimitError(Exception):
     """Raised when an XML conversion exceeds the separate row allowance."""
 
@@ -37,17 +33,6 @@ def _ensure_pause_columns():
         conn.close()
 
 
-def _xml_limit_from_plan_name(plan_name):
-    name = str(plan_name or "").strip().lower()
-    if name == "trial":
-        return XML_TRIAL_ROW_LIMIT
-    if name == "basic":
-        return XML_BASIC_ROW_LIMIT
-    if name == "pro":
-        return XML_PRO_ROW_LIMIT
-    return 0
-
-
 def get_user_plan(user_id: int):
     has_pause_columns = _ensure_pause_columns()
     conn = get_db_connection(cursor_factory=RealDictCursor)
@@ -61,21 +46,15 @@ def get_user_plan(user_id: int):
         SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
                {pause_select}
                p.plan_name, p.price, p.match_limit, p.connector_enabled,
-               p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active
+               p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active,
+               p.xml_row_limit
         FROM users u
         LEFT JOIN subscription_plans p ON p.id = u.plan_id
         WHERE u.id = %s
     """, (user_id,))
     data = cur.fetchone()
     if data:
-        xml_limit = _xml_limit_from_plan_name(data["plan_name"])
-        try:
-            cur.execute("SELECT xml_row_limit FROM subscription_plans WHERE id=%s", (data["plan_id"],))
-            xml_limit_row = cur.fetchone()
-            if xml_limit_row and xml_limit_row[0] is not None:
-                xml_limit = int(xml_limit_row[0])
-        except Exception:
-            conn.rollback()
+        xml_limit = int(data["xml_row_limit"] or 0)
         xml_usage = get_feature_usage(user_id, "xml_conversion")
         xml_used = int(xml_usage["used_count"]) if xml_usage else 0
         data["xml_row_limit"] = xml_limit
