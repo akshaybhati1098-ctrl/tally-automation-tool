@@ -11,8 +11,9 @@ class XMLConversionLimitError(Exception):
     """Raised when an XML conversion exceeds the separate row allowance."""
 
 
-# Schema migrations must not run on normal requests.
-_pause_columns_available_cache = None
+# Pause columns are managed directly in Supabase.
+# Do not query information_schema during normal user requests.
+_pause_columns_available_cache = True
 
 
 def _log_slow_subscription(location: str, elapsed_ms: int, user_id=None, feature=None):
@@ -25,31 +26,8 @@ def _log_slow_subscription(location: str, elapsed_ms: int, user_id=None, feature
 
 
 def _ensure_pause_columns():
-    """Check whether pause metadata exists without executing DDL."""
-    global _pause_columns_available_cache
-    if _pause_columns_available_cache is not None:
-        return _pause_columns_available_cache
-
-    started = time.perf_counter()
-    conn = get_db_connection()
-    cur = conn.cursor()
-    try:
-        cur.execute("""
-            SELECT COUNT(*)
-            FROM information_schema.columns
-            WHERE table_schema = current_schema()
-              AND table_name = 'users'
-              AND column_name IN ('subscription_paused_at', 'subscription_pause_remaining_seconds')
-        """)
-        _pause_columns_available_cache = int(cur.fetchone()[0] or 0) == 2
-        return _pause_columns_available_cache
-    finally:
-        cur.close()
-        conn.close()
-        _log_slow_subscription(
-            "_ensure_pause_columns",
-            int((time.perf_counter() - started) * 1000),
-        )
+    """Return the known pause-column state without performing a DB schema query."""
+    return _pause_columns_available_cache
 
 
 def _xml_limit_from_plan_name(plan_name):
@@ -236,12 +214,7 @@ def can_use_feature(user_id: int, feature_name: str):
     started = time.perf_counter()
     if not has_feature(user_id, feature_name):
         result = (False, "Your current plan does not include this feature.")
-        _log_slow_subscription(
-            "can_use_feature",
-            int((time.perf_counter() - started) * 1000),
-            user_id=user_id,
-            feature=feature_name,
-        )
+        _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
         return result
     plan = get_user_plan(user_id)
     if plan.get("is_paused"):
@@ -249,48 +222,23 @@ def can_use_feature(user_id: int, feature_name: str):
             result = (False, "⏸️ Your subscription is currently paused. Party Matching is unavailable until your subscription is resumed.")
         else:
             result = (False, "⏸️ Your subscription is currently paused.")
-        _log_slow_subscription(
-            "can_use_feature",
-            int((time.perf_counter() - started) * 1000),
-            user_id=user_id,
-            feature=feature_name,
-        )
+        _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
         return result
     if plan["plan_expiry"] is not None and datetime.now() > plan["plan_expiry"]:
         result = (False, "Your subscription has expired.")
-        _log_slow_subscription(
-            "can_use_feature",
-            int((time.perf_counter() - started) * 1000),
-            user_id=user_id,
-            feature=feature_name,
-        )
+        _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
         return result
     remaining = get_remaining_feature_usage(user_id, feature_name)
     if remaining == -1:
         result = (True, "")
-        _log_slow_subscription(
-            "can_use_feature",
-            int((time.perf_counter() - started) * 1000),
-            user_id=user_id,
-            feature=feature_name,
-        )
+        _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
         return result
     if remaining <= 0:
         result = (False, "You have reached your matching limit.")
-        _log_slow_subscription(
-            "can_use_feature",
-            int((time.perf_counter() - started) * 1000),
-            user_id=user_id,
-            feature=feature_name,
-        )
+        _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
         return result
     result = (True, "")
-    _log_slow_subscription(
-        "can_use_feature",
-        int((time.perf_counter() - started) * 1000),
-        user_id=user_id,
-        feature=feature_name,
-    )
+    _log_slow_subscription("can_use_feature", int((time.perf_counter() - started) * 1000), user_id=user_id, feature=feature_name)
     return result
 
 
@@ -327,7 +275,6 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
     has_pause_columns = _ensure_pause_columns()
     if not has_pause_columns:
         raise RuntimeError("Subscription pause database migration is required before changing subscription status.")
-
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -339,10 +286,8 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
         current = cur.fetchone()
         if not current:
             raise ValueError("User not found.")
-
         requested_status = str(subscription_status or "ACTIVE").upper()
         current_status = str(current["subscription_status"] or "").upper()
-
         if requested_status == "PAUSED":
             if current_status != "PAUSED":
                 expiry = current["plan_expiry"]
@@ -353,7 +298,6 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
                 """, (remaining_seconds, user_id))
             conn.commit()
             return True
-
         if requested_status == "ACTIVE" and current_status == "PAUSED":
             remaining_seconds = int(current["subscription_pause_remaining_seconds"] or 0)
             new_expiry = datetime.now() + timedelta(seconds=max(0, remaining_seconds))
@@ -364,7 +308,6 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
             """, (new_expiry, user_id))
             conn.commit()
             return True
-
         if plan_id == 1:
             match_limit = 10
         elif plan_id == 2:
@@ -373,12 +316,10 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
             match_limit = -1
         if plan_expiry is None:
             plan_expiry = datetime.now() + timedelta(days=30)
-
         cur.execute("""
             UPDATE users SET plan_id=%s, subscription_status=%s, plan_start=NOW(), plan_expiry=%s,
             subscription_paused_at=NULL, subscription_pause_remaining_seconds=NULL WHERE id=%s
         """, (plan_id, requested_status, plan_expiry, user_id))
-
         cur.execute("""
             INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
             VALUES (%s, 'party_matching', 0, CURRENT_DATE)
