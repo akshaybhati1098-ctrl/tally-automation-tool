@@ -11,8 +11,7 @@ class XMLConversionLimitError(Exception):
     """Raised when an XML conversion exceeds the separate row allowance."""
 
 
-# Pause columns are managed directly in Supabase.
-# Do not query information_schema during normal user requests.
+# Schema migrations must not run on normal requests.
 _pause_columns_available_cache = True
 
 
@@ -26,7 +25,7 @@ def _log_slow_subscription(location: str, elapsed_ms: int, user_id=None, feature
 
 
 def _ensure_pause_columns():
-    """Return the known pause-column state without performing a DB schema query."""
+    """Return the known Supabase schema state without querying information_schema."""
     return _pause_columns_available_cache
 
 
@@ -55,26 +54,31 @@ def get_user_plan(user_id: int):
         SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
                {pause_select}
                p.plan_name, p.price, p.match_limit, p.connector_enabled,
-               p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active
+               p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active,
+               p.xml_row_limit
         FROM users u
         LEFT JOIN subscription_plans p ON p.id = u.plan_id
         WHERE u.id = %s
     """, (user_id,))
     data = cur.fetchone()
     if data:
-        xml_limit = _xml_limit_from_plan_name(data["plan_name"])
-        try:
-            cur.execute("SELECT xml_row_limit FROM subscription_plans WHERE id=%s", (data["plan_id"],))
-            xml_limit_row = cur.fetchone()
-            if xml_limit_row and xml_limit_row[0] is not None:
-                xml_limit = int(xml_limit_row[0])
-        except Exception:
-            conn.rollback()
-        xml_usage = get_feature_usage(user_id, "xml_conversion")
+        xml_limit = data.get("xml_row_limit")
+        if xml_limit is None:
+            xml_limit = _xml_limit_from_plan_name(data["plan_name"])
+
+        # Use the same connection already held by get_user_plan().
+        # Do not call get_feature_usage() here because that would acquire
+        # another pool connection while this one is still occupied.
+        cur.execute("""
+            SELECT used_count
+            FROM feature_usage
+            WHERE user_id=%s AND feature_name='xml_conversion'
+        """, (user_id,))
+        xml_usage = cur.fetchone()
         xml_used = int(xml_usage["used_count"]) if xml_usage else 0
-        data["xml_row_limit"] = xml_limit
+        data["xml_row_limit"] = int(xml_limit)
         data["xml_used_count"] = xml_used
-        data["xml_remaining"] = max(0, xml_limit - xml_used)
+        data["xml_remaining"] = max(0, int(xml_limit) - xml_used)
         data["is_paused"] = str(data.get("subscription_status") or "").upper() == "PAUSED"
     cur.close()
     conn.close()
@@ -275,6 +279,7 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
     has_pause_columns = _ensure_pause_columns()
     if not has_pause_columns:
         raise RuntimeError("Subscription pause database migration is required before changing subscription status.")
+
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
@@ -286,8 +291,10 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
         current = cur.fetchone()
         if not current:
             raise ValueError("User not found.")
+
         requested_status = str(subscription_status or "ACTIVE").upper()
         current_status = str(current["subscription_status"] or "").upper()
+
         if requested_status == "PAUSED":
             if current_status != "PAUSED":
                 expiry = current["plan_expiry"]
@@ -298,6 +305,7 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
                 """, (remaining_seconds, user_id))
             conn.commit()
             return True
+
         if requested_status == "ACTIVE" and current_status == "PAUSED":
             remaining_seconds = int(current["subscription_pause_remaining_seconds"] or 0)
             new_expiry = datetime.now() + timedelta(seconds=max(0, remaining_seconds))
@@ -308,6 +316,7 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
             """, (new_expiry, user_id))
             conn.commit()
             return True
+
         if plan_id == 1:
             match_limit = 10
         elif plan_id == 2:
@@ -316,10 +325,12 @@ def update_user_subscription(user_id: int, plan_id: int, match_limit: int, subsc
             match_limit = -1
         if plan_expiry is None:
             plan_expiry = datetime.now() + timedelta(days=30)
+
         cur.execute("""
             UPDATE users SET plan_id=%s, subscription_status=%s, plan_start=NOW(), plan_expiry=%s,
             subscription_paused_at=NULL, subscription_pause_remaining_seconds=NULL WHERE id=%s
         """, (plan_id, requested_status, plan_expiry, user_id))
+
         cur.execute("""
             INSERT INTO feature_usage (user_id, feature_name, used_count, reset_date)
             VALUES (%s, 'party_matching', 0, CURRENT_DATE)
