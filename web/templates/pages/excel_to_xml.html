@@ -813,6 +813,119 @@
     }
 
     /* ════════════════════════════════════════
+   Real XML Conversion Loading UI
+   ════════════════════════════════════════ */
+
+.xml-processing-card {
+  display: none;
+  margin-top: 1.25rem;
+  padding: 1.35rem 1.5rem;
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.xml-processing-header {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  margin-bottom: 1rem;
+}
+
+.xml-processing-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+
+.xml-processing-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.xml-processing-title {
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.xml-processing-file {
+  margin-top: 0.15rem;
+  font-size: 0.76rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xml-processing-status {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink2);
+}
+
+.xml-processing-spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--line2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: xmlProcessingSpin 0.75s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes xmlProcessingSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.xml-processing-progress {
+  height: 7px;
+  width: 100%;
+  background: var(--surface2);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.xml-processing-progress-bar {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--accent),
+    var(--accent2)
+  );
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.xml-processing-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.55rem;
+  font-size: 0.74rem;
+  color: var(--muted);
+}
+
+.xml-processing-percent {
+  font-weight: 700;
+  color: var(--accent);
+}
+
+
+    /* ════════════════════════════════════════
            Party Matching UI
         ════════════════════════════════════════ */
     .match-summary-card {
@@ -3606,6 +3719,75 @@
           0%
         </div>
       </div>
+      <div class="xml-processing-card" id="xmlProcessingCard">
+
+  <div class="xml-processing-header">
+
+    <div class="xml-processing-icon" aria-hidden="true">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path
+          d="M7 3.5h7l4 4V20a.5.5 0 0 1-.5.5h-10A.5.5 0 0 1 7 20V3.5Z"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M14 3.5V8h4"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M9.5 12h5M9.5 15h5"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+        />
+      </svg>
+    </div>
+
+    <div style="min-width:0;">
+      <div class="xml-processing-title">
+        Generating Tally XML
+      </div>
+
+      <div class="xml-processing-file" id="xmlProcessingFile">
+        Preparing your file...
+      </div>
+    </div>
+
+  </div>
+
+  <div class="xml-processing-status">
+    <span
+      class="xml-processing-spinner"
+      id="xmlProcessingSpinner"
+    ></span>
+
+    <span id="xmlProcessingStatus">
+      Preparing conversion...
+    </span>
+  </div>
+
+  <div class="xml-processing-progress">
+    <div
+      class="xml-processing-progress-bar"
+      id="xmlProcessingProgressBar"
+    ></div>
+  </div>
+
+  <div class="xml-processing-footer">
+    <span>Processing securely</span>
+
+    <span
+      class="xml-processing-percent"
+      id="xmlProcessingPercent"
+    >
+      0%
+    </span>
+  </div>
+
+</div>
       <div id="message" class="message"></div>
 
       <div id="downloadSuccess" class="download-success" style="display: none">
@@ -4329,8 +4511,58 @@ fileInput.addEventListener("change", function (e) {
           vtype,
           columnMapping,
         ) {
-          progress.style.display = "block";
-          progressBar.style.width = "30%";
+
+          // ─────────────────────────────────────
+          // Real conversion loading UI
+          // ─────────────────────────────────────
+
+          const xmlProcessingCard =
+            document.getElementById("xmlProcessingCard");
+
+          const xmlProcessingFile =
+            document.getElementById("xmlProcessingFile");
+
+          const xmlProcessingStatus =
+            document.getElementById("xmlProcessingStatus");
+
+          const xmlProcessingProgressBar =
+            document.getElementById("xmlProcessingProgressBar");
+
+          const xmlProcessingPercent =
+            document.getElementById("xmlProcessingPercent");
+
+          const xmlProcessingSpinner =
+            document.getElementById("xmlProcessingSpinner");
+
+          if (xmlProcessingCard) {
+            xmlProcessingCard.style.display = "block";
+          }
+
+          if (xmlProcessingFile) {
+            xmlProcessingFile.textContent = file.name;
+          }
+
+          if (xmlProcessingStatus) {
+            xmlProcessingStatus.textContent =
+              "Starting conversion...";
+          }
+
+          if (xmlProcessingProgressBar) {
+            xmlProcessingProgressBar.style.width = "0%";
+          }
+
+          if (xmlProcessingPercent) {
+            xmlProcessingPercent.textContent = "0%";
+          }
+
+          if (xmlProcessingSpinner) {
+            xmlProcessingSpinner.style.display = "block";
+          }
+
+          // Keep existing progress system hidden.
+          // The backend job status is now the source of truth.
+          progress.style.display = "none";
+          progressBar.style.width = "0%";
           messageDiv.style.display = "none";
 
           try {
@@ -4353,8 +4585,6 @@ fileInput.addEventListener("change", function (e) {
                formData.append("match_session_id", currentSessionId);
                console.log("📤 Appended match_session_id to conversion form:", currentSessionId);
             }
-
-            progressBar.style.width = "60%";
             const response = await fetch('/api/convert', {
               method: 'POST',
               body: formData,
@@ -4387,8 +4617,24 @@ fileInput.addEventListener("change", function (e) {
 
               status = await statusResponse.json();
 
-              if (status.progress != null) {
-                progressBar.style.width = `${status.progress}%`;
+              const realProgress = Math.max(
+                0,
+                Math.min(100, Number(status.progress) || 0)
+              );
+
+              if (xmlProcessingProgressBar) {
+                xmlProcessingProgressBar.style.width =
+                  `${realProgress}%`;
+              }
+
+              if (xmlProcessingPercent) {
+                xmlProcessingPercent.textContent =
+                  `${realProgress}%`;
+              }
+
+              if (status.message && xmlProcessingStatus) {
+                xmlProcessingStatus.textContent =
+                  status.message;
               }
 
               if (status.message) {
@@ -4402,6 +4648,22 @@ fileInput.addEventListener("change", function (e) {
               if (status.status === "FAILED") {
                 throw new Error(status.message || "Conversion failed.");
               }
+            }
+            if (xmlProcessingProgressBar) {
+              xmlProcessingProgressBar.style.width = "100%";
+            }
+
+            if (xmlProcessingPercent) {
+              xmlProcessingPercent.textContent = "100%";
+            }
+
+            if (xmlProcessingStatus) {
+              xmlProcessingStatus.textContent =
+                "Conversion complete. Preparing download...";
+            }
+
+            if (xmlProcessingSpinner) {
+              xmlProcessingSpinner.style.display = "none";
             }
 
             // Download XML
