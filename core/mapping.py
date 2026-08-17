@@ -168,6 +168,31 @@ def load_all_mappings_postgres(user_id):
     return companies, mappings
 
 
+def get_single_company_mapping_postgres(company, user_id):
+    """Load only the selected company's mapping instead of every company mapping."""
+    started = time.perf_counter()
+    conn = get_db_connection()
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        query_started = time.perf_counter()
+        cur.execute(
+            "SELECT mapping FROM company_mapping WHERE company=%s AND user_id=%s LIMIT 1",
+            (company, user_id)
+        )
+        query_ms = int((time.perf_counter() - query_started) * 1000)
+        row = cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
+
+    total_ms = int((time.perf_counter() - started) * 1000)
+    logger.info(
+        "[MAPPING-SWITCH-DB] company=%s user_id=%s total=%sms query=%sms found=%s",
+        company, user_id, total_ms, query_ms, bool(row)
+    )
+    return row["mapping"] if row else None
+
+
 def save_company_mapping_postgres(company, mapping, user_id):
     conn = get_db_connection()
     cur = conn.cursor()
@@ -237,9 +262,11 @@ def get_company_mapping(name, user_id):
     started = time.perf_counter()
     logger.info("[MAPPING-SWITCH] start company=%s user_id=%s", name, user_id)
 
-    companies, mappings = load_all_mappings_postgres(user_id)
+    # Only load the selected company. This avoids transferring all company
+    # JSONB mappings from Supabase on every company switch.
+    mapping = get_single_company_mapping_postgres(name, user_id)
 
-    if name not in mappings:
+    if mapping is None:
         logger.info(
             "[MAPPING-SWITCH] company_not_found company=%s user_id=%s total=%sms",
             name, user_id, int((time.perf_counter() - started) * 1000)
@@ -248,11 +275,11 @@ def get_company_mapping(name, user_id):
 
     total_ms = int((time.perf_counter() - started) * 1000)
     logger.info(
-        "[MAPPING-SWITCH] complete company=%s user_id=%s total=%sms companies_loaded=%s",
-        name, user_id, total_ms, len(companies)
+        "[MAPPING-SWITCH] complete company=%s user_id=%s total=%sms",
+        name, user_id, total_ms
     )
 
-    return mappings[name]
+    return mapping
 
 
 def save_company_mapping(name, mapping, user_id):
