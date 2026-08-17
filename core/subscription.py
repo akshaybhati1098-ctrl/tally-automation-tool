@@ -34,36 +34,45 @@ def _ensure_pause_columns():
 
 
 def get_user_plan(user_id: int):
-    has_pause_columns = _ensure_pause_columns()
+    """Load the user's plan and XML usage using a single DB connection."""
+    # Pause columns are part of the current production schema. Avoid an
+    # information_schema connection on every subscription-page request.
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
-    pause_select = (
-        "u.subscription_paused_at, u.subscription_pause_remaining_seconds,"
-        if has_pause_columns
-        else "NULL AS subscription_paused_at, NULL AS subscription_pause_remaining_seconds,"
-    )
-    cur.execute(f"""
-        SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
-               {pause_select}
-               p.plan_name, p.price, p.match_limit, p.connector_enabled,
-               p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active,
-               p.xml_row_limit
-        FROM users u
-        LEFT JOIN subscription_plans p ON p.id = u.plan_id
-        WHERE u.id = %s
-    """, (user_id,))
-    data = cur.fetchone()
-    if data:
+    try:
+        cur.execute("""
+            SELECT u.id, u.plan_id, u.subscription_status, u.plan_start, u.plan_expiry,
+                   u.subscription_paused_at, u.subscription_pause_remaining_seconds,
+                   p.plan_name, p.price, p.match_limit, p.connector_enabled,
+                   p.xml_enabled, p.ocr_enabled, p.priority_support, p.is_active,
+                   p.xml_row_limit
+            FROM users u
+            LEFT JOIN subscription_plans p ON p.id = u.plan_id
+            WHERE u.id = %s
+        """, (user_id,))
+        data = cur.fetchone()
+        if not data:
+            return None
+
+        # Keep the plan query and usage query on the same connection. This is
+        # especially important on Render where Supabase connection latency is
+        # higher and the application pool is intentionally small.
+        cur.execute("""
+            SELECT used_count
+            FROM feature_usage
+            WHERE user_id=%s AND feature_name='xml_conversion'
+        """, (user_id,))
+        xml_usage = cur.fetchone()
         xml_limit = int(data["xml_row_limit"] or 0)
-        xml_usage = get_feature_usage(user_id, "xml_conversion")
         xml_used = int(xml_usage["used_count"]) if xml_usage else 0
         data["xml_row_limit"] = xml_limit
         data["xml_used_count"] = xml_used
         data["xml_remaining"] = max(0, xml_limit - xml_used)
         data["is_paused"] = str(data.get("subscription_status") or "").upper() == "PAUSED"
-    cur.close()
-    conn.close()
-    return data
+        return data
+    finally:
+        cur.close()
+        conn.close()
 
 
 def get_plan_name(user_id: int):
@@ -95,14 +104,15 @@ def get_match_limit(user_id):
 def get_feature_usage(user_id: int, feature_name: str):
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
-    cur.execute("""
-        SELECT * FROM feature_usage
-        WHERE user_id=%s AND feature_name=%s
-    """, (user_id, feature_name))
-    usage = cur.fetchone()
-    cur.close()
-    conn.close()
-    return usage
+    try:
+        cur.execute("""
+            SELECT * FROM feature_usage
+            WHERE user_id=%s AND feature_name=%s
+        """, (user_id, feature_name))
+        return cur.fetchone()
+    finally:
+        cur.close()
+        conn.close()
 
 
 def get_remaining_feature_usage(user_id, feature_name):
@@ -155,10 +165,21 @@ def increment_xml_conversion_usage(user_id: int, row_count: int):
             VALUES (%s, 'xml_conversion', 0, CURRENT_DATE)
             ON CONFLICT (user_id, feature_name) DO NOTHING
         """, (user_id,))
-        plan = get_user_plan(user_id)
-        if plan and plan.get("is_paused"):
+
+        # Read the plan inside the same transaction/connection. The previous
+        # implementation opened another pooled connection here, which could
+        # exhaust the small Render/Supabase pool under concurrent requests.
+        cur.execute("""
+            SELECT u.subscription_status, p.xml_row_limit
+            FROM users u
+            LEFT JOIN subscription_plans p ON p.id = u.plan_id
+            WHERE u.id=%s
+        """, (user_id,))
+        plan = cur.fetchone()
+        if plan and str(plan[0] or "").upper() == "PAUSED":
             raise XMLConversionLimitError("⏸️ Your subscription is currently paused. Excel → Tally XML conversion is unavailable until your subscription is resumed.")
-        limit = int(plan.get("xml_row_limit", 0)) if plan else 0
+        limit = int(plan[1] or 0) if plan else 0
+
         cur.execute("""
             SELECT used_count FROM feature_usage
             WHERE user_id=%s AND feature_name='xml_conversion' FOR UPDATE
