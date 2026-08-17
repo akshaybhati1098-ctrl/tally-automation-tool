@@ -126,6 +126,52 @@
       to   { transform: scaleY(1); }
     }
 
+    /* Company mapping loading state */
+    .mapping-loading {
+      position: absolute;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255,255,255,0.72);
+      backdrop-filter: blur(3px);
+      -webkit-backdrop-filter: blur(3px);
+      border-radius: inherit;
+    }
+
+    .mapping-loading.show {
+      display: flex;
+    }
+
+    .mapping-loading-card {
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+      padding: 0.9rem 1.25rem;
+      background: var(--white);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      box-shadow: var(--shadow-md);
+      color: var(--ink2);
+      font-size: 0.86rem;
+      font-weight: 600;
+    }
+
+    .mapping-loading-spinner {
+      width: 22px;
+      height: 22px;
+      border: 3px solid rgba(22,73,224,0.16);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: mappingLoadingSpin 0.7s linear infinite;
+      flex-shrink: 0;
+    }
+
+    @keyframes mappingLoadingSpin {
+      to { transform: rotate(360deg); }
+    }
+
     .mapping-wrap .card {
       background: var(--white);
       border: 1px solid rgba(255,255,255,0.85);
@@ -1666,6 +1712,14 @@
 
   <div class="card">
 
+    <!-- Loading overlay shown while the selected company's mapping is fetched -->
+    <div id="mappingLoading" class="mapping-loading" aria-live="polite" aria-busy="false">
+      <div class="mapping-loading-card">
+        <span class="mapping-loading-spinner" aria-hidden="true"></span>
+        <span id="mappingLoadingText">Loading mapping…</span>
+      </div>
+    </div>
+
      <div class="card-header">
 
     <div class="toolbar-left">
@@ -2867,7 +2921,23 @@
 
             }
 
-             async function selectCompany(name) {
+             function setMappingLoading(isLoading, companyName) {
+                const loader = document.getElementById('mappingLoading');
+                const loaderText = document.getElementById('mappingLoadingText');
+
+                if (!loader) return;
+
+                loader.classList.toggle('show', isLoading);
+                loader.setAttribute('aria-busy', isLoading ? 'true' : 'false');
+
+                if (loaderText) {
+                    loaderText.textContent = isLoading
+                        ? `Loading ${companyName || 'company'} mapping…`
+                        : 'Loading mapping…';
+                }
+            }
+
+            async function selectCompany(name) {
 
                 currentCompany = name;
                 window.__currentCompanyForCore = name;
@@ -2892,8 +2962,15 @@
                 if (deleteCompanyBtn) deleteCompanyBtn.style.display = isDefault ? 'none' : 'inline-flex';
                 if (renameCompanyBtn) renameCompanyBtn.style.display = isDefault ? 'none' : 'inline-flex';
 
+                setMappingLoading(true, name);
+
                 try {
                     const response = await fetch(`/api/mapping/${encodeURIComponent(name)}`);
+
+                    if (!response.ok) {
+                        throw new Error(`Mapping request failed (${response.status})`);
+                    }
+
                     currentMapping = await response.json();
                     if (!window.__mappingBridge) window.__mappingBridge = {};
                     window.__mappingBridge.currentMapping = currentMapping;
@@ -2903,6 +2980,8 @@
                     if (groupNames.length > 0) selectGroup(groupNames[0]);
                 } catch (err) {
                     alert('Failed to load mapping for this company.');
+                } finally {
+                    setMappingLoading(false);
                 }
             }
 
@@ -3044,6 +3123,7 @@
               
             } 
           
+
 
             function addRate(group) {
                 currentModalGroup = group;
