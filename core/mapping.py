@@ -1,6 +1,7 @@
 import json
 import os
 import logging
+import time
 import psycopg2
 from psycopg2.extras import Json, RealDictCursor
 
@@ -128,15 +129,20 @@ def get_blank_company_mapping():
     return mapping
 # ==================== POSTGRES ====================
 def load_all_mappings_postgres(user_id):
+    started = time.perf_counter()
     conn = get_db_connection()
     cur = conn.cursor(cursor_factory=RealDictCursor)
 
+    query_started = time.perf_counter()
     cur.execute(
         "SELECT company, mapping FROM company_mapping WHERE user_id=%s ORDER BY company",
         (user_id,)
     )
+    query_ms = int((time.perf_counter() - query_started) * 1000)
 
+    fetch_started = time.perf_counter()
     rows = cur.fetchall()
+    fetch_ms = int((time.perf_counter() - fetch_started) * 1000)
     cur.close()
     conn.close()
 
@@ -146,6 +152,18 @@ def load_all_mappings_postgres(user_id):
     for row in rows:
         mappings[row["company"]] = row["mapping"]
         companies.append(row["company"])
+
+    total_ms = int((time.perf_counter() - started) * 1000)
+    if total_ms >= 500:
+        logger.info(
+            "[MAPPING-SLOW] load_all_mappings_postgres: total=%sms query=%sms fetch=%sms rows=%s user_id=%s",
+            total_ms, query_ms, fetch_ms, len(rows), user_id
+        )
+    else:
+        logger.info(
+            "[MAPPING] load_all_mappings_postgres: total=%sms query=%sms fetch=%sms rows=%s user_id=%s",
+            total_ms, query_ms, fetch_ms, len(rows), user_id
+        )
 
     return companies, mappings
 
@@ -216,10 +234,23 @@ def delete_company(name, user_id):
 
 
 def get_company_mapping(name, user_id):
-    _, mappings = load_all_mappings_postgres(user_id)
+    started = time.perf_counter()
+    logger.info("[MAPPING-SWITCH] start company=%s user_id=%s", name, user_id)
+
+    companies, mappings = load_all_mappings_postgres(user_id)
 
     if name not in mappings:
+        logger.info(
+            "[MAPPING-SWITCH] company_not_found company=%s user_id=%s total=%sms",
+            name, user_id, int((time.perf_counter() - started) * 1000)
+        )
         raise ValueError("Not found")
+
+    total_ms = int((time.perf_counter() - started) * 1000)
+    logger.info(
+        "[MAPPING-SWITCH] complete company=%s user_id=%s total=%sms companies_loaded=%s",
+        name, user_id, total_ms, len(companies)
+    )
 
     return mappings[name]
 
