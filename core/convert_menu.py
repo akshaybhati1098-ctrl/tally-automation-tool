@@ -42,10 +42,6 @@ def add_entry(v, ledger, positive, amt):
     ET.SubElement(e, "AMOUNT").text = f"{(-amt if positive else amt):.2f}"
 
 def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
-    print("\n========== XML INPUT ==========")
-    print("Columns:", df.columns.tolist())
-    if "Final Party Name" in df.columns: print(df[["Recipient Name", "Final Party Name"]].head(10))
-    else: print(df[["Recipient Name"]].head(10))
     use_excel_ledgers = bool(use_excel_ledgers)
     if not use_excel_ledgers and not is_already_normalized(mapping): mapping = normalize_mapping(mapping)
     if use_excel_ledgers:
@@ -67,7 +63,7 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
         date_str=tally_date(invoice_date)
         if date_str: ET.SubElement(V,"DATE").text=date_str
         ET.SubElement(V,"VOUCHERTYPENAME").text=tally_voucher_name
-        party=clean_text(first_non_empty(row,"Final Party Name","Party","Recipient Name")); print(f"Row {i}"); print("Recipient Name :",row.get("Recipient Name")); print("Final Party Name :",row.get("Final Party Name")); print("Party used :",party)
+        party=clean_text(first_non_empty(row,"Final Party Name","Party","Recipient Name"))
         if vtype in sales_style_types:
             if use_excel_ledgers:
                 sales_ledger=clean_text(first_non_empty(row,"Sales Ledger")); cgst_ledger=clean_text(first_non_empty(row,"CGST Ledger")); sgst_ledger=clean_text(first_non_empty(row,"SGST Ledger")); igst_ledger=clean_text(first_non_empty(row,"IGST Ledger"))
@@ -115,5 +111,4 @@ def convert_excel_to_xml(vtype, df, out_dir, mapping, use_excel_ledgers=False):
                 if igst_ledger and igst: add_entry(V,igst_ledger,True,igst)
     file_name=f"{vtype}_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xml"; xml_path=os.path.join(out_dir,file_name); xml_str=minidom.parseString(ET.tostring(ENV,encoding="utf-8")).toprettyxml(indent="  ")
     with open(xml_path,"w",encoding="utf-8") as f: f.write(xml_str)
-    print("📁 FILE SAVED:",xml_path)
     return xml_path,record_count
