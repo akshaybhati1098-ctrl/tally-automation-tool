@@ -1,3 +1,4 @@
+import time
 from psycopg2.extras import RealDictCursor
 from database import get_db_connection
 from datetime import datetime, timedelta
@@ -14,12 +15,22 @@ class XMLConversionLimitError(Exception):
 _pause_columns_available_cache = None
 
 
+def _log_slow_subscription(location: str, elapsed_ms: int, user_id=None, feature=None):
+    """Diagnostic-only logging for slow subscription/database operations."""
+    if elapsed_ms >= 500:
+        print(
+            f"[SUBSCRIPTION-SLOW] {location}: {elapsed_ms}ms "
+            f"user_id={user_id} feature={feature or '-'}"
+        )
+
+
 def _ensure_pause_columns():
     """Check whether pause metadata exists without executing DDL."""
     global _pause_columns_available_cache
     if _pause_columns_available_cache is not None:
         return _pause_columns_available_cache
 
+    started = time.perf_counter()
     conn = get_db_connection()
     cur = conn.cursor()
     try:
@@ -35,6 +46,10 @@ def _ensure_pause_columns():
     finally:
         cur.close()
         conn.close()
+        _log_slow_subscription(
+            "_ensure_pause_columns",
+            int((time.perf_counter() - started) * 1000),
+        )
 
 
 def _xml_limit_from_plan_name(plan_name):
@@ -49,6 +64,7 @@ def _xml_limit_from_plan_name(plan_name):
 
 
 def get_user_plan(user_id: int):
+    started = time.perf_counter()
     has_pause_columns = _ensure_pause_columns()
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
@@ -84,6 +100,11 @@ def get_user_plan(user_id: int):
         data["is_paused"] = str(data.get("subscription_status") or "").upper() == "PAUSED"
     cur.close()
     conn.close()
+    _log_slow_subscription(
+        "get_user_plan",
+        int((time.perf_counter() - started) * 1000),
+        user_id=user_id,
+    )
     return data
 
 
@@ -114,6 +135,7 @@ def get_match_limit(user_id):
 
 
 def get_feature_usage(user_id: int, feature_name: str):
+    started = time.perf_counter()
     conn = get_db_connection(cursor_factory=RealDictCursor)
     cur = conn.cursor()
     cur.execute("""
@@ -123,6 +145,12 @@ def get_feature_usage(user_id: int, feature_name: str):
     usage = cur.fetchone()
     cur.close()
     conn.close()
+    _log_slow_subscription(
+        "get_feature_usage",
+        int((time.perf_counter() - started) * 1000),
+        user_id=user_id,
+        feature=feature_name,
+    )
     return usage
 
 
@@ -205,21 +233,65 @@ def increment_xml_conversion_usage(user_id: int, row_count: int):
 
 
 def can_use_feature(user_id: int, feature_name: str):
+    started = time.perf_counter()
     if not has_feature(user_id, feature_name):
-        return False, "Your current plan does not include this feature."
+        result = (False, "Your current plan does not include this feature.")
+        _log_slow_subscription(
+            "can_use_feature",
+            int((time.perf_counter() - started) * 1000),
+            user_id=user_id,
+            feature=feature_name,
+        )
+        return result
     plan = get_user_plan(user_id)
     if plan.get("is_paused"):
         if feature_name == "party_matching":
-            return False, "⏸️ Your subscription is currently paused. Party Matching is unavailable until your subscription is resumed."
-        return False, "⏸️ Your subscription is currently paused."
+            result = (False, "⏸️ Your subscription is currently paused. Party Matching is unavailable until your subscription is resumed.")
+        else:
+            result = (False, "⏸️ Your subscription is currently paused.")
+        _log_slow_subscription(
+            "can_use_feature",
+            int((time.perf_counter() - started) * 1000),
+            user_id=user_id,
+            feature=feature_name,
+        )
+        return result
     if plan["plan_expiry"] is not None and datetime.now() > plan["plan_expiry"]:
-        return False, "Your subscription has expired."
+        result = (False, "Your subscription has expired.")
+        _log_slow_subscription(
+            "can_use_feature",
+            int((time.perf_counter() - started) * 1000),
+            user_id=user_id,
+            feature=feature_name,
+        )
+        return result
     remaining = get_remaining_feature_usage(user_id, feature_name)
     if remaining == -1:
-        return True, ""
+        result = (True, "")
+        _log_slow_subscription(
+            "can_use_feature",
+            int((time.perf_counter() - started) * 1000),
+            user_id=user_id,
+            feature=feature_name,
+        )
+        return result
     if remaining <= 0:
-        return False, "You have reached your matching limit."
-    return True, ""
+        result = (False, "You have reached your matching limit.")
+        _log_slow_subscription(
+            "can_use_feature",
+            int((time.perf_counter() - started) * 1000),
+            user_id=user_id,
+            feature=feature_name,
+        )
+        return result
+    result = (True, "")
+    _log_slow_subscription(
+        "can_use_feature",
+        int((time.perf_counter() - started) * 1000),
+        user_id=user_id,
+        feature=feature_name,
+    )
+    return result
 
 
 def increment_feature_usage(user_id: int, feature_name: str):
