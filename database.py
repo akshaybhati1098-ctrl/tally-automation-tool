@@ -87,8 +87,11 @@ def get_db_connection(
     cursor_factory=None
 ):
     """Return a pooled PostgreSQL connection with the existing API preserved."""
+    request_started = time.perf_counter()
     for attempt in range(retries):
+        wait_started = time.perf_counter()
         acquired = _pool_slots.acquire(timeout=30)
+        pool_wait_ms = int((time.perf_counter() - wait_started) * 1000)
         if not acquired:
             if attempt == retries - 1:
                 raise psycopg2.OperationalError(
@@ -100,6 +103,12 @@ def get_db_connection(
         try:
             pool = _get_pool()
             connection = pool.getconn()
+            total_ms = int((time.perf_counter() - request_started) * 1000)
+            if pool_wait_ms >= 500 or total_ms >= 1000:
+                print(
+                    f"[DB-SLOW] connection acquire: wait={pool_wait_ms}ms "
+                    f"total={total_ms}ms pool_max={DB_POOL_MAX} attempt={attempt + 1}"
+                )
             return _PooledConnection(pool, connection, cursor_factory=cursor_factory)
         except psycopg2.OperationalError:
             _pool_slots.release()
