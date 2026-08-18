@@ -6072,8 +6072,9 @@ fileInput.addEventListener("change", function (e) {
         ?.addEventListener("click", async () => {
           try {
             const group = document.getElementById("ledgerTypeSelect").value;
+            const tallyCompany = window.currentTallyCompany || "";
             const res = await fetch(
-              `/api/tally/ledgers?group=${encodeURIComponent(group)}`,
+              `/api/tally/ledgers?group=${encodeURIComponent(group)}&tally_company=${encodeURIComponent(tallyCompany)}`,
             );
             const data = await res.json();
 
@@ -6237,6 +6238,7 @@ fileInput.addEventListener("change", function (e) {
         if (groupEl && groupEl.value) {
           formData.append("tally_group", groupEl.value);
         }
+        formData.append("tally_company", window.currentTallyCompany || "");
         formData.append(
           "manual_columns",
           JSON.stringify(window_manualColumns),

@@ -29,6 +29,15 @@ TALLY_LEDGER_CACHE_TTL = 600  # seconds
 # Job statuses: PENDING, PROCESSING, COMPLETED, FAILED
 JOB_STATUS = {}  # {job_id: {"status": "...", "progress": 0-100, "message": "..."}}
 
+
+def _tally_ledger_cache_key(user_id: str, company: str, group: str) -> tuple:
+    """Scope cached ledger results to the user, active Tally company, and group."""
+    normalized_company = (company or "").strip().lower()
+    normalized_group = (group or "").strip().lower()
+    if normalized_group == "all":
+        normalized_group = ""
+    return str(user_id), normalized_company, normalized_group
+
 # Thread pool for blocking operations
 thread_pool = ThreadPoolExecutor(max_workers=4)
 
@@ -1633,6 +1642,7 @@ from fastapi import Query
 async def api_tally_ledgers(
     request: Request,
     group: str = Query(None),
+    tally_company: str = Query(None),
     user: str = Depends(require_login),
 ):
     print("📦 API received group:", group)
@@ -1675,12 +1685,8 @@ async def api_tally_ledgers(
     ledgers, g_map = await run_blocking(
         _parse_tally_ledgers_for_match, raw_xml, group
     )
-    normalized_group = (group or "").strip().lower()
-    if normalized_group == "all":
-        normalized_group = ""
-
-    TALLY_LEDGER_CACHE[user_id] = {
-        "group": normalized_group,
+    cache_key = _tally_ledger_cache_key(user_id, tally_company, group)
+    TALLY_LEDGER_CACHE[cache_key] = {
         "ledgers": ledgers,
         "g_map": g_map,
         "fetched_at": time.monotonic(),
@@ -1695,6 +1701,7 @@ async def _run_party_match_task(
     contents: bytes,
     filename: str,
     tally_group: str,
+    tally_company: str,
     sheet_name: str,
     manual_columns: str,
     user_id: str,
@@ -1797,13 +1804,10 @@ async def _run_party_match_task(
 
         # Reuse ledgers already fetched by the user from the Tally Status section.
         # This prevents Party Matching from making a second connector/Tally request.
-        cache = TALLY_LEDGER_CACHE.get(user_id)
-        requested_group = (tally_group or "").strip().lower()
-        if requested_group == "all":
-            requested_group = ""
+        cache_key = _tally_ledger_cache_key(user_id, tally_company, tally_group)
+        cache = TALLY_LEDGER_CACHE.get(cache_key)
         cache_is_valid = (
             cache
-            and cache.get("group") == requested_group
             and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
         )
 
@@ -1868,8 +1872,7 @@ async def _run_party_match_task(
                 )
 
             # Store the fallback fetch too, so a subsequent match can reuse it.
-            TALLY_LEDGER_CACHE[user_id] = {
-                "group": requested_group,
+            TALLY_LEDGER_CACHE[cache_key] = {
                 "ledgers": ledgers,
                 "g_map": g_map,
                 "fetched_at": time.monotonic(),
@@ -2023,6 +2026,7 @@ async def start_match_party_task(
     request: Request,
     file: UploadFile = File(...),
     tally_group: str = Form(None),
+    tally_company: str = Form(None),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
     user: str = Depends(require_login),
@@ -2046,6 +2050,7 @@ async def start_match_party_task(
             contents=contents,
             filename=file.filename,
             tally_group=tally_group,
+            tally_company=tally_company,
             sheet_name=sheet_name,
             manual_columns=manual_columns,
             user_id=user_id,
@@ -2114,6 +2119,7 @@ async def match_party(
     request: Request,
     file: UploadFile = File(...),
     tally_group: str = Form(None),
+    tally_company: str = Form(None),
     sheet_name: str = Form(None),
     manual_columns: str = Form("{}"),
     user: str = Depends(require_login),
@@ -2223,13 +2229,10 @@ async def match_party(
         print("📦 MATCH using group:", tally_group)
 
         # Reuse the same per-user ledger cache used by the background matching flow.
-        cache = TALLY_LEDGER_CACHE.get(user_id_str)
-        requested_group = (tally_group or "").strip().lower()
-        if requested_group == "all":
-            requested_group = ""
+        cache_key = _tally_ledger_cache_key(user_id_str, tally_company, tally_group)
+        cache = TALLY_LEDGER_CACHE.get(cache_key)
         cache_is_valid = (
             cache
-            and cache.get("group") == requested_group
             and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
         )
 
@@ -2269,8 +2272,7 @@ async def match_party(
                     _parse_tally_ledgers_for_match, raw_xml, tally_group
                 )
 
-            TALLY_LEDGER_CACHE[user_id_str] = {
-                "group": requested_group,
+            TALLY_LEDGER_CACHE[cache_key] = {
                 "ledgers": ledgers,
                 "g_map": g_map,
                 "fetched_at": time.monotonic(),
