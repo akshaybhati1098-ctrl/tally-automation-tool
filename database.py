@@ -46,9 +46,6 @@ def get_db_connection(
                 raise
 
             wait = backoff * (2 ** attempt)
-
-            print(f"Retrying database connection in {wait}s...")
-
             time.sleep(wait)
 
 
