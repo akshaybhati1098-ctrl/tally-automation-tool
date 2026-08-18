@@ -63,11 +63,8 @@
         status.textContent = "Fetch complete";
         count.textContent = `${ledgers.length.toLocaleString()} ledgers fetched`;
 
-        const statusBox = document.getElementById("tallyStatusBox");
-        if (statusBox) {
-          statusBox.innerHTML = `<strong>✓ ${ledgers.length.toLocaleString()} ledgers fetched</strong><br><small>${escapeText(group)}</small>`;
-        }
-
+        // Ledger fetch is intentionally isolated from the existing Tally Status card.
+        // Do not update #tallyStatusBox here; that card is owned by the Tally status UI.
         const done = overlay.querySelector("#ledgerFetchDone");
         done.style.display = "inline-flex";
         done.onclick = () => overlay.remove();
