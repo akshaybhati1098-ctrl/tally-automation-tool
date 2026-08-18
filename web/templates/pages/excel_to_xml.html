@@ -7519,10 +7519,7 @@ async function generateMasterXml() {
 
     try {
 
-        const rows = (window.matchRows || []).filter(
-            row => row.status === "review" ||
-                   row.status === "not_matched"
-        );
+        const rows = getMissingLedgerRows();
 
         if (rows.length === 0) {
             window.showToast("No missing ledgers found.", "info");
