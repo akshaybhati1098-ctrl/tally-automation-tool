@@ -6,6 +6,10 @@
     const groupSelect = document.getElementById("ledgerTypeSelect");
     if (!button || !groupSelect) return;
 
+    // Move the small fetch control directly below the ledger-group selector.
+    const groupContainer = groupSelect.closest(".form-group");
+    if (groupContainer) groupContainer.appendChild(button);
+
     button.textContent = "↻ Fetch Tally Ledgers";
     button.className = "btn-secondary tally-ledger-fetch-small";
     button.style.cssText = "display:block;margin:8px 0 0;width:auto;padding:7px 12px;font-size:.78rem;";
