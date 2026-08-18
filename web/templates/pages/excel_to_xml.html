@@ -6437,6 +6437,7 @@ fileInput.addEventListener("change", function (e) {
           return isMissing && !corrected;
         });
       }
+      window.getMissingLedgerRows = getMissingLedgerRows;
 
       function normalizePartyGroupName(value) {
         return String(value || "")
@@ -7519,7 +7520,7 @@ async function generateMasterXml() {
 
     try {
 
-        const rows = getMissingLedgerRows();
+        const rows = window.getMissingLedgerRows();
 
         if (rows.length === 0) {
             window.showToast("No missing ledgers found.", "info");
