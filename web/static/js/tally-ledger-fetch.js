@@ -6,7 +6,7 @@
     const groupSelect = document.getElementById("ledgerTypeSelect");
     if (!button || !groupSelect) return;
 
-    // Move the small fetch control directly below the ledger-group selector.
+    // Keep the fetch control directly below the ledger-group selector.
     const groupContainer = groupSelect.closest(".form-group");
     if (groupContainer) groupContainer.appendChild(button);
 
@@ -25,12 +25,13 @@
       const status = overlay.querySelector("#ledgerFetchStatus");
       const count = overlay.querySelector("#ledgerFetchCount");
       const title = overlay.querySelector("#ledgerFetchGroup");
+      const spinner = overlay.querySelector("#ledgerFetchSpinner");
 
       button.disabled = true;
       button.style.opacity = "0.65";
       title.textContent = group;
-      status.textContent = "Connecting to Tally...";
-      count.textContent = "0 ledgers fetched";
+      status.textContent = "Connecting to Tally";
+      count.textContent = "";
 
       try {
         let data = null;
@@ -47,7 +48,7 @@
 
           if (data.status !== "waiting") break;
 
-          status.textContent = "Waiting for Tally data...";
+          status.textContent = "Waiting for Tally data";
           await new Promise((resolve) => setTimeout(resolve, 500));
         }
 
@@ -57,8 +58,10 @@
 
         const ledgers = Array.isArray(data.ledgers) ? data.ledgers : [];
         window.tallyLedgers = ledgers;
+
+        spinner.style.display = "none";
+        status.textContent = "Fetch complete";
         count.textContent = `${ledgers.length.toLocaleString()} ledgers fetched`;
-        status.textContent = "Ledger fetch completed";
 
         const statusBox = document.getElementById("tallyStatusBox");
         if (statusBox) {
@@ -69,9 +72,11 @@
         done.style.display = "inline-flex";
         done.onclick = () => overlay.remove();
       } catch (error) {
-        status.textContent = "Ledger fetch failed";
+        spinner.style.display = "none";
+        status.textContent = "Fetch failed";
         count.textContent = error?.message || "Unable to fetch ledgers";
         count.classList.add("ledger-fetch-error");
+
         const done = overlay.querySelector("#ledgerFetchDone");
         done.style.display = "inline-flex";
         done.textContent = "Close";
@@ -85,7 +90,11 @@
 
   function escapeText(value) {
     return String(value).replace(/[&<>"']/g, (char) => ({
-      "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;",
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      "\"": "&quot;",
+      "'": "&#39;",
     })[char]);
   }
 
@@ -100,76 +109,95 @@
           z-index: 99999;
           display: grid;
           place-items: center;
-          background: rgba(10, 15, 30, .38);
-          backdrop-filter: blur(5px);
           padding: 20px;
+          background: rgba(10, 15, 30, .30);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-card {
-          width: min(390px, 92vw);
-          background: #fff;
-          border: 1px solid #e2ebf8;
-          border-radius: 22px;
-          padding: 30px 28px 24px;
-          box-shadow: 0 24px 70px rgba(10,15,30,.22);
+          width: min(370px, 92vw);
+          padding: 34px 32px 28px;
+          background: #ffffff;
+          border: 1px solid rgba(226, 235, 248, .95);
+          border-radius: 20px;
+          box-shadow: 0 24px 70px rgba(10, 15, 30, .18),
+                      0 4px 16px rgba(10, 15, 30, .06);
           text-align: center;
         }
-        #tallyLedgerFetchOverlay .ledger-fetch-face {
-          width: 64px;
-          height: 64px;
-          margin: 0 auto 18px;
+
+        #tallyLedgerFetchOverlay .ledger-fetch-spinner {
+          width: 34px;
+          height: 34px;
+          margin: 0 auto 22px;
+          border: 3px solid #e8eef8;
+          border-top-color: #1649e0;
           border-radius: 50%;
-          display: grid;
-          place-items: center;
-          font-size: 31px;
-          background: #f4f7fd;
-          border: 1px solid #e2ebf8;
-          animation: tallyLedgerPulse 1.35s ease-in-out infinite;
+          animation: tallyLedgerSpin .8s linear infinite;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-title {
-          font: 700 1.05rem "DM Sans", sans-serif;
+          font: 600 1.05rem/1.4 "DM Sans", sans-serif;
+          letter-spacing: -.01em;
           color: #0a0f1e;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-group {
-          margin-top: 5px;
-          font: 600 .82rem "DM Sans", sans-serif;
+          margin-top: 6px;
+          font: 500 .82rem/1.4 "DM Sans", sans-serif;
           color: #1649e0;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-status {
-          margin-top: 18px;
-          font: 600 .82rem "DM Sans", sans-serif;
-          color: #344260;
+          margin-top: 20px;
+          font: 400 .84rem/1.4 "DM Sans", sans-serif;
+          color: #64748b;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-count {
+          min-height: 24px;
           margin-top: 8px;
-          font: 800 1.45rem "Syne", sans-serif;
+          font: 600 1rem/1.5 "DM Sans", sans-serif;
           color: #0a0f1e;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-error {
           color: #dc2626;
-          font-size: .9rem;
+          font-size: .86rem;
         }
+
         #tallyLedgerFetchOverlay .ledger-fetch-done {
           display: none;
-          margin-top: 20px;
+          align-items: center;
+          justify-content: center;
+          margin: 22px auto 0;
+          min-width: 76px;
+          padding: 9px 18px;
           border: 0;
-          border-radius: 10px;
-          padding: 9px 20px;
+          border-radius: 9px;
           background: #1649e0;
           color: #fff;
-          font: 700 .8rem "DM Sans", sans-serif;
+          font: 600 .82rem "DM Sans", sans-serif;
           cursor: pointer;
+          transition: transform .18s ease, box-shadow .18s ease;
         }
-        @keyframes tallyLedgerPulse {
-          0%,100% { transform: scale(1); opacity: .9; }
-          50% { transform: scale(1.06); opacity: 1; }
+
+        #tallyLedgerFetchOverlay .ledger-fetch-done:hover {
+          transform: translateY(-1px);
+          box-shadow: 0 5px 14px rgba(22, 73, 224, .24);
+        }
+
+        @keyframes tallyLedgerSpin {
+          to { transform: rotate(360deg); }
         }
       </style>
+
       <div class="ledger-fetch-card" role="dialog" aria-modal="true" aria-labelledby="ledgerFetchTitle">
-        <div class="ledger-fetch-face" aria-hidden="true">🙂</div>
+        <div class="ledger-fetch-spinner" id="ledgerFetchSpinner" aria-hidden="true"></div>
         <div class="ledger-fetch-title" id="ledgerFetchTitle">Fetching Tally Ledgers</div>
         <div class="ledger-fetch-group" id="ledgerFetchGroup">${escapeText(group)}</div>
-        <div class="ledger-fetch-status" id="ledgerFetchStatus">Connecting to Tally...</div>
-        <div class="ledger-fetch-count" id="ledgerFetchCount">0 ledgers fetched</div>
+        <div class="ledger-fetch-status" id="ledgerFetchStatus">Connecting to Tally</div>
+        <div class="ledger-fetch-count" id="ledgerFetchCount"></div>
         <button type="button" class="ledger-fetch-done" id="ledgerFetchDone">Done</button>
       </div>`;
     return overlay;
