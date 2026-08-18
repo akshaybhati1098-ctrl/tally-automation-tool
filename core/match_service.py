@@ -28,7 +28,6 @@ REMOVE_WORDS = [
 ]
 
 # Match removable business suffixes as complete words/phrases only.
-# This prevents terms such as "co" or "inc" from altering legitimate words.
 _REMOVE_WORDS_PATTERN = re.compile(
     r"\b(?:" + "|".join(re.escape(word) for word in sorted(REMOVE_WORDS, key=len, reverse=True)) + r")\b",
     flags=re.IGNORECASE,
@@ -122,6 +121,10 @@ def match_party_names(
     tally_gstin_map = tally_gstin_map or {}
     cleaned_ledger_names, cleaned_lookup = _build_ledger_lookup(tally_ledgers)
 
+    # Exact normalized-name lookup is checked before fuzzy matching.
+    # This avoids expensive RapidFuzz calls when the names are already equivalent.
+    exact_name_lookup = cleaned_lookup
+
     results: List[dict] = []
     total_rows = len(df)
     matched_count = 0
@@ -148,23 +151,31 @@ def match_party_names(
         else:
             cleaned_party = normalize_text(original_party_text)
             if cleaned_party and cleaned_ledger_names:
-                extracted = process.extractOne(
-                    cleaned_party,
-                    cleaned_ledger_names,
-                    scorer=fuzz.token_sort_ratio,
-                )
-                if extracted:
-                    matched_cleaned, score, _ = extracted
-                    best_score = int(score)
-
-                    # Only keep suggestion if score is high enough for review
-                    if best_score >= REVIEW_THRESHOLD:
-                        best_match = cleaned_lookup.get(matched_cleaned, "")
-                        match_by = "Name"
+                # Fast path: exact normalized name match.
+                exact_match = exact_name_lookup.get(cleaned_party)
+                if exact_match:
+                    best_match = exact_match
+                    best_score = 100
+                    match_by = "Name"
                 else:
-                    # Too weak → don't suggest anything
-                    best_match = ""
-                    match_by = "None"
+                    # Fuzzy matching remains the fallback for genuinely different names.
+                    extracted = process.extractOne(
+                        cleaned_party,
+                        cleaned_ledger_names,
+                        scorer=fuzz.token_sort_ratio,
+                    )
+                    if extracted:
+                        matched_cleaned, score, _ = extracted
+                        best_score = int(score)
+
+                        # Only keep suggestion if score is high enough for review
+                        if best_score >= REVIEW_THRESHOLD:
+                            best_match = cleaned_lookup.get(matched_cleaned, "")
+                            match_by = "Name"
+                    else:
+                        # Too weak → don't suggest anything
+                        best_match = ""
+                        match_by = "None"
 
         if best_score >= MATCHED_THRESHOLD:
             status = "matched"
