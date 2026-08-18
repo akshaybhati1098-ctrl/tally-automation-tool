@@ -39,7 +39,7 @@
                         <td>{% if u.plan_name == "Trial" %}<span class="badge bg-warning text-dark px-3">🎁 TRIAL</span>{% elif u.plan_name == "Basic" %}<span class="badge bg-secondary px-3">⭐ BASIC</span>{% elif u.plan_name == "Pro" %}<span class="badge bg-success px-3">🚀 PRO</span>{% else %}<span class="badge bg-dark px-3">UNKNOWN</span>{% endif %}</td>
                         <td>{% if u.subscription_status == "ACTIVE" %}<span class="badge bg-success">Active</span>{% else %}<span class="badge bg-danger">Expired</span>{% endif %}</td>
                         <td>{{ u.match_limit }}</td>
-                        <td class="small"><span class="badge bg-light text-primary border px-2 py-1 me-1">Conversions: <strong>{{ u.conversions }}</strong></span><span class="badge bg-light text-info border px-2 py-1 me-1">OCR: <strong>{{ u.ocr_jobs }}</strong></span><span class="badge bg-light text-success border px-2 py-1">Matches: <strong>{{ u.match_jobs }}</strong></span></td>
+                        <td class="small"><span class="badge bg-light text-primary border px-2 py-1 me-1">Conversions: <strong>{{ u.conversions }}</strong></span><span class="badge bg-light text-success border px-2 py-1">Matches: <strong>{{ u.match_jobs }}</strong></span></td>
                         <td class="text-start py-3" style="font-size: 0.82rem; line-height: 1.5;">
                             <div class="text-muted mb-1"><i class="bi bi-lightning-charge me-1 text-warning"></i>Last Activity: <span class="fw-bold text-dark">{{ u.last_activity }}</span></div>
                             <div class="text-muted mb-1"><i class="bi bi-check2-circle me-1 text-success"></i>Last Match Precision: <span class="fw-bold text-success">{{ u.last_match_pct | round(1) }}%</span></div>
@@ -148,15 +148,11 @@
     document.querySelectorAll(".manage-user").forEach(btn => {
         btn.addEventListener("click", async function () {
             currentUserId = this.dataset.userId;
-
-            // Show the modal immediately so a slow API response never looks like
-            // the Manage button itself is stuck.
             const modalElement = document.getElementById("customerModal");
             const modal = bootstrap.Modal.getOrCreateInstance(modalElement);
             const loadingState = modalElement.querySelector(".manage-loading-state");
             const detailsContent = modalElement.querySelector(".manage-details-content");
             const saveButton = document.getElementById("saveSubscription");
-
             loadingState.classList.remove("d-none");
             detailsContent.classList.add("d-none");
             saveButton.disabled = true;
@@ -166,13 +162,11 @@
                 const res = await fetch(`/admin/api/admin/user/${currentUserId}`, { cache: "no-store" });
                 if (!res.ok) throw new Error(`Server returned HTTP status code ${res.status}`);
                 const data = await res.json();
-
                 document.getElementById("cm_username").value = data.user.username;
                 document.getElementById("cm_email").value = data.user.email;
                 document.getElementById("cm_remaining").value = data.remaining_matching;
                 document.getElementById("cm_match_limit").value = data.subscription.match_limit;
                 document.getElementById("cm_plan").value = data.subscription.plan_id;
-
                 loadingState.classList.add("d-none");
                 detailsContent.classList.remove("d-none");
                 saveButton.disabled = false;
