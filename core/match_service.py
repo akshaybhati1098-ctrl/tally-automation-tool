@@ -160,9 +160,9 @@ def match_party_names(
                         best_match = ""
                         match_by = "None"
 
-        if best_score > MATCHED_THRESHOLD:
+        if best_score >= MATCHED_THRESHOLD:
             status = "matched"
-        elif REVIEW_THRESHOLD <= best_score <= MATCHED_THRESHOLD:
+        elif REVIEW_THRESHOLD <= best_score < MATCHED_THRESHOLD:
             status = "review"
         else:
             status = "not_matched"
