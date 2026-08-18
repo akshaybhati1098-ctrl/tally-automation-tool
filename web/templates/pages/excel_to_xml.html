@@ -7547,6 +7547,13 @@ async function generateMasterXml() {
 
         });
 
+        // Defensive check: ensure we have ledgers after deduplication
+        if (ledgers.length === 0) {
+            console.warn("No valid ledgers after deduplication. getMissingLedgerRows returned:", rows);
+            window.showToast("All parties have been fixed. No missing ledgers to generate.", "info");
+            return;
+        }
+
         const payload = {
             parent_group: document.getElementById("ledgerTypeSelect").value,
             ledgers: ledgers,
@@ -7594,9 +7601,25 @@ async function generateMasterXml() {
     }
     catch (e) {
 
-        console.error(e);
+        console.error("Master XML error:", e);
+        
+        // Try to parse JSON error from backend
+        let errorMsg = e.message;
+        try {
+            if (errorMsg.startsWith("{")) {
+                const parsed = JSON.parse(errorMsg);
+                if (parsed.detail) {
+                    errorMsg = parsed.detail;
+                }
+            }
+        } catch {}
 
-        window.showErrorPopup(e.message);
+        // Show user-friendly message
+        if (errorMsg.includes("No ledgers found")) {
+            window.showToast("All parties have been fixed. No missing ledgers to generate.", "info");
+        } else {
+            window.showErrorPopup(errorMsg || "Failed to generate Master XML");
+        }
 
     }
 
