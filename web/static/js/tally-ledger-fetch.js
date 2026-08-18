@@ -34,10 +34,14 @@
       count.textContent = "";
 
       try {
+        // Match the cache scope used by Party Matching.  Without the company in
+        // this request, a manual refresh was stored under the empty-company key
+        // while Party Matching looked up the active-company key.
+        const tallyCompany = window.currentTallyCompany || "";
         let data = null;
         for (let attempt = 0; attempt < 30; attempt += 1) {
           const response = await fetch(
-            `/api/tally/ledgers?group=${encodeURIComponent(group)}`,
+            `/api/tally/ledgers?group=${encodeURIComponent(group)}&tally_company=${encodeURIComponent(tallyCompany)}`,
             { cache: "no-store" },
           );
           data = await response.json();
