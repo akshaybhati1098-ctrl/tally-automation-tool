@@ -174,28 +174,40 @@
             });
         }
         
-        // UPDATED: Time Formatting Engine
-        // Converts raw ISO timestamps into clean human-readable text
+        // Time Formatting Engine
+        // Backend timestamps are ISO values. Interpret timezone-aware values
+        // correctly and let the browser convert them to local time.
         const timeWrappers = document.querySelectorAll('.time-ago-wrapper');
         timeWrappers.forEach(wrapper => {
             const isoTime = wrapper.getAttribute('data-isotime');
             const textSpan = wrapper.querySelector('.time-text');
             
-            if (!isoTime || isoTime === 'None' || isoTime.trim() === '') {
+            if (!isoTime || isoTime === 'None' || isoTime.trim() === '' || isoTime === '-') {
                 textSpan.innerText = 'Unknown';
                 return;
             }
             
             try {
-                // Remove the 'T' and microseconds to ensure clean JS parsing
-                const cleanIso = isoTime.replace('T', ' ').split('.')[0];
-                // Force parse as local time
-                const date = new Date(cleanIso.replace(/-/g, '/')); 
+                let date;
+
+                // Do not replace T with a space or force a browser-local parse.
+                // If the backend supplies a timezone offset, Date parses it correctly.
+                // A naive ISO value is treated as UTC because connector last_seen
+                // timestamps are backend/server timestamps.
+                const normalizedIso = isoTime.trim();
+                if (/Z$|[+-]\d{2}:?\d{2}$/.test(normalizedIso)) {
+                    date = new Date(normalizedIso);
+                } else {
+                    date = new Date(normalizedIso.replace(' ', 'T') + 'Z');
+                }
                 
-                if (isNaN(date.getTime())) return; // Fallback if parsing fails
+                if (isNaN(date.getTime())) {
+                    textSpan.innerText = 'Unknown';
+                    return;
+                }
                 
                 const now = new Date();
-                const diffSeconds = Math.floor((now - date) / 1000);
+                const diffSeconds = Math.max(0, Math.floor((now - date) / 1000));
                 
                 let formattedText = '';
                 
@@ -208,15 +220,20 @@
                     const hours = Math.floor(diffSeconds / 3600);
                     formattedText = `${hours}h ago`;
                 } else {
-                    // Show standard format for older items: "Oct 25, 2:30 PM"
-                    const options = { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' };
-                    formattedText = date.toLocaleDateString(undefined, options);
+                    const options = {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                        hour: 'numeric',
+                        minute: '2-digit'
+                    };
+                    formattedText = date.toLocaleString(undefined, options);
                 }
                 
                 textSpan.innerText = formattedText;
                 
             } catch (e) {
-                console.error("Time parsing error: ", e);
+                textSpan.innerText = 'Unknown';
             }
         });
     });
