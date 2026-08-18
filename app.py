@@ -22,6 +22,10 @@ from concurrent.futures import ThreadPoolExecutor
 MATCH_SESSIONS = {}
 JOBS = {}
 RESULTS = {}
+# Per-user cache for ledgers fetched from Tally.
+# Party Matching reuses this data to avoid a second connector/Tally request.
+TALLY_LEDGER_CACHE = {}
+TALLY_LEDGER_CACHE_TTL = 600  # seconds
 # Job statuses: PENDING, PROCESSING, COMPLETED, FAILED
 JOB_STATUS = {}  # {job_id: {"status": "...", "progress": 0-100, "message": "..."}}
 
@@ -1666,7 +1670,22 @@ async def api_tally_ledgers(
     except Exception:
         pass
 
-    ledgers = await run_blocking(_parse_tally_ledgers_api, raw_xml, group)
+    # Parse once and keep the ledger + GSTIN data available to Party Matching.
+    # Cache is isolated by user so another user's Tally data can never be reused.
+    ledgers, g_map = await run_blocking(
+        _parse_tally_ledgers_for_match, raw_xml, group
+    )
+    normalized_group = (group or "").strip().lower()
+    if normalized_group == "all":
+        normalized_group = ""
+
+    TALLY_LEDGER_CACHE[user_id] = {
+        "group": normalized_group,
+        "ledgers": ledgers,
+        "g_map": g_map,
+        "fetched_at": time.monotonic(),
+    }
+
     return {"status": "ok", "ledgers": ledgers}
 
 
@@ -1776,50 +1795,87 @@ async def _run_party_match_task(
             )
             return
 
-        task_progress_store.update(
-            task_id,
-            status="processing",
-            message="Fetching Party Ledgers from Tally...",
+        # Reuse ledgers already fetched by the user from the Tally Status section.
+        # This prevents Party Matching from making a second connector/Tally request.
+        cache = TALLY_LEDGER_CACHE.get(user_id)
+        requested_group = (tally_group or "").strip().lower()
+        if requested_group == "all":
+            requested_group = ""
+        cache_is_valid = (
+            cache
+            and cache.get("group") == requested_group
+            and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
         )
 
-        xml = build_ledger_xml(tally_group)
-        RESULTS.pop(user_id, None)
-        JOBS.setdefault(user_id, []).append({"xml": xml})
-        # #region agent log
-        _agent_debug_log(
-            "app.py:_run_party_match_task:job_queued",
-            "tally job queued for connector",
-            {"task_id": task_id, "user_id": user_id},
-            hypothesis_id="B",
-        )
-        # #endregion
-
-        result = None
-        for _ in range(20):
-            await asyncio.sleep(0.5)
-            result = RESULTS.get(user_id)
-            if result:
-                break
-
-        if not result:
-            await run_blocking(
-                log_business_error,
-                user_id=user_id,
-                username=username,
-                event_type="match_party",
-                error_type="connector_timeout",
-                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
+        if cache_is_valid:
+            ledgers = cache["ledgers"]
+            g_map = cache.get("g_map", {})
+            task_progress_store.update(
+                task_id,
+                status="processing",
+                message="Using previously fetched Party Ledgers...",
+                progress={"ledger_count": len(ledgers), "total_rows": len(df)},
             )
-            task_progress_store.fail(task_id, "Tally connector timed out while fetching ledgers.")
-            return
+            _agent_debug_log(
+                "app.py:_run_party_match_task:cache_hit",
+                "reusing previously fetched tally ledgers",
+                {"task_id": task_id, "user_id": user_id, "ledger_count": len(ledgers)},
+                hypothesis_id="B",
+            )
+        else:
+            # Backward-compatible fallback: if the user did not fetch ledgers first,
+            # Party Matching continues to fetch them exactly as it did before.
+            task_progress_store.update(
+                task_id,
+                status="processing",
+                message="Fetching Party Ledgers from Tally...",
+            )
 
-        raw_xml = result.get("data", "") or ""
+            xml = build_ledger_xml(tally_group)
+            RESULTS.pop(user_id, None)
+            JOBS.setdefault(user_id, []).append({"xml": xml})
+            _agent_debug_log(
+                "app.py:_run_party_match_task:job_queued",
+                "tally job queued for connector",
+                {"task_id": task_id, "user_id": user_id},
+                hypothesis_id="B",
+            )
+
+            result = None
+            for _ in range(20):
+                await asyncio.sleep(0.5)
+                result = RESULTS.get(user_id)
+                if result:
+                    break
+
+            if not result:
+                await run_blocking(
+                    log_business_error,
+                    user_id=user_id,
+                    username=username,
+                    event_type="match_party",
+                    error_type="connector_timeout",
+                    error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
+                )
+                task_progress_store.fail(task_id, "Tally connector timed out while fetching ledgers.")
+                return
+
+            raw_xml = result.get("data", "") or ""
+
+            async with match_semaphore:
+                ledgers, g_map = await run_blocking(
+                    _parse_tally_ledgers_for_match, raw_xml, tally_group
+                )
+
+            # Store the fallback fetch too, so a subsequent match can reuse it.
+            TALLY_LEDGER_CACHE[user_id] = {
+                "group": requested_group,
+                "ledgers": ledgers,
+                "g_map": g_map,
+                "fetched_at": time.monotonic(),
+            }
 
         async with match_semaphore:
-            ledgers, g_map = await run_blocking(
-                _parse_tally_ledgers_for_match, raw_xml, tally_group
-            )
-
             task_progress_store.update(
                 task_id,
                 message="Matching Excel parties with Tally ledgers...",
@@ -2162,41 +2218,65 @@ async def match_party(
                 "gstin_column": gstin_col,
             }
 
-        print("🔄 Fetching Tally ledgers...")
         user_id_str = get_session_user_id(request)
         print("CURRENT USER:", user_id_str)
         print("📦 MATCH using group:", tally_group)
 
-        xml = build_ledger_xml(tally_group)
-        RESULTS.pop(user_id_str, None)
-        JOBS.setdefault(user_id_str, []).append({"xml": xml})
+        # Reuse the same per-user ledger cache used by the background matching flow.
+        cache = TALLY_LEDGER_CACHE.get(user_id_str)
+        requested_group = (tally_group or "").strip().lower()
+        if requested_group == "all":
+            requested_group = ""
+        cache_is_valid = (
+            cache
+            and cache.get("group") == requested_group
+            and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
+        )
 
-        result = None
-        for _ in range(20):
-            await asyncio.sleep(0.5)
-            result = RESULTS.get(user_id_str)
-            if result:
-                break
+        if cache_is_valid:
+            print("♻️ Reusing cached Tally ledgers")
+            ledgers = cache["ledgers"]
+            g_map = cache.get("g_map", {})
+        else:
+            print("🔄 Fetching Tally ledgers...")
+            xml = build_ledger_xml(tally_group)
+            RESULTS.pop(user_id_str, None)
+            JOBS.setdefault(user_id_str, []).append({"xml": xml})
 
-        if not result:
-            print("⏳ Waiting for connector response...")
-            await run_blocking(
-                log_business_error,
-                user_id=user_id,
-                username=username,
-                event_type="match_party",
-                error_type="connector_timeout",
-                error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
-            )
-            return {"status": "waiting"}
+            result = None
+            for _ in range(20):
+                await asyncio.sleep(0.5)
+                result = RESULTS.get(user_id_str)
+                if result:
+                    break
 
-        raw_xml = result.get("data", "") or ""
+            if not result:
+                print("⏳ Waiting for connector response...")
+                await run_blocking(
+                    log_business_error,
+                    user_id=user_id,
+                    username=username,
+                    event_type="match_party",
+                    error_type="connector_timeout",
+                    error_message="Tally bridge connector interface timed out waiting for matching parameters ledger streaming.",
+                )
+                return {"status": "waiting"}
+
+            raw_xml = result.get("data", "") or ""
+
+            async with match_semaphore:
+                ledgers, g_map = await run_blocking(
+                    _parse_tally_ledgers_for_match, raw_xml, tally_group
+                )
+
+            TALLY_LEDGER_CACHE[user_id_str] = {
+                "group": requested_group,
+                "ledgers": ledgers,
+                "g_map": g_map,
+                "fetched_at": time.monotonic(),
+            }
 
         async with match_semaphore:
-            ledgers, g_map = await run_blocking(
-                _parse_tally_ledgers_for_match, raw_xml, tally_group
-            )
-
             await run_blocking(
                 log_admin_event,
                 user_id=user_id,
