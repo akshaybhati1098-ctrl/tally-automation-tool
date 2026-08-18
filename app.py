@@ -2643,6 +2643,7 @@ async def convert_excel_api(
                         user_id=user_id,
                         column_mapping=mapping_data,
                         tally_corrections=tally_corrections_data,
+                        ledger_list=session.get("ledger_list", []),
                     )
 
                 # Otherwise convert uploaded Excel normally (Only triggers if match_session_id was completely skipped)

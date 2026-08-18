@@ -6437,6 +6437,7 @@ fileInput.addEventListener("change", function (e) {
           return isMissing && !corrected;
         });
       }
+      window.getMissingLedgerRows = getMissingLedgerRows;
 
       function normalizePartyGroupName(value) {
         return String(value || "")
@@ -7519,10 +7520,7 @@ async function generateMasterXml() {
 
     try {
 
-        const rows = (window.matchRows || []).filter(
-            row => row.status === "review" ||
-                   row.status === "not_matched"
-        );
+        const rows = window.getMissingLedgerRows(); 
 
         if (rows.length === 0) {
             window.showToast("No missing ledgers found.", "info");
@@ -7535,7 +7533,7 @@ async function generateMasterXml() {
 
         rows.forEach(row => {
 
-            const name = getMasterXmlPartyName(row);
+            const name = String(row.original || "").trim();
 
             if (!name || seen.has(name))
                 return;
@@ -7544,7 +7542,7 @@ async function generateMasterXml() {
 
             ledgers.push({
                 party_name: name,
-                gstin: row.gstin || ""
+                gstin: String(row.gstin || "").trim()
             });
 
         });

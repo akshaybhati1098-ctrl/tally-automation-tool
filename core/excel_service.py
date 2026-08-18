@@ -98,6 +98,7 @@ def dataframe_to_xml(
     user_id: int,
     column_mapping: dict = None,
     tally_corrections: dict = None,
+    ledger_list=None,
 ):
     """
     Converts an already matching-reviewed pandas DataFrame directly into Tally XML format.
