@@ -27,12 +27,18 @@ REMOVE_WORDS = [
     "inc",
 ]
 
+# Match removable business suffixes as complete words/phrases only.
+# This prevents terms such as "co" or "inc" from altering legitimate words.
+_REMOVE_WORDS_PATTERN = re.compile(
+    r"\b(?:" + "|".join(re.escape(word) for word in sorted(REMOVE_WORDS, key=len, reverse=True)) + r")\b",
+    flags=re.IGNORECASE,
+)
+
 
 def normalize_text(value) -> str:
     text = "" if value is None else str(value)
     text = text.lower().strip()
-    for word in REMOVE_WORDS:
-        text = text.replace(word, " ")
+    text = _REMOVE_WORDS_PATTERN.sub(" ", text)
     text = re.sub(r"[^a-z0-9 ]+", " ", text)
     text = re.sub(r"\s+", " ", text).strip()
     return text
@@ -157,8 +163,8 @@ def match_party_names(
                         match_by = "Name"
                 else:
                     # Too weak → don't suggest anything
-                        best_match = ""
-                        match_by = "None"
+                    best_match = ""
+                    match_by = "None"
 
         if best_score >= MATCHED_THRESHOLD:
             status = "matched"
