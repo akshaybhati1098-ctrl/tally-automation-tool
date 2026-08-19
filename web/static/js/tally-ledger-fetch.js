@@ -204,6 +204,100 @@
     return overlay;
   }
 
+  function showExcelRequiredPopup() {
+    const existing = document.getElementById("excelRequiredPopup");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "excelRequiredPopup";
+    overlay.innerHTML = `
+      <style>
+        #excelRequiredPopup {
+          position: fixed;
+          inset: 0;
+          z-index: 100000;
+          display: grid;
+          place-items: center;
+          padding: 20px;
+          background: rgba(10, 15, 30, .28);
+          backdrop-filter: blur(5px);
+          -webkit-backdrop-filter: blur(5px);
+        }
+        #excelRequiredPopup .excel-required-card {
+          width: min(380px, 92vw);
+          padding: 30px 28px 24px;
+          background: #fff;
+          border: 1px solid #e2ebf8;
+          border-radius: 18px;
+          box-shadow: 0 24px 70px rgba(10, 15, 30, .18);
+          text-align: center;
+        }
+        #excelRequiredPopup .excel-required-icon {
+          width: 48px;
+          height: 48px;
+          margin: 0 auto 14px;
+          display: grid;
+          place-items: center;
+          border-radius: 14px;
+          background: rgba(22, 73, 224, .09);
+          font-size: 24px;
+        }
+        #excelRequiredPopup h3 {
+          margin: 0;
+          color: #0a0f1e;
+          font: 700 1.05rem/1.4 "DM Sans", sans-serif;
+        }
+        #excelRequiredPopup p {
+          margin: 8px 0 20px;
+          color: #7688a8;
+          font: 400 .88rem/1.5 "DM Sans", sans-serif;
+        }
+        #excelRequiredPopup button {
+          border: 0;
+          border-radius: 9px;
+          padding: 9px 20px;
+          background: #1649e0;
+          color: #fff;
+          font: 600 .84rem "DM Sans", sans-serif;
+          cursor: pointer;
+        }
+      </style>
+      <div class="excel-required-card" role="dialog" aria-modal="true" aria-labelledby="excelRequiredTitle">
+        <div class="excel-required-icon">📄</div>
+        <h3 id="excelRequiredTitle">Excel File Required</h3>
+        <p>Please upload an Excel file before matching parties.</p>
+        <button type="button" id="excelRequiredClose">OK</button>
+      </div>`;
+
+    const close = () => overlay.remove();
+    overlay.querySelector("#excelRequiredClose").addEventListener("click", close);
+    overlay.addEventListener("click", (event) => {
+      if (event.target === overlay) close();
+    });
+    document.addEventListener("keydown", function escHandler(event) {
+      if (event.key === "Escape") {
+        close();
+        document.removeEventListener("keydown", escHandler);
+      }
+    });
+    document.body.appendChild(overlay);
+  }
+
+  // Guard the Match Parties action before any existing click handler can start.
+  // This is capture-phase so it remains safe even if the page has another handler.
+  document.addEventListener("click", function (event) {
+    const matchButton = event.target.closest?.("#matchBtn");
+    if (!matchButton) return;
+
+    const fileInput = document.getElementById("fileInput");
+    const hasFile = !!(fileInput && fileInput.files && fileInput.files.length);
+    if (hasFile) return;
+
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    showExcelRequiredPopup();
+  }, true);
+
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", initTallyLedgerFetch);
   } else {
