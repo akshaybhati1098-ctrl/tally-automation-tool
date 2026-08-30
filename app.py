@@ -191,31 +191,76 @@ def _parse_tally_ledgers_api(raw_data: str, group: str | None):
     from core.tally_service import parse_ledgers_with_parent, parse_ledgers
 
     group_norm = (group or "").strip()
-    raw_xml = raw_data or ""
-
     if group_norm and group_norm.lower() != "all":
         parsed = parse_ledgers_with_parent(raw_data)
         group_norm_lower = group_norm.lower()
-        allowed = {
-            i["name"]
-            for i in parsed
-            if i.get("parent", "").strip().lower() == group_norm_lower
-        }
+        allowed = {i["name"] for i in parsed if i.get("parent", "").strip().lower() == group_norm_lower}
         if not allowed:
-            allowed = {
-                i["name"]
-                for i in parsed
-                if group_norm_lower in i.get("parent", "").strip().lower()
-            }
-        if allowed:
-            ledgers = [i["name"] for i in parsed if i["name"] in allowed]
-        else:
-            ledgers = parse_ledgers(raw_data)
+            allowed = {i["name"] for i in parsed if group_norm_lower in i.get("parent", "").strip().lower()}
+        ledgers = [i["name"] for i in parsed if i["name"] in allowed] if allowed else parse_ledgers(raw_data)
     else:
         ledgers = parse_ledgers(raw_data)
-
     return list(dict.fromkeys(ledgers))
 
+
+def _parse_party_ledgers_for_sql(raw_data: str, group: str | None):
+    from core.tally_service import parse_ledgers_with_parent, parse_ledgers_with_gstin
+    parsed = parse_ledgers_with_parent(raw_data)
+    _, gstin_to_ledger = parse_ledgers_with_gstin(raw_data)
+    ledger_to_gstin = {(name or "").strip(): (gstin or "").strip() for gstin, name in gstin_to_ledger.items() if (name or "").strip()}
+
+    group_norm = (group or "").strip().lower()
+    allowed_groups = {"sundry debtors", "sundry creditors"}
+    target_groups = allowed_groups if group_norm == "all" else {group_norm}
+
+    records, seen = [], set()
+    for item in parsed:
+        name = (item.get("name") or "").strip()
+        parent = (item.get("parent") or "").strip()
+        parent_norm = parent.lower()
+        if not name or parent_norm not in allowed_groups or parent_norm not in target_groups:
+            continue
+        key = (name.lower(), parent_norm)
+        if key in seen:
+            continue
+        seen.add(key)
+        records.append({"ledger_name": name, "parent_group": parent, "gstin": ledger_to_gstin.get(name, "")})
+    return records
+
+
+def _replace_tally_ledger_cache(user_id: str, company_name: str, group: str | None, records: list[dict]):
+    company_name = (company_name or "").strip()
+    group_norm = (group or "").strip().lower()
+    if not company_name:
+        raise ValueError("Tally company name is required.")
+
+    target_groups = ["Sundry Debtors", "Sundry Creditors"] if group_norm == "all" else [(group or "").strip()]
+    if not target_groups or any(not value for value in target_groups):
+        raise ValueError("A valid ledger group is required.")
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "DELETE FROM tally_ledger_cache WHERE user_id = %s AND company_name = %s AND parent_group = ANY(%s)",
+            (int(user_id), company_name, target_groups),
+        )
+        if records:
+            cur.executemany(
+                """
+                INSERT INTO tally_ledger_cache
+                    (user_id, company_name, ledger_name, parent_group, gstin, updated_at)
+                VALUES (%s, %s, %s, %s, %s, NOW())
+                """,
+                [(int(user_id), company_name, r["ledger_name"], r["parent_group"], r.get("gstin") or None) for r in records],
+            )
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        cur.close()
+        conn.close()
 
 def _agent_debug_log(location: str, message: str, data: dict | None = None, hypothesis_id: str = "A"):
     # #region agent log
@@ -1642,13 +1687,18 @@ from fastapi import Query
 async def api_tally_ledgers(
     request: Request,
     group: str = Query(None),
-    tally_company: str = Query(None),
+    company: str = Query(...),
     user: str = Depends(require_login),
 ):
     print("📦 API received group:", group)
+    print("🏢 API received company:", company)
 
     user_id = get_session_user_id(request)
     print("CURRENT USER:", user_id)
+
+    company_name = (company or "").strip()
+    if not company_name:
+        raise HTTPException(status_code=400, detail="No Tally company selected.")
 
     xml = build_ledger_xml(group)
     print("📤 XML SENT:\n", xml)
@@ -1657,8 +1707,8 @@ async def api_tally_ledgers(
     JOBS.setdefault(user_id, []).append({"xml": xml})
 
     result = None
-    for _ in range(20):  # ~10 seconds max
-        result = RESULTS.get(user_id)
+    for _ in range(120):  # up to ~60 seconds for large companies
+        result = RESULTS.pop(user_id, None)
         if result:
             break
         await asyncio.sleep(0.5)
@@ -1677,22 +1727,24 @@ async def api_tally_ledgers(
             f"PARENT={raw_xml.count('<PARENT')}, "
             f"PARENTNAME={raw_xml.count('<PARENTNAME')}"
         )
-    except Exception:
-        pass
 
-    # Parse once and keep the ledger + GSTIN data available to Party Matching.
-    # Cache is isolated by user so another user's Tally data can never be reused.
-    ledgers, g_map = await run_blocking(
-        _parse_tally_ledgers_for_match, raw_xml, group
-    )
-    cache_key = _tally_ledger_cache_key(user_id, tally_company, group)
-    TALLY_LEDGER_CACHE[cache_key] = {
-        "ledgers": ledgers,
-        "g_map": g_map,
-        "fetched_at": time.monotonic(),
-    }
+        ledgers, cache_records = await asyncio.gather(
+            run_blocking(_parse_tally_ledgers_api, raw_xml, group),
+            run_blocking(_parse_party_ledgers_for_sql, raw_xml, group),
+        )
 
-    return {"status": "ok", "ledgers": ledgers}
+        await run_blocking(
+            _replace_tally_ledger_cache,
+            user_id,
+            company_name,
+            group,
+            cache_records,
+        )
+
+        return {"status": "ok", "ledgers": ledgers}
+    finally:
+        raw_xml = None
+        result = None
 
 
 async def _run_party_match_task(
