@@ -228,6 +228,62 @@ def _parse_party_ledgers_for_sql(raw_data: str, group: str | None):
     return records
 
 
+def _load_tally_ledgers_from_sql(user_id: str, company_name: str, group: str | None):
+    """Load cached party ledgers from PostgreSQL for matching."""
+    company_name = (company_name or "").strip()
+    group_norm = (group or "").strip().lower()
+    target_groups = (
+        ["Sundry Debtors", "Sundry Creditors"]
+        if group_norm == "all"
+        else [(group or "").strip()]
+    )
+
+    if not company_name or not target_groups or any(not value for value in target_groups):
+        return [], {}
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            """
+            SELECT ledger_name, gstin
+            FROM tally_ledger_cache
+            WHERE user_id = %s
+              AND company_name = %s
+              AND parent_group = ANY(%s)
+            ORDER BY ledger_name
+            """,
+            (int(user_id), company_name, target_groups),
+        )
+        rows = cur.fetchall()
+    finally:
+        cur.close()
+        conn.close()
+
+    ledgers = []
+    gstin_map = {}
+    seen = set()
+    for ledger_name, gstin in rows:
+        ledger_name = (ledger_name or "").strip()
+        if not ledger_name:
+            continue
+        if ledger_name not in seen:
+            seen.add(ledger_name)
+            ledgers.append(ledger_name)
+        gstin_norm = (gstin or "").strip().upper()
+        if gstin_norm and gstin_norm not in gstin_map:
+            gstin_map[gstin_norm] = ledger_name
+
+    return ledgers, gstin_map
+
+
+def _required_tally_cache_groups(group: str | None):
+    group_norm = (group or "").strip().lower()
+    if group_norm == "all":
+        return ["Sundry Debtors", "Sundry Creditors"]
+    return [(group or "").strip()] if (group or "").strip() else []
+
+
 def _replace_tally_ledger_cache(user_id: str, company_name: str, group: str | None, records: list[dict]):
     company_name = (company_name or "").strip()
     group_norm = (group or "").strip().lower()
@@ -1854,33 +1910,30 @@ async def _run_party_match_task(
             )
             return
 
-        # Reuse ledgers already fetched by the user from the Tally Status section.
-        # This prevents Party Matching from making a second connector/Tally request.
-        cache_key = _tally_ledger_cache_key(user_id, tally_company, tally_group)
-        cache = TALLY_LEDGER_CACHE.get(cache_key)
-        cache_is_valid = (
-            cache
-            and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
+        # Persistent SQL cache is checked first. This survives Render restarts and
+        # avoids another large Tally export when the user already fetched ledgers.
+        ledgers, g_map = await run_blocking(
+            _load_tally_ledgers_from_sql,
+            user_id,
+            tally_company,
+            tally_group,
         )
 
-        if cache_is_valid:
-            ledgers = cache["ledgers"]
-            g_map = cache.get("g_map", {})
+        if ledgers:
             task_progress_store.update(
                 task_id,
                 status="processing",
-                message="Using previously fetched Party Ledgers...",
+                message="Using stored Party Ledgers...",
                 progress={"ledger_count": len(ledgers), "total_rows": len(df)},
             )
             _agent_debug_log(
-                "app.py:_run_party_match_task:cache_hit",
-                "reusing previously fetched tally ledgers",
+                "app.py:_run_party_match_task:sql_cache_hit",
+                "using persisted tally ledgers",
                 {"task_id": task_id, "user_id": user_id, "ledger_count": len(ledgers)},
                 hypothesis_id="B",
             )
         else:
-            # Backward-compatible fallback: if the user did not fetch ledgers first,
-            # Party Matching continues to fetch them exactly as it did before.
+            # Backward-compatible fallback: fetch from Tally when SQL has no data.
             task_progress_store.update(
                 task_id,
                 status="processing",
@@ -2280,20 +2333,18 @@ async def match_party(
         print("CURRENT USER:", user_id_str)
         print("📦 MATCH using group:", tally_group)
 
-        # Reuse the same per-user ledger cache used by the background matching flow.
-        cache_key = _tally_ledger_cache_key(user_id_str, tally_company, tally_group)
-        cache = TALLY_LEDGER_CACHE.get(cache_key)
-        cache_is_valid = (
-            cache
-            and (time.monotonic() - cache.get("fetched_at", 0)) <= TALLY_LEDGER_CACHE_TTL
+        # Persistent SQL cache is the primary source for Party Matching.
+        ledgers, g_map = await run_blocking(
+            _load_tally_ledgers_from_sql,
+            user_id_str,
+            tally_company,
+            tally_group,
         )
 
-        if cache_is_valid:
-            print("♻️ Reusing cached Tally ledgers")
-            ledgers = cache["ledgers"]
-            g_map = cache.get("g_map", {})
+        if ledgers:
+            print(f"♻️ Using {len(ledgers)} Party Ledgers from SQL cache")
         else:
-            print("🔄 Fetching Tally ledgers...")
+            print("🔄 SQL cache missing requested ledgers; fetching from Tally...")
             xml = build_ledger_xml(tally_group)
             RESULTS.pop(user_id_str, None)
             JOBS.setdefault(user_id_str, []).append({"xml": xml})
