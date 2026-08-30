@@ -6074,7 +6074,7 @@ fileInput.addEventListener("change", function (e) {
             const group = document.getElementById("ledgerTypeSelect").value;
             const tallyCompany = window.currentTallyCompany || "";
             const res = await fetch(
-              `/api/tally/ledgers?group=${encodeURIComponent(group)}&tally_company=${encodeURIComponent(tallyCompany)}`,
+              `/api/tally/ledgers?group=${encodeURIComponent(group)}&company=${encodeURIComponent(tallyCompany)}`,
             );
             const data = await res.json();
 
