@@ -1755,46 +1755,39 @@ async def reset_password_page(request: Request, token: str = None):
 from fastapi import Query
 
 
-@app.get("/api/tally/ledgers")
-async def api_tally_ledgers(
-    request: Request,
-    group: str = Query(None),
-    company: str = Query(...),
-    user: str = Depends(require_login),
+async def _fetch_tally_ledger_group(
+    *,
+    user_id: str,
+    company_name: str,
+    group: str,
 ):
-    print("📦 API received group:", group)
-    print("🏢 API received company:", company)
-
-    user_id = get_session_user_id(request)
-    print("CURRENT USER:", user_id)
-
-    company_name = (company or "").strip()
-    if not company_name:
-        raise HTTPException(status_code=400, detail="No Tally company selected.")
-
+    """Fetch and persist one ledger group at a time to keep large XML responses bounded."""
     fetch_started_at = time.perf_counter()
 
     xml = build_ledger_xml(group)
-    print("📤 XML SENT:\n", xml)
+    print(f"📤 Ledger fetch started | group={group!r} | company={company_name!r}")
 
+    # One connector result slot is used per user, so clear only the previous
+    # completed result before queueing the next group.
     RESULTS.pop(user_id, None)
     JOBS.setdefault(user_id, []).append({"xml": xml})
 
     result = None
-    for _ in range(120):  # up to ~60 seconds for large companies
+    for _ in range(120):  # up to ~60 seconds per group for large companies
         result = RESULTS.pop(user_id, None)
         if result:
             break
         await asyncio.sleep(0.5)
 
     if not result:
-        return {"status": "waiting"}
+        return {"status": "waiting", "group": group}
 
     raw_xml = result.get("data", "") or ""
     received_at = time.perf_counter()
+
     try:
         print(
-            f"📥 Tally raw XML stats: len={len(raw_xml)}, "
+            f"📥 Tally raw XML stats: group={group!r}, len={len(raw_xml)}, "
             f"LEDGER={raw_xml.count('<LEDGER')}, "
             f"LEDGERNAME={raw_xml.count('<LEDGERNAME')}, "
             f"NAME={raw_xml.count('<NAME')}, "
@@ -1811,7 +1804,6 @@ async def api_tally_ledgers(
         parse_finished_at = time.perf_counter()
 
         sql_started_at = time.perf_counter()
-
         await run_blocking(
             _replace_tally_ledger_cache,
             user_id,
@@ -1830,11 +1822,90 @@ async def api_tally_ledgers(
             f"total={sql_finished_at - fetch_started_at:.3f}s"
         )
 
-        return {"status": "ok", "ledgers": ledgers, "ledger_count": len(ledgers)}
+        return {
+            "status": "ok",
+            "group": group,
+            "ledgers": ledgers,
+            "ledger_count": len(ledgers),
+        }
     finally:
         raw_xml = None
         result = None
 
+
+@app.get("/api/tally/ledgers")
+async def api_tally_ledgers(
+    request: Request,
+    group: str = Query(None),
+    company: str = Query(...),
+    user: str = Depends(require_login),
+):
+    print("📦 API received group:", group)
+    print("🏢 API received company:", company)
+
+    user_id = get_session_user_id(request)
+    print("CURRENT USER:", user_id)
+
+    company_name = (company or "").strip()
+    if not company_name:
+        raise HTTPException(status_code=400, detail="No Tally company selected.")
+
+    requested_group = (group or "").strip() or "Sundry Debtors"
+
+    # Fetch All sequentially as two bounded requests. This prevents one very
+    # large unfiltered Tally XML response from exhausting the Render instance.
+    if requested_group.lower() == "all":
+        all_started_at = time.perf_counter()
+        combined_ledgers = []
+        seen_ledgers = set()
+        group_results = []
+
+        for group_name in ("Sundry Debtors", "Sundry Creditors"):
+            group_result = await _fetch_tally_ledger_group(
+                user_id=user_id,
+                company_name=company_name,
+                group=group_name,
+            )
+
+            if group_result.get("status") != "ok":
+                return {
+                    "status": "waiting",
+                    "group": "All",
+                    "completed_groups": [item["group"] for item in group_results],
+                    "failed_group": group_name,
+                }
+
+            group_results.append(group_result)
+            for ledger_name in group_result.get("ledgers", []):
+                if ledger_name not in seen_ledgers:
+                    seen_ledgers.add(ledger_name)
+                    combined_ledgers.append(ledger_name)
+
+        print(
+            "⏱️ Ledger fetch timing | "
+            f"group='All' | company={company_name!r} | "
+            f"groups=2 | ledger_count={len(combined_ledgers)} | "
+            f"total={time.perf_counter() - all_started_at:.3f}s"
+        )
+
+        return {
+            "status": "ok",
+            "ledgers": combined_ledgers,
+            "ledger_count": len(combined_ledgers),
+            "groups": [
+                {
+                    "group": item["group"],
+                    "ledger_count": item["ledger_count"],
+                }
+                for item in group_results
+            ],
+        }
+
+    return await _fetch_tally_ledger_group(
+        user_id=user_id,
+        company_name=company_name,
+        group=requested_group,
+    )
 
 async def _run_party_match_task(
     *,
