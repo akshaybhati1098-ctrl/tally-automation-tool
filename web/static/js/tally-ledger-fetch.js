@@ -41,7 +41,7 @@
         let data = null;
         for (let attempt = 0; attempt < 30; attempt += 1) {
           const response = await fetch(
-            `/api/tally/ledgers?group=${encodeURIComponent(group)}&tally_company=${encodeURIComponent(tallyCompany)}`,
+            `/api/tally/ledgers?group=${encodeURIComponent(group)}&company=${encodeURIComponent(tallyCompany)}`,
             { cache: "no-store" },
           );
           data = await response.json();
