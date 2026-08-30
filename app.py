@@ -1976,12 +1976,16 @@ async def _run_party_match_task(
                     _parse_tally_ledgers_for_match, raw_xml, tally_group
                 )
 
-            # Store the fallback fetch too, so a subsequent match can reuse it.
-            TALLY_LEDGER_CACHE[cache_key] = {
-                "ledgers": ledgers,
-                "g_map": g_map,
-                "fetched_at": time.monotonic(),
-            }
+            cache_records = await run_blocking(
+                _parse_party_ledgers_for_sql, raw_xml, tally_group
+            )
+            await run_blocking(
+                _replace_tally_ledger_cache,
+                user_id,
+                tally_company,
+                tally_group,
+                cache_records,
+            )
 
         async with match_semaphore:
             task_progress_store.update(
@@ -2375,11 +2379,16 @@ async def match_party(
                     _parse_tally_ledgers_for_match, raw_xml, tally_group
                 )
 
-            TALLY_LEDGER_CACHE[cache_key] = {
-                "ledgers": ledgers,
-                "g_map": g_map,
-                "fetched_at": time.monotonic(),
-            }
+            cache_records = await run_blocking(
+                _parse_party_ledgers_for_sql, raw_xml, tally_group
+            )
+            await run_blocking(
+                _replace_tally_ledger_cache,
+                user_id_str,
+                tally_company,
+                tally_group,
+                cache_records,
+            )
 
         async with match_semaphore:
             await run_blocking(
