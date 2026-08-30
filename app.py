@@ -187,46 +187,112 @@ def _parse_tally_ledgers_for_match(raw_xml: str, tally_group: str):
     return ledgers, g_map
 
 
-def _parse_tally_ledgers_api(raw_data: str, group: str | None):
-    from core.tally_service import parse_ledgers_with_parent, parse_ledgers
+def _parse_tally_ledgers_once(raw_data: str, group: str | None):
+    """Parse the Tally XML once and return both API ledger names and SQL records."""
+    from core.tally_service import _parse_xml
 
-    group_norm = (group or "").strip()
-    if group_norm and group_norm.lower() != "all":
-        parsed = parse_ledgers_with_parent(raw_data)
-        group_norm_lower = group_norm.lower()
-        allowed = {i["name"] for i in parsed if i.get("parent", "").strip().lower() == group_norm_lower}
-        if not allowed:
-            allowed = {i["name"] for i in parsed if group_norm_lower in i.get("parent", "").strip().lower()}
-        ledgers = [i["name"] for i in parsed if i["name"] in allowed] if allowed else parse_ledgers(raw_data)
-    else:
-        ledgers = parse_ledgers(raw_data)
-    return list(dict.fromkeys(ledgers))
-
-
-def _parse_party_ledgers_for_sql(raw_data: str, group: str | None):
-    from core.tally_service import parse_ledgers_with_parent, parse_ledgers_with_gstin
-    parsed = parse_ledgers_with_parent(raw_data)
-    _, gstin_to_ledger = parse_ledgers_with_gstin(raw_data)
-    ledger_to_gstin = {(name or "").strip(): (gstin or "").strip() for gstin, name in gstin_to_ledger.items() if (name or "").strip()}
-
+    root = _parse_xml(raw_data)
     group_norm = (group or "").strip().lower()
     allowed_groups = {"sundry debtors", "sundry creditors"}
     target_groups = allowed_groups if group_norm == "all" else {group_norm}
 
-    records, seen = [], set()
+    ledgers = []
+    records = []
+    seen_names = set()
+    seen_records = set()
+
+    ledger_nodes = root.findall(".//LEDGER")
+    if ledger_nodes:
+        for ledger in ledger_nodes:
+            name = (
+                ledger.attrib.get("NAME")
+                or ledger.findtext("NAME")
+                or ledger.findtext(".//NAME")
+                or ledger.findtext("LEDGERNAME")
+                or ledger.findtext(".//LEDGERNAME")
+                or ""
+            ).strip()
+            if not name:
+                continue
+
+            parent = (
+                ledger.findtext("PARENT")
+                or ledger.findtext(".//PARENT")
+                or ledger.findtext("PARENTNAME")
+                or ledger.findtext(".//PARENTNAME")
+                or ledger.findtext("PARENTGROUP")
+                or ledger.findtext(".//PARENTGROUP")
+                or ledger.findtext("GROUPNAME")
+                or ledger.findtext(".//GROUPNAME")
+                or ""
+            ).strip()
+            parent_norm = parent.lower()
+
+            if parent_norm not in allowed_groups:
+                continue
+            if parent_norm not in target_groups:
+                continue
+
+            gstin = (
+                ledger.findtext("PARTYGSTIN")
+                or ledger.findtext(".//PARTYGSTIN")
+                or ledger.findtext("GSTIN")
+                or ledger.findtext(".//GSTIN")
+                or ""
+            ).strip().upper()
+
+            name_key = name.lower()
+            if name_key not in seen_names:
+                seen_names.add(name_key)
+                ledgers.append(name)
+
+            record_key = (name_key, parent_norm)
+            if record_key not in seen_records:
+                seen_records.add(record_key)
+                records.append({
+                    "ledger_name": name,
+                    "parent_group": parent,
+                    "gstin": gstin,
+                })
+
+        return ledgers, records
+
+    # Preserve the existing fallback behavior for unusual Tally responses.
+    from core.tally_service import parse_ledgers_with_parent, parse_ledgers_with_gstin, parse_ledgers
+
+    parsed = parse_ledgers_with_parent(raw_data)
+    _, gstin_to_ledger = parse_ledgers_with_gstin(raw_data)
+    ledger_to_gstin = {
+        (name or "").strip(): (gstin or "").strip()
+        for gstin, name in gstin_to_ledger.items()
+        if (name or "").strip()
+    }
+
     for item in parsed:
         name = (item.get("name") or "").strip()
         parent = (item.get("parent") or "").strip()
         parent_norm = parent.lower()
         if not name or parent_norm not in allowed_groups or parent_norm not in target_groups:
             continue
-        key = (name.lower(), parent_norm)
-        if key in seen:
-            continue
-        seen.add(key)
-        records.append({"ledger_name": name, "parent_group": parent, "gstin": ledger_to_gstin.get(name, "")})
-    return records
 
+        name_key = name.lower()
+        if name_key not in seen_names:
+            seen_names.add(name_key)
+            ledgers.append(name)
+
+        record_key = (name_key, parent_norm)
+        if record_key not in seen_records:
+            seen_records.add(record_key)
+            records.append({
+                "ledger_name": name,
+                "parent_group": parent,
+                "gstin": ledger_to_gstin.get(name, ""),
+            })
+
+    if not ledgers and group_norm not in ("", "all"):
+        ledgers = parse_ledgers(raw_data)
+
+    return ledgers, records
 
 def _load_tally_ledgers_from_sql(user_id: str, company_name: str, group: str | None):
     """Load cached party ledgers from PostgreSQL for matching."""
@@ -1797,9 +1863,10 @@ async def _fetch_tally_ledger_group(
         )
 
         parse_started_at = time.perf_counter()
-        ledgers, cache_records = await asyncio.gather(
-            run_blocking(_parse_tally_ledgers_api, raw_xml, group),
-            run_blocking(_parse_party_ledgers_for_sql, raw_xml, group),
+        ledgers, cache_records = await run_blocking(
+            _parse_tally_ledgers_once,
+            raw_xml,
+            group,
         )
         parse_finished_at = time.perf_counter()
 
