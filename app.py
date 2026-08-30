@@ -302,13 +302,29 @@ def _replace_tally_ledger_cache(user_id: str, company_name: str, group: str | No
             (int(user_id), company_name, target_groups),
         )
         if records:
-            cur.executemany(
+            from psycopg2.extras import execute_values
+
+            rows = [
+                (
+                    int(user_id),
+                    company_name,
+                    r["ledger_name"],
+                    r["parent_group"],
+                    r.get("gstin") or None,
+                )
+                for r in records
+            ]
+
+            execute_values(
+                cur,
                 """
                 INSERT INTO tally_ledger_cache
                     (user_id, company_name, ledger_name, parent_group, gstin, updated_at)
-                VALUES (%s, %s, %s, %s, %s, NOW())
+                VALUES %s
                 """,
-                [(int(user_id), company_name, r["ledger_name"], r["parent_group"], r.get("gstin") or None) for r in records],
+                rows,
+                template="(%s, %s, %s, %s, %s, NOW())",
+                page_size=1000,
             )
         conn.commit()
     except Exception:
