@@ -1756,6 +1756,8 @@ async def api_tally_ledgers(
     if not company_name:
         raise HTTPException(status_code=400, detail="No Tally company selected.")
 
+    fetch_started_at = time.perf_counter()
+
     xml = build_ledger_xml(group)
     print("📤 XML SENT:\n", xml)
 
@@ -1773,6 +1775,7 @@ async def api_tally_ledgers(
         return {"status": "waiting"}
 
     raw_xml = result.get("data", "") or ""
+    received_at = time.perf_counter()
     try:
         print(
             f"📥 Tally raw XML stats: len={len(raw_xml)}, "
@@ -1784,10 +1787,14 @@ async def api_tally_ledgers(
             f"PARENTNAME={raw_xml.count('<PARENTNAME')}"
         )
 
+        parse_started_at = time.perf_counter()
         ledgers, cache_records = await asyncio.gather(
             run_blocking(_parse_tally_ledgers_api, raw_xml, group),
             run_blocking(_parse_party_ledgers_for_sql, raw_xml, group),
         )
+        parse_finished_at = time.perf_counter()
+
+        sql_started_at = time.perf_counter()
 
         await run_blocking(
             _replace_tally_ledger_cache,
@@ -1796,8 +1803,18 @@ async def api_tally_ledgers(
             group,
             cache_records,
         )
+        sql_finished_at = time.perf_counter()
 
-        return {"status": "ok", "ledgers": ledgers}
+        print(
+            "⏱️ Ledger fetch timing | "
+            f"group={group!r} | company={company_name!r} | xml_bytes={len(raw_xml)} | "
+            f"connector_wait={received_at - fetch_started_at:.3f}s | "
+            f"parse={parse_finished_at - parse_started_at:.3f}s | "
+            f"sql_save={sql_finished_at - sql_started_at:.3f}s | "
+            f"total={sql_finished_at - fetch_started_at:.3f}s"
+        )
+
+        return {"status": "ok", "ledgers": ledgers, "ledger_count": len(ledgers)}
     finally:
         raw_xml = None
         result = None
