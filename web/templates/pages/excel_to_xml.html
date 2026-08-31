@@ -4967,17 +4967,32 @@ fileInput.addEventListener("change", function (e) {
             progressPercentage.textContent = pct + "%";
             progressPercentage.style.setProperty("--pct-left", pct + "%");
 
-            // Update icon and label based on progress
-            if (w >= 95) {
+            // Update icon and label using the real conversion status message.
+            // Backend progress can jump directly from an early percentage to 100%,
+            // so message-based mapping preserves every conversion stage.
+            const statusMessage =
+              document.getElementById("xmlProcessingStatus")?.textContent
+                ?.trim()
+                .toLowerCase() || "";
+
+            if (w >= 100 || statusMessage.includes("complete")) {
               btnIcon.textContent = steps[3].icon;
               btnText.textContent = steps[3].label;
-            } else if (w >= 70) {
+            } else if (
+              statusMessage.includes("xml") ||
+              statusMessage.includes("build") ||
+              statusMessage.includes("generat")
+            ) {
               btnIcon.textContent = steps[2].icon;
               btnText.textContent = steps[2].label;
-            } else if (w >= 40) {
+            } else if (
+              statusMessage.includes("process") ||
+              statusMessage.includes("convert") ||
+              w >= 25
+            ) {
               btnIcon.textContent = steps[1].icon;
               btnText.textContent = steps[1].label;
-            } else if (w > 0) {
+            } else if (w >= 0) {
               btnIcon.textContent = steps[0].icon;
               btnText.textContent = steps[0].label;
             }
