@@ -22,6 +22,27 @@
       const overlay = createLedgerFetchOverlay(group);
       document.body.appendChild(overlay);
 
+      // Allow the user to dismiss a stuck fetch immediately. AbortController
+      // stops the browser request/polling; any already-running server/connector
+      // job is allowed to finish safely in the background.
+      const abortController = new AbortController();
+      let fetchCancelled = false;
+      const cancelFetch = () => {
+        fetchCancelled = true;
+        abortController.abort();
+        overlay.remove();
+      };
+
+      const cancelButton = overlay.querySelector("#ledgerFetchCancel");
+      cancelButton.addEventListener("click", cancelFetch);
+      const escHandler = (event) => {
+        if (event.key === "Escape") {
+          cancelFetch();
+          document.removeEventListener("keydown", escHandler);
+        }
+      };
+      document.addEventListener("keydown", escHandler);
+
       const status = overlay.querySelector("#ledgerFetchStatus");
       const count = overlay.querySelector("#ledgerFetchCount");
       const title = overlay.querySelector("#ledgerFetchGroup");
@@ -42,7 +63,7 @@
         for (let attempt = 0; attempt < 30; attempt += 1) {
           const response = await fetch(
             `/api/tally/ledgers?group=${encodeURIComponent(group)}&company=${encodeURIComponent(tallyCompany)}`,
-            { cache: "no-store" },
+            { cache: "no-store", signal: abortController.signal },
           );
           data = await response.json();
 
@@ -52,8 +73,10 @@
 
           if (data.status !== "waiting") break;
 
+          if (fetchCancelled) return;
           status.textContent = "Waiting for Tally data";
           await new Promise((resolve) => setTimeout(resolve, 500));
+          if (fetchCancelled) return;
         }
 
         if (!data || data.status === "waiting") {
@@ -73,6 +96,9 @@
         done.style.display = "inline-flex";
         done.onclick = () => overlay.remove();
       } catch (error) {
+        // User cancellation is intentional; do not show a false error popup.
+        if (fetchCancelled || error?.name === "AbortError") return;
+
         spinner.style.display = "none";
         status.textContent = "Fetch failed";
         count.textContent = error?.message || "Unable to fetch ledgers";
@@ -83,6 +109,7 @@
         done.textContent = "Close";
         done.onclick = () => overlay.remove();
       } finally {
+        document.removeEventListener("keydown", escHandler);
         button.disabled = false;
         button.style.opacity = "";
       }
@@ -125,6 +152,29 @@
           box-shadow: 0 24px 70px rgba(10, 15, 30, .18),
                       0 4px 16px rgba(10, 15, 30, .06);
           text-align: center;
+          position: relative;
+        }
+
+        #tallyLedgerFetchOverlay .ledger-fetch-cancel {
+          position: absolute;
+          top: 12px;
+          right: 14px;
+          width: 30px;
+          height: 30px;
+          border: 0;
+          border-radius: 50%;
+          background: transparent;
+          color: #64748b;
+          font: 400 1.45rem/1 "DM Sans", sans-serif;
+          cursor: pointer;
+          display: grid;
+          place-items: center;
+          transition: background .15s ease, color .15s ease;
+        }
+
+        #tallyLedgerFetchOverlay .ledger-fetch-cancel:hover {
+          background: #f1f5f9;
+          color: #0f172a;
         }
 
         #tallyLedgerFetchOverlay .ledger-fetch-spinner {
@@ -194,6 +244,7 @@
       </style>
 
       <div class="ledger-fetch-card" role="dialog" aria-modal="true" aria-labelledby="ledgerFetchTitle">
+        <button type="button" class="ledger-fetch-cancel" id="ledgerFetchCancel" aria-label="Cancel ledger fetch" title="Cancel">×</button>
         <div class="ledger-fetch-spinner" id="ledgerFetchSpinner" aria-hidden="true"></div>
         <div class="ledger-fetch-title" id="ledgerFetchTitle">Fetching Tally Ledgers</div>
         <div class="ledger-fetch-group" id="ledgerFetchGroup">${escapeText(group)}</div>
