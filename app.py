@@ -1658,6 +1658,16 @@ def get_job(user_id: str):
 
     if JOBS.get(user_id):
         job = JOBS[user_id].pop(0)
+        connector_picked_at = time.perf_counter()
+        queued_at = job.get("_queued_at")
+        if queued_at is not None:
+            job_pickup_delay = connector_picked_at - queued_at
+            print(
+                "⏱️ Connector timing | "
+                f"user={user_id} | stage=job_picked_up | "
+                f"job_pickup_delay={job_pickup_delay:.3f}s"
+            )
+        job["_connector_picked_at"] = connector_picked_at
         # #region agent log
         _agent_debug_log(
             "app.py:get_job:exit",
@@ -1681,6 +1691,17 @@ def get_job(user_id: str):
 
 @app.post("/api/submit-result/{user_id}")
 def submit_result(user_id: str, data: dict):
+    received_at = time.perf_counter()
+
+    connector_picked_at = data.pop("_connector_picked_at", None)
+    if connector_picked_at is not None:
+        connector_processing_and_upload = received_at - connector_picked_at
+        print(
+            "⏱️ Connector timing | "
+            f"user={user_id} | stage=result_received | "
+            f"connector_processing_and_upload={connector_processing_and_upload:.3f}s"
+        )
+
     RESULTS[user_id] = data
     return {"ok": True}
 
@@ -1836,7 +1857,11 @@ async def _fetch_tally_ledger_group(
     # One connector result slot is used per user, so clear only the previous
     # completed result before queueing the next group.
     RESULTS.pop(user_id, None)
-    JOBS.setdefault(user_id, []).append({"xml": xml})
+    queued_at = time.perf_counter()
+    JOBS.setdefault(user_id, []).append({
+        "xml": xml,
+        "_queued_at": queued_at,
+    })
 
     result = None
     for _ in range(120):  # up to ~60 seconds per group for large companies
