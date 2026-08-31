@@ -4184,7 +4184,7 @@
               const bt = document.getElementById("btnText");
               const bp = document.getElementById("progressPercentage");
               if (bi) bi.textContent = "📄";
-              if (bt) bt.textContent = "Generate Tally Compatible File";
+              if (bt) bt.textContent = "Tally XML";
               if (bp) bp.style.display = "none";
             });
           // Dismiss — just close
@@ -4755,7 +4755,7 @@ fileInput.addEventListener("change", function (e) {
               document.getElementById("progressPercentage");
             if (btnIcon) btnIcon.textContent = "📄";
             if (btnText)
-              btnText.textContent = "Generate Tally Compatible File";
+              btnText.textContent = "Tally XML";
             if (progressPercentage) progressPercentage.style.display = "none";
 
             // ── Disconnect progress observer if running ──
@@ -4939,7 +4939,7 @@ fileInput.addEventListener("change", function (e) {
           submitBtn.classList.remove("converting");
           submitBtn.style.removeProperty("--btn-pct");
           btnIcon.textContent = "📄";
-          btnText.textContent = "Generate Tally Compatible File";
+          btnText.textContent = "Tally XML";
           progressPercentage.style.display = "none";
           progressPercentage.style.removeProperty("--pct-left");
         }
@@ -5819,7 +5819,7 @@ fileInput.addEventListener("change", function (e) {
               document.getElementById("progressPercentage");
             if (btnIcon) btnIcon.textContent = "📄";
             if (btnText)
-              btnText.textContent = "Generate Tally Compatible File";
+              btnText.textContent = "Tally XML";
             if (progressPercentage) progressPercentage.style.display = "none";
           }
         }
