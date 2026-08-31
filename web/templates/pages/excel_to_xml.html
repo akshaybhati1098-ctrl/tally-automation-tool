@@ -4951,11 +4951,16 @@ fileInput.addEventListener("change", function (e) {
           submitBtn.classList.add("converting");
           setBtnState(steps[0].pct, steps[0].icon, steps[0].label);
 
+          // The real conversion progress is now driven by the backend job card.
+          // Watch that bar so the button advances beyond "Reading file…".
+          const conversionProgressBar =
+            document.getElementById("xmlProcessingProgressBar");
+
           // Disconnect previous observer if any
           if (btnProgressObserver) btnProgressObserver.disconnect();
 
           btnProgressObserver = new MutationObserver(() => {
-            const w = parseFloat(progressBar.style.width) || 0;
+            const w = parseFloat(conversionProgressBar.style.width) || 0;
             const pct = Math.round(w);
 
             // Update percentage text and position continuously
@@ -4984,16 +4989,16 @@ fileInput.addEventListener("change", function (e) {
               btnProgressObserver.disconnect();
               setTimeout(resetBtn, 2200);
             }
-            // If bar goes back to 0 (error path reset it), disconnect & reset
-            if (w === 0) {
-              btnProgressObserver.disconnect();
-            }
+            // Do not disconnect at 0%. The real backend progress bar starts
+            // at 0% before the first job update arrives.
           });
 
-          btnProgressObserver.observe(progressBar, {
-            attributes: true,
-            attributeFilter: ["style"],
-          });
+          if (conversionProgressBar) {
+            btnProgressObserver.observe(conversionProgressBar, {
+              attributes: true,
+              attributeFilter: ["style"],
+            });
+          }
         });
 
         // ══════════════════════════════════════
