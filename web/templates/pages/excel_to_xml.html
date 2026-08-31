@@ -2685,6 +2685,7 @@
     }
 
     .match-loading-card {
+      position: relative !important;
       background: #ffffff !important;
       padding: 1.6rem !important;
       border-radius: 8px !important;
@@ -2722,6 +2723,29 @@
       stroke-width: 2.2 !important;
       display: block !important;
       flex: 0 0 auto !important;
+    }
+
+    .match-loading-cancel {
+      position: absolute !important;
+      top: 14px !important;
+      right: 14px !important;
+      width: 32px !important;
+      height: 32px !important;
+      border: 0 !important;
+      border-radius: 50% !important;
+      background: transparent !important;
+      color: #64748b !important;
+      font: 400 1.55rem/1 "DM Sans", sans-serif !important;
+      cursor: pointer !important;
+      display: grid !important;
+      place-items: center !important;
+      transition: background 0.15s ease, color 0.15s ease !important;
+      z-index: 2 !important;
+    }
+
+    .match-loading-cancel:hover {
+      background: #f1f5f9 !important;
+      color: #0f172a !important;
     }
 
     .match-loading-text {
@@ -6245,11 +6269,16 @@ fileInput.addEventListener("change", function (e) {
         );
 
         try {
+          activeMatchCancelled = false;
+          activeMatchAbortController = new AbortController();
+          const signal = activeMatchAbortController.signal;
+
           showMatchLoading();
 
           const res = await fetch("/api/match-party/start", {
             method: "POST",
             body: formData,
+            signal,
           });
           console.log("HTTP Status:", res.status);
 
@@ -6273,8 +6302,10 @@ fileInput.addEventListener("change", function (e) {
             return;
           }
 
-          await watchTaskProgress(startData.task_id);
-          const resultRes = await fetch(`/api/tasks/${startData.task_id}/result`);
+          await watchTaskProgress(startData.task_id, signal);
+          if (activeMatchCancelled || signal.aborted) return;
+
+          const resultRes = await fetch(`/api/tasks/${startData.task_id}/result`, { signal });
           const data = await resultRes.json();
           hideMatchLoading();
 
@@ -6318,8 +6349,14 @@ fileInput.addEventListener("change", function (e) {
 
           updateConvertButtonState();
         } catch (err) {
+          if (activeMatchCancelled || err?.name === "AbortError") {
+            return;
+          }
           hideMatchLoading();
           showErrorPopup(err.message || "Failed to process matching");
+        } finally {
+          activeMatchProgressStream = null;
+          activeMatchAbortController = null;
         }
       }
 
@@ -7304,9 +7341,48 @@ fileInput.addEventListener("change", function (e) {
         }
       }
 
-      function watchTaskProgress(taskId) {
+      // Client-side cancellation state for the Party Matching progress card.
+      // Cancelling stops this browser from waiting; the already-started server task
+      // may safely finish in the background without affecting the UI.
+      let activeMatchAbortController = null;
+      let activeMatchProgressStream = null;
+      let activeMatchCancelled = false;
+
+      function cancelActivePartyMatch() {
+        activeMatchCancelled = true;
+
+        if (activeMatchProgressStream) {
+          activeMatchProgressStream.close();
+          activeMatchProgressStream = null;
+        }
+
+        if (activeMatchAbortController) {
+          activeMatchAbortController.abort();
+          activeMatchAbortController = null;
+        }
+
+        hideMatchLoading();
+      }
+
+      function watchTaskProgress(taskId, signal) {
         return new Promise((resolve, reject) => {
+          if (signal?.aborted) {
+            reject(new DOMException("Party matching cancelled", "AbortError"));
+            return;
+          }
+
           const stream = new EventSource(`/api/tasks/${taskId}/progress`);
+          activeMatchProgressStream = stream;
+
+          const abortHandler = () => {
+            stream.close();
+            if (activeMatchProgressStream === stream) {
+              activeMatchProgressStream = null;
+            }
+            reject(new DOMException("Party matching cancelled", "AbortError"));
+          };
+
+          signal?.addEventListener("abort", abortHandler, { once: true });
 
           stream.onmessage = (event) => {
             const snapshot = JSON.parse(event.data);
@@ -7314,18 +7390,30 @@ fileInput.addEventListener("change", function (e) {
 
             if (snapshot.status === "failed") {
               stream.close();
+              if (activeMatchProgressStream === stream) {
+                activeMatchProgressStream = null;
+              }
               reject(new Error(snapshot.error || snapshot.message || "Matching failed"));
               return;
             }
 
             if (snapshot.status === "completed") {
               stream.close();
+              if (activeMatchProgressStream === stream) {
+                activeMatchProgressStream = null;
+              }
               resolve(snapshot);
             }
           };
 
           stream.onerror = () => {
+            if (activeMatchCancelled || signal?.aborted) {
+              return;
+            }
             stream.close();
+            if (activeMatchProgressStream === stream) {
+              activeMatchProgressStream = null;
+            }
             reject(new Error("Lost connection to matching progress stream"));
           };
         });
@@ -7341,6 +7429,7 @@ fileInput.addEventListener("change", function (e) {
 
         overlay.innerHTML = `
         <div class="match-loading-card">
+            <button type="button" class="match-loading-cancel" id="matchLoadingCancel" aria-label="Cancel party matching" title="Cancel">×</button>
             <div class="match-loading-header">
               <div class="match-loading-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" fill="none">
@@ -7398,6 +7487,8 @@ fileInput.addEventListener("change", function (e) {
     `;
 
         document.body.appendChild(overlay);
+
+        overlay.querySelector("#matchLoadingCancel")?.addEventListener("click", cancelActivePartyMatch);
       }
       function hideMatchLoading() {
         const el = document.getElementById("matchLoadingOverlay");
