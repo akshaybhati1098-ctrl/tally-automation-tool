@@ -36,6 +36,14 @@ CANONICAL_COLUMNS = {
     "igst": "IGST",
     "invoice_value": "Invoice Value",
     "gstin": "GSTIN",
+
+    # Excel-ledger mode: map manually selected source columns to the exact
+    # canonical names consumed by the existing XML conversion logic.
+    "sales_ledger": "Sales Ledger",
+    "purchase_ledger": "Purchase Ledger",
+    "cgst_ledger": "CGST Ledger",
+    "sgst_ledger": "SGST Ledger",
+    "igst_ledger": "IGST Ledger",
 }
 
 
