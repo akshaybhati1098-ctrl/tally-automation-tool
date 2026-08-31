@@ -22,6 +22,8 @@ from concurrent.futures import ThreadPoolExecutor
 MATCH_SESSIONS = {}
 JOBS = {}
 RESULTS = {}
+# In-flight connector timing keyed by user. Kept server-side so the connector does not need to echo timing metadata.
+CONNECTOR_INFLIGHT_TIMING = {}
 # Per-user cache for ledgers fetched from Tally.
 # Party Matching reuses this data to avoid a second connector/Tally request.
 TALLY_LEDGER_CACHE = {}
@@ -1667,7 +1669,12 @@ def get_job(user_id: str):
                 f"user={user_id} | stage=job_picked_up | "
                 f"job_pickup_delay={job_pickup_delay:.3f}s"
             )
-        job["_connector_picked_at"] = connector_picked_at
+        # Keep timing server-side. The connector only receives the XML payload,
+        # so submit-result can still calculate processing + upload duration.
+        CONNECTOR_INFLIGHT_TIMING[user_id] = {
+            "queued_at": queued_at,
+            "picked_at": connector_picked_at,
+        }
         # #region agent log
         _agent_debug_log(
             "app.py:get_job:exit",
@@ -1693,14 +1700,26 @@ def get_job(user_id: str):
 def submit_result(user_id: str, data: dict):
     received_at = time.perf_counter()
 
-    connector_picked_at = data.pop("_connector_picked_at", None)
-    if connector_picked_at is not None:
-        connector_processing_and_upload = received_at - connector_picked_at
-        print(
-            "⏱️ Connector timing | "
-            f"user={user_id} | stage=result_received | "
-            f"connector_processing_and_upload={connector_processing_and_upload:.3f}s"
-        )
+    timing = CONNECTOR_INFLIGHT_TIMING.pop(user_id, None)
+    if timing:
+        picked_at = timing.get("picked_at")
+        queued_at = timing.get("queued_at")
+
+        if picked_at is not None:
+            connector_processing_and_upload = received_at - picked_at
+            print(
+                "⏱️ Connector timing | "
+                f"user={user_id} | stage=result_received | "
+                f"connector_processing_and_upload={connector_processing_and_upload:.3f}s"
+            )
+
+        if queued_at is not None:
+            connector_round_trip = received_at - queued_at
+            print(
+                "⏱️ Connector timing | "
+                f"user={user_id} | stage=round_trip_complete | "
+                f"connector_round_trip={connector_round_trip:.3f}s"
+            )
 
     RESULTS[user_id] = data
     return {"ok": True}
