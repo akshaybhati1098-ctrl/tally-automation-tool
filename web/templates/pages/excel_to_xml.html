@@ -4452,6 +4452,17 @@ fileInput.addEventListener("change", function (e) {
 
         voucherSelect.addEventListener("change", function () {
 
+            if (!this.value) {
+                document.getElementById("voucherSummary").textContent =
+                    "No voucher selected";
+
+                document.getElementById("voucherBadge").textContent = "Pending";
+                document.getElementById("voucherBadge").className =
+                    "workflow-badge pending";
+
+                return;
+            }
+
             const text = this.options[this.selectedIndex].text;
 
             document.getElementById("voucherSummary").innerHTML =
@@ -4468,7 +4479,18 @@ fileInput.addEventListener("change", function (e) {
 
             checkFormValidity();
 
-            if (!this.value) return;
+            if (!this.value) {
+                document.getElementById("companySummary").textContent =
+                    "No company selected";
+
+                document.getElementById("companyBadge").textContent =
+                    "Pending";
+
+                document.getElementById("companyBadge").className =
+                    "workflow-badge pending";
+
+                return;
+            }
 
             document.getElementById("companySummary").innerHTML = `
                 ✓ ${this.options[this.selectedIndex].text}
