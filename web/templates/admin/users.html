@@ -87,7 +87,7 @@
                     </div>
                     <div class="row mb-3">
                         <div class="col-md-4"><label class="form-label">Subscription Plan</label><select id="cm_plan" class="form-select"><option value="1">Trial</option><option value="2">Basic</option><option value="3">Pro</option></select></div>
-                        <div class="col-md-4"><label class="form-label">Party Matching Limit</label><input type="number" id="cm_match_limit" class="form-control" readonly></div>
+                        <div class="col-md-4"><label class="form-label">Party Matching Limit</label><input type="text" id="cm_match_limit" class="form-control" readonly></div>
                         <div class="col-md-4"><label class="form-label">Remaining Matching</label><input type="text" id="cm_remaining" class="form-control" readonly></div>
                     </div>
                     <div class="row">
@@ -145,11 +145,10 @@
         }
     }
 
-    // Keep these values aligned with the actual subscription plan definitions.
-    // Trial: 20 matches / 10 XML rows; Basic: 100 matches / 100 XML rows; Pro: unlimited matches / 250 XML rows.
+    // These are the actual Party Matching and Excel/XML limits used by the plans.
     const planLimits = {
-        1: { match: 20, xml: 10 },
-        2: { match: 100, xml: 100 },
+        1: { match: 2, xml: 10 },
+        2: { match: 30, xml: 100 },
         3: { match: -1, xml: 250 }
     };
 
@@ -204,7 +203,7 @@
                     xml: Math.max(0, currentXmlLimit - currentXmlRemaining)
                 };
 
-                document.getElementById("cm_remaining").value = data.remaining_matching;
+                document.getElementById("cm_remaining").value = currentMatchLimit === -1 ? "Unlimited" : currentMatchRemaining;
                 document.getElementById("cm_match_limit").value = formatLimit(currentMatchLimit);
                 document.getElementById("cm_plan").value = data.subscription.plan_id;
                 document.getElementById("cm_xml_row_limit").value = currentXmlLimit;
@@ -223,7 +222,7 @@
     document.getElementById("saveSubscription").addEventListener("click", async function () {
         const payload = {
             plan_id: Number(document.getElementById("cm_plan").value),
-            match_limit: Number(document.getElementById("cm_match_limit").value),
+            match_limit: planLimits[Number(document.getElementById("cm_plan").value)]?.match ?? 0,
             subscription_status: "ACTIVE",
             plan_expiry: null
         };
