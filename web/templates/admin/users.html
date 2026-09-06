@@ -109,6 +109,7 @@
 <script>
     document.getElementById('nav-users').classList.add('active');
     let currentUserId = null;
+    let currentUsage = { match: 0, xml: 0 };
 
     document.addEventListener("DOMContentLoaded", function () {
         const searchBox = document.getElementById("matrixUserSearchBox");
@@ -144,17 +145,33 @@
         }
     }
 
+    // Keep these values aligned with the actual subscription plan definitions.
+    // Trial: 20 matches / 10 XML rows; Basic: 100 matches / 100 XML rows; Pro: unlimited matches / 250 XML rows.
     const planLimits = {
-        1: { match: 2, xml: 10 },
-        2: { match: 30, xml: 100 },
+        1: { match: 20, xml: 10 },
+        2: { match: 100, xml: 100 },
         3: { match: -1, xml: 250 }
     };
 
-    document.getElementById("cm_plan").addEventListener("change", function () {
-        const limits = planLimits[this.value] || { match: 0, xml: 0 };
-        document.getElementById("cm_match_limit").value = limits.match;
+    function formatLimit(value) {
+        return Number(value) === -1 ? "Unlimited" : Number(value);
+    }
+
+    function applySelectedPlanLimits(planId) {
+        const limits = planLimits[planId] || { match: 0, xml: 0 };
+        const matchRemaining = limits.match === -1
+            ? "Unlimited"
+            : Math.max(0, limits.match - currentUsage.match);
+        const xmlRemaining = Math.max(0, limits.xml - currentUsage.xml);
+
+        document.getElementById("cm_match_limit").value = formatLimit(limits.match);
+        document.getElementById("cm_remaining").value = matchRemaining;
         document.getElementById("cm_xml_row_limit").value = limits.xml;
-        document.getElementById("cm_xml_remaining").value = limits.xml;
+        document.getElementById("cm_xml_remaining").value = xmlRemaining;
+    }
+
+    document.getElementById("cm_plan").addEventListener("change", function () {
+        applySelectedPlanLimits(Number(this.value));
     });
 
     document.querySelectorAll(".manage-user").forEach(btn => {
@@ -176,11 +193,22 @@
                 const data = await res.json();
                 document.getElementById("cm_username").value = data.user.username;
                 document.getElementById("cm_email").value = data.user.email;
+
+                const currentMatchLimit = Number(data.subscription.match_limit ?? 0);
+                const currentMatchRemaining = Number(data.remaining_matching ?? 0);
+                const currentXmlLimit = Number(data.subscription.xml_row_limit ?? 0);
+                const currentXmlRemaining = Number(data.subscription.xml_remaining ?? 0);
+
+                currentUsage = {
+                    match: currentMatchLimit === -1 ? 0 : Math.max(0, currentMatchLimit - currentMatchRemaining),
+                    xml: Math.max(0, currentXmlLimit - currentXmlRemaining)
+                };
+
                 document.getElementById("cm_remaining").value = data.remaining_matching;
-                document.getElementById("cm_match_limit").value = data.subscription.match_limit;
+                document.getElementById("cm_match_limit").value = formatLimit(currentMatchLimit);
                 document.getElementById("cm_plan").value = data.subscription.plan_id;
-                document.getElementById("cm_xml_row_limit").value = data.subscription.xml_row_limit ?? 0;
-                document.getElementById("cm_xml_remaining").value = data.subscription.xml_remaining ?? 0;
+                document.getElementById("cm_xml_row_limit").value = currentXmlLimit;
+                document.getElementById("cm_xml_remaining").value = currentXmlRemaining;
                 loadingState.classList.add("d-none");
                 detailsContent.classList.remove("d-none");
                 saveButton.disabled = false;
