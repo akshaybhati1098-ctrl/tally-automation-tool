@@ -409,6 +409,80 @@
       to   { opacity: 1; transform: translateY(0); }
     }
 
+    /* ─── CONTACT SUPPORT ─── */
+    .support-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);
+      border-color: rgba(23,178,106,0.28);
+    }
+
+    .support-copy {
+      display: flex;
+      align-items: flex-start;
+      gap: 1rem;
+      min-width: 0;
+    }
+
+    .support-icon {
+      width: 46px;
+      height: 46px;
+      border-radius: 14px;
+      background: rgba(23,178,106,0.12);
+      display: grid;
+      place-items: center;
+      font-size: 1.45rem;
+      flex-shrink: 0;
+    }
+
+    .support-heading {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--ink);
+      margin: 0 0 0.4rem;
+    }
+
+    .support-description {
+      font-size: 0.84rem;
+      line-height: 1.6;
+      color: var(--ink3);
+      max-width: 650px;
+      margin: 0;
+    }
+
+    .support-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.55rem;
+      border: 0;
+      border-radius: 12px;
+      background: #16834a;
+      color: #ffffff;
+      padding: 0.85rem 1.1rem;
+      font: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      white-space: nowrap;
+      cursor: pointer;
+      transition: background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+      box-shadow: 0 4px 12px rgba(22,131,74,0.16);
+    }
+
+    .support-button:hover {
+      background: #116b3c;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 16px rgba(22,131,74,0.22);
+    }
+
+    .support-button:focus-visible {
+      outline: 3px solid rgba(22,131,74,0.3);
+      outline-offset: 3px;
+    }
+
     /* ─── RESPONSIVE ─── */
     @media (max-width: 900px) {
       .shell { padding-left: 1.5rem; }
@@ -422,6 +496,8 @@
       .features-grid { grid-template-columns: 1fr 1fr; }
       .actions-grid { grid-template-columns: repeat(2, 1fr); }
       header { flex-wrap: wrap; gap: 0.75rem; }
+      .support-card { flex-direction: column; align-items: stretch; }
+      .support-button { width: 100%; }
     }
   </style>
 </head>
@@ -505,6 +581,25 @@
         ></div>
       </div>
     </div>
+
+    <!-- Contact Support -->
+    <section class="card span-2 support-card" aria-labelledby="supportHeading">
+      <div class="support-copy">
+        <div class="support-icon" aria-hidden="true">💬</div>
+        <div>
+          <h2 id="supportHeading" class="support-heading">Need Help? We're Here for You!</h2>
+          <p class="support-description">
+            Having trouble with Excel-to-Tally conversion, Party Matching, or your Tally Connector?
+            Send us a WhatsApp message and we'll help you get back on track.
+          </p>
+        </div>
+      </div>
+      <button type="button" class="support-button" onclick="openSupportWhatsApp()">
+        <span aria-hidden="true">🟢</span>
+        Contact Support on WhatsApp
+        <span aria-hidden="true">↗</span>
+      </button>
+    </section>
 
     <!-- How It Works -->
     <div class="card">
@@ -603,6 +698,21 @@
 </div><!-- /shell -->
 
 <script>
+  // Add your WhatsApp number below using country code and digits only.
+  // Example format for India: 919876543210 (replace with your real support number).
+  const SUPPORT_WHATSAPP_NUMBER = "";
+
+  function openSupportWhatsApp() {
+    const number = String(SUPPORT_WHATSAPP_NUMBER || "").replace(/\\D/g, "");
+    if (!/^\\d{10,15}$/.test(number)) {
+      alert("WhatsApp support is not configured yet. Please set SUPPORT_WHATSAPP_NUMBER in dashboard.html.");
+      return;
+    }
+
+    const message = encodeURIComponent("Hi, I need help with Tally Automation Tool.");
+    window.open("https://wa.me/" + number + "?text=" + message, "_blank", "noopener,noreferrer");
+  }
+
   function navigateTo(page) { alert(`🌐 Navigating to ${page} (demo)`); }
 
   // ─────────────────────────────────────────────────────────────
