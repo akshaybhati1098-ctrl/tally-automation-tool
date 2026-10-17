@@ -259,8 +259,13 @@ def _parse_tally_ledgers_once(raw_data: str, group: str | None):
 
         return ledgers, records
 
-    # Preserve the existing fallback behavior for unusual Tally responses.
-    from core.tally_service import parse_ledgers_with_parent, parse_ledgers_with_gstin, parse_ledgers
+    # Support alternate responses only when they contain explicit ledger names.
+    # Generic NAME tags can describe the report/company rather than a ledger.
+    explicit_ledger_names = root.findall(".//LEDGERNAME")
+    if not explicit_ledger_names:
+        return [], []
+
+    from core.tally_service import parse_ledgers_with_parent, parse_ledgers_with_gstin
 
     parsed = parse_ledgers_with_parent(raw_data)
     _, gstin_to_ledger = parse_ledgers_with_gstin(raw_data)
@@ -290,9 +295,6 @@ def _parse_tally_ledgers_once(raw_data: str, group: str | None):
                 "parent_group": parent,
                 "gstin": ledger_to_gstin.get(name, ""),
             })
-
-    if not ledgers and group_norm not in ("", "all"):
-        ledgers = parse_ledgers(raw_data)
 
     return ledgers, records
 
@@ -2187,13 +2189,16 @@ async def _run_party_match_task(
             raw_xml = result.get("data", "") or ""
 
             async with match_semaphore:
-                ledgers, g_map = await run_blocking(
-                    _parse_tally_ledgers_for_match, raw_xml, tally_group
+                ledgers, cache_records = await run_blocking(
+                    _parse_tally_ledgers_once, raw_xml, tally_group
                 )
 
-            cache_records = await run_blocking(
-                _parse_party_ledgers_for_sql, raw_xml, tally_group
-            )
+            g_map = {}
+            for record in cache_records:
+                gstin = (record.get("gstin") or "").strip().upper()
+                ledger_name = (record.get("ledger_name") or "").strip()
+                if gstin and ledger_name:
+                    g_map.setdefault(gstin, ledger_name)
             await run_blocking(
                 _replace_tally_ledger_cache,
                 user_id,
@@ -2590,13 +2595,16 @@ async def match_party(
             raw_xml = result.get("data", "") or ""
 
             async with match_semaphore:
-                ledgers, g_map = await run_blocking(
-                    _parse_tally_ledgers_for_match, raw_xml, tally_group
+                ledgers, cache_records = await run_blocking(
+                    _parse_tally_ledgers_once, raw_xml, tally_group
                 )
 
-            cache_records = await run_blocking(
-                _parse_party_ledgers_for_sql, raw_xml, tally_group
-            )
+            g_map = {}
+            for record in cache_records:
+                gstin = (record.get("gstin") or "").strip().upper()
+                ledger_name = (record.get("ledger_name") or "").strip()
+                if gstin and ledger_name:
+                    g_map.setdefault(gstin, ledger_name)
             await run_blocking(
                 _replace_tally_ledger_cache,
                 user_id_str,
