@@ -703,8 +703,8 @@
   const SUPPORT_WHATSAPP_NUMBER = "";
 
   function openSupportWhatsApp() {
-    const number = String(SUPPORT_WHATSAPP_NUMBER || "").replace(/\\D/g, "");
-    if (!/^\\d{10,15}$/.test(number)) {
+    const number = String(SUPPORT_WHATSAPP_NUMBER || "").replace(/\D/g, "");
+    if (!/^\d{10,15}$/.test(number)) {
       alert("WhatsApp support is not configured yet. Please set SUPPORT_WHATSAPP_NUMBER in dashboard.html.");
       return;
     }
