@@ -186,3 +186,8 @@
     max-width: 100%;
   }
 }
+
+/* Keep the Basic request button compact, matching the Pro button sizing. */
+.subscription-page #btnBasic {
+  width: auto !important;
+}
