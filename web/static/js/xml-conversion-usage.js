@@ -17,15 +17,28 @@
     col.id = "xmlConversionUsageCol";
     col.className = "col-lg-6 mb-4";
     col.innerHTML = `
-      <div class="card summary-card shadow-sm border-0 rounded-4 h-100">
+      <div class="card summary-card summary-xml-card shadow-sm border-0 rounded-4 h-100">
         <div class="card-body p-4">
-          <h5 class="eyebrow">Excel → Tally XML Usage</h5>
-          <h1 id="xmlRowsRemaining" class="fw-bold mt-2" style="font-family:var(--sp-font-mono);font-weight:800;color:var(--sp-accent);">-</h1>
-          <small class="text-muted">Remaining XML Conversion Rows</small>
-          <div class="progress mt-4" style="height:12px;">
+          <div class="summary-xml-header">
+            <div class="summary-xml-heading">
+              <span class="summary-xml-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none"><path d="M5 3.5h9l5 5v12H5a1.5 1.5 0 0 1-1.5-1.5V5A1.5 1.5 0 0 1 5 3.5Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M14 3.8v5h5M7.5 13h9M7.5 16.5h9" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+              </span>
+              <span class="summary-xml-title">Excel to Tally XML</span>
+            </div>
+          </div>
+          <div class="summary-xml-value-row">
+            <h1 id="xmlRowsRemaining" class="summary-xml-value">-</h1>
+            <span class="summary-xml-remaining-label">rows left</span>
+          </div>
+          <div class="progress summary-xml-progress">
             <div id="xmlUsageBar" class="progress-bar" style="width:0%;"></div>
           </div>
-          <div class="mt-3"><small id="xmlUsageText">Loading...</small></div>
+          <div class="summary-xml-counts">
+            <small id="xmlUsageText">Loading...</small>
+            <small id="xmlUsageTotal">- total</small>
+          </div>
+          <div id="xmlUsagePercentText" class="summary-xml-percent">0% of your row limit used</div>
         </div>
       </div>`;
 
@@ -44,17 +57,22 @@
 
     const remainingEl = document.getElementById("xmlRowsRemaining");
     const usageTextEl = document.getElementById("xmlUsageText");
+    const usageTotalEl = document.getElementById("xmlUsageTotal");
+    const usagePercentTextEl = document.getElementById("xmlUsagePercentText");
     const usageBar = document.getElementById("xmlUsageBar");
+    const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
+    const roundedPercent = Math.round(percent);
 
     if (remainingEl) remainingEl.textContent = remaining.toLocaleString("en-IN");
-
-    if (usageTextEl) {
-      usageTextEl.textContent = `${used.toLocaleString("en-IN")} / ${limit.toLocaleString("en-IN")} rows used`;
-    }
+    if (usageTextEl) usageTextEl.textContent = `${used.toLocaleString("en-IN")} used`;
+    if (usageTotalEl) usageTotalEl.textContent = `${limit.toLocaleString("en-IN")} total`;
+    if (usagePercentTextEl) usagePercentTextEl.textContent = `${roundedPercent}% of your row limit used`;
 
     if (usageBar) {
-      const percent = limit > 0 ? Math.min(100, (used / limit) * 100) : 0;
       usageBar.style.width = `${percent}%`;
+      usageBar.setAttribute("aria-valuenow", String(roundedPercent));
+      usageBar.setAttribute("aria-valuemin", "0");
+      usageBar.setAttribute("aria-valuemax", "100");
     }
   }
 
