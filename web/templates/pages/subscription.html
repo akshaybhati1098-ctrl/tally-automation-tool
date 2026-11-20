@@ -39,11 +39,15 @@
   .subscription-page .summary-matching-value-icon{font-size:38px;line-height:1;color:#2563eb;font-weight:400}
   .subscription-page .summary-matching-value{font-family:var(--sp-font-ui);font-size:36px;line-height:1.15;font-weight:700;letter-spacing:-.035em;color:var(--sp-text);margin:0}
   .subscription-page .summary-matching-description{font-size:15px;line-height:1.5;color:#626b78;margin-top:12px;max-width:290px}
-  .subscription-page .summary-matching-usage{margin-top:24px}
-  .subscription-page .summary-matching-progress{height:9px!important;background:#f0f1f3!important;border-radius:999px!important}
-  .subscription-page .summary-matching-progress .progress-bar{background:#765fe8!important;border-radius:999px!important}
-  .subscription-page .summary-matching-usage-text{margin-top:10px;color:#687386;font-size:13px}
-  .subscription-page .summary-matching-usage-text #usageText{font-family:var(--sp-font-ui);font-weight:500;color:#687386}
+  .subscription-page .summary-matching-usage{margin-top:22px}
+  .subscription-page .summary-matching-progress-heading{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+  .subscription-page .summary-matching-progress-heading small{font-size:13px;color:#687386}
+  .subscription-page .summary-matching-progress-heading strong{font-size:14px;font-weight:700;color:#6654d9}
+  .subscription-page .summary-matching-progress{display:block!important;width:100%!important;min-width:100%;height:9px!important;min-height:9px!important;margin:0;background:#e9e7f2!important;border:1px solid #e2dfed;box-sizing:border-box;border-radius:999px!important;overflow:hidden}
+  .subscription-page .summary-matching-progress .progress-bar{display:block;height:100%;min-width:0!important;background:#765fe8!important;border-radius:999px!important;transition:width .25s ease}
+  .subscription-page .summary-matching-counts{display:flex;width:100%;box-sizing:border-box;align-items:center;justify-content:space-between;gap:12px;margin:3px 0 0;padding:0;color:#687386;font-size:13px}
+  .subscription-page .summary-matching-counts small{display:block;margin:0;padding:0;font-size:13px;line-height:1.4;color:#687386}
+  .subscription-page .summary-matching-counts small:last-child{text-align:right}
   .subscription-page .summary-matching-included{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:22px;color:#16803a;font-size:15px;font-weight:600}
   .subscription-page .summary-matching-included span{width:20px;height:20px;border:1.5px solid #16a34a;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
   @media(max-width:575.98px){.subscription-page .summary-matching-card .card-body{padding:20px!important}.subscription-page .summary-matching-icon{width:50px;height:50px;min-width:50px}.subscription-page .summary-matching-value{font-size:32px}.subscription-page .summary-matching-title{font-size:14px}}
@@ -145,10 +149,17 @@
       <div id="matchingDescription" class="summary-matching-description">Remaining party matches</div>
 
       <div id="matchingUsageDetails" class="summary-matching-usage">
-        <div class="progress summary-matching-progress">
+        <div class="summary-matching-progress-heading">
+          <small>Usage</small>
+          <strong id="matchingUsagePercent">0%</strong>
+        </div>
+        <div class="progress summary-matching-progress" role="progressbar" aria-label="Party matching usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
           <div id="usageBar" class="progress-bar" style="width:0%;"></div>
         </div>
-        <div class="summary-matching-usage-text"><small id="usageText">Loading...</small></div>
+        <div class="summary-matching-counts">
+          <small id="usageText">0 used</small>
+          <small id="matchingUsageTotal">- total</small>
+        </div>
       </div>
 
       <div id="matchingIncludedNote" class="summary-matching-included" hidden></div>
@@ -234,7 +245,7 @@ function setRequestButtonState(planName,status){
   }
 }
 async function loadUpgradeRequestStatus(){try{const r=await fetch("/admin/api/subscription/request-status");if(!r.ok)return;const data=await r.json();if(!data.exists){setRequestUI("none");return}setRequestUI(data.status,data.plan_name,data.reviewed_at||data.created_at);setRequestButtonState(data.plan_name,data.status)}catch(error){console.error("Unable to load upgrade request status:",error)}}
-async function loadSubscription(){const r=await fetch("/api/subscription/me");if(!r.ok){alert("Unable to load subscription.");return}const data=await r.json(),sub=data.subscription;document.getElementById("planName").innerText=sub.plan_name;document.getElementById("planStatus").innerText=sub.subscription_status;const expiryInfo=formatExpiry(sub.plan_expiry);document.getElementById("planExpiry").innerText=expiryInfo.text;const expiryRelativeEl=document.getElementById("planExpiryRelative");expiryRelativeEl.innerText=expiryInfo.relative;expiryRelativeEl.className="expiry-relative "+expiryInfo.cls;const matchingDetails=document.getElementById("matchingUsageDetails"),matchingIncluded=document.getElementById("matchingIncludedNote"),matchingDescription=document.getElementById("matchingDescription"),matchingPlanBadge=document.getElementById("matchingPlanBadge"),matchingValueIcon=document.getElementById("matchingValueIcon"),matchingIncludedText=document.getElementById("matchingIncludedText");const planName=String(sub.plan_name||"Current").trim(),planNameLower=planName.toLowerCase(),matchLimit=Number(sub.match_limit??0),remaining=Number(data.remaining_matching??0);matchingPlanBadge.innerText=planName;matchingPlanBadge.className="summary-matching-plan-badge "+(planNameLower==="trial"?"is-trial":planNameLower==="basic"?"is-basic":"is-pro");if(matchLimit===-1||remaining===-1){document.getElementById("remainingMatches").innerText="Unlimited";matchingValueIcon.innerText="∞";matchingValueIcon.classList.add("is-unlimited");matchingDescription.innerText="No matching limit on your "+planName+" plan";matchingDetails.hidden=true;matchingIncluded.hidden=true}else{const safeLimit=Math.max(0,matchLimit),safeRemaining=Math.max(0,remaining),used=Math.max(0,safeLimit-safeRemaining),percent=safeLimit>0?(used/safeLimit)*100:0;document.getElementById("remainingMatches").innerText=safeRemaining.toLocaleString("en-IN");matchingValueIcon.innerText="#";matchingValueIcon.classList.remove("is-unlimited");matchingDescription.innerText="Matches remaining on your "+planName+" plan";matchingDetails.hidden=false;matchingIncluded.hidden=true;document.getElementById("usageBar").style.width=Math.max(0,Math.min(100,percent))+"%";document.getElementById("usageText").innerText=used.toLocaleString("en-IN")+" used of "+safeLimit.toLocaleString("en-IN")+" matches"}await loadUpgradeRequestStatus()}
+async function loadSubscription(){const r=await fetch("/api/subscription/me");if(!r.ok){alert("Unable to load subscription.");return}const data=await r.json(),sub=data.subscription;document.getElementById("planName").innerText=sub.plan_name;document.getElementById("planStatus").innerText=sub.subscription_status;const expiryInfo=formatExpiry(sub.plan_expiry);document.getElementById("planExpiry").innerText=expiryInfo.text;const expiryRelativeEl=document.getElementById("planExpiryRelative");expiryRelativeEl.innerText=expiryInfo.relative;expiryRelativeEl.className="expiry-relative "+expiryInfo.cls;const matchingDetails=document.getElementById("matchingUsageDetails"),matchingIncluded=document.getElementById("matchingIncludedNote"),matchingDescription=document.getElementById("matchingDescription"),matchingPlanBadge=document.getElementById("matchingPlanBadge"),matchingValueIcon=document.getElementById("matchingValueIcon");const planName=String(sub.plan_name||"Current").trim(),planNameLower=planName.toLowerCase(),matchLimit=Number(sub.match_limit??0),remaining=Number(data.remaining_matching??0);matchingPlanBadge.innerText=planName;matchingPlanBadge.className="summary-matching-plan-badge "+(planNameLower==="trial"?"is-trial":planNameLower==="basic"?"is-basic":"is-pro");if(matchLimit===-1||remaining===-1){document.getElementById("remainingMatches").innerText="Unlimited";matchingValueIcon.innerText="∞";matchingValueIcon.classList.add("is-unlimited");matchingDescription.innerText="No matching limit on your "+planName+" plan";matchingDetails.hidden=true;matchingIncluded.hidden=true}else{const safeLimit=Math.max(0,matchLimit),safeRemaining=Math.max(0,remaining),used=Math.max(0,safeLimit-safeRemaining),percent=safeLimit>0?Math.min(100,(used/safeLimit)*100):0,roundedPercent=Math.round(percent);document.getElementById("remainingMatches").innerText=safeRemaining.toLocaleString("en-IN");matchingValueIcon.innerText="#";matchingValueIcon.classList.remove("is-unlimited");matchingDescription.innerText="Matches remaining on your "+planName+" plan";matchingDetails.hidden=false;matchingIncluded.hidden=true;document.getElementById("usageBar").style.width=percent+"%";document.getElementById("usageBar").setAttribute("aria-valuenow",String(roundedPercent));document.getElementById("matchingUsagePercent").innerText=roundedPercent+"%";document.getElementById("usageText").innerText=used.toLocaleString("en-IN")+" used";document.getElementById("matchingUsageTotal").innerText=safeLimit.toLocaleString("en-IN")+" total"}await loadUpgradeRequestStatus()}
 // Set your WhatsApp support number here (country code + digits only; e.g. India: 919876543210).
 const SUBSCRIPTION_SUPPORT_WHATSAPP_NUMBER = "9958135904";
 function openSubscriptionSupportWhatsApp(){
