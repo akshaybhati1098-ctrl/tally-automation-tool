@@ -10,10 +10,10 @@
     border-radius:22px!important;
     background:#fff!important;
   }
-  /* Keep summary cards equal-height without creating an inner scrollbar. */
-  .subscription-page .summary-card{height:auto!important;min-height:320px!important;max-height:none!important;box-sizing:border-box}
-  .subscription-page .summary-card>.card-body{height:auto;min-height:100%;box-sizing:border-box;overflow:visible}
-  .subscription-page .summary-plan-card{min-height:320px}
+  /* Compact, consistent summary cards — content remains fully visible. */
+  .subscription-page .summary-card{height:360px!important;min-height:360px!important;max-height:360px!important;box-sizing:border-box}
+  .subscription-page .summary-card>.card-body{height:100%;min-height:0;box-sizing:border-box;overflow:visible}
+  .subscription-page .summary-plan-card{min-height:360px}
   .subscription-page .summary-plan-card .card-body{padding:24px!important}
   .subscription-page .summary-plan-heading{gap:12px}
   .subscription-page .summary-plan-title{white-space:nowrap}
