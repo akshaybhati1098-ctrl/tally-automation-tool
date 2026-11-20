@@ -14,18 +14,84 @@
 <div class="row">
 <div class="col-lg-6 mb-4"><div class="card summary-card shadow-sm border-0 rounded-4 h-100"><div class="card-body p-4"><h5 class="eyebrow">Current Plan</h5><h2 id="planName" class="fw-bold mt-2">Loading...</h2><hr><div class="row"><div class="col-6"><small class="stat-label">Status</small><h5 id="planStatus">-</h5></div><div class="col-6"><small class="stat-label">Expiry</small><h5 id="planExpiry">-</h5><small id="planExpiryRelative" class="expiry-relative"></small></div></div></div></div></div>
 <div class="col-lg-6 mb-4"><div class="card summary-card shadow-sm border-0 rounded-4 h-100"><div class="card-body p-4"><h5 class="eyebrow">Party Matching Usage</h5><h1 id="remainingMatches" class="fw-bold mt-2">-</h1><small class="text-muted">Remaining Matching</small><div class="progress mt-4" style="height:12px;"><div id="usageBar" class="progress-bar bg-success" style="width:0%;"></div></div><div class="mt-3"><small id="usageText">Loading...</small></div></div></div></div></div>
-<div class="row mb-4" id="upgradeRequestRow" style="display:none;"><div class="col-12"><div class="card border-0 shadow-sm rounded-4"><div class="card-body p-4 d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3"><div class="d-flex align-items-start gap-3"><div id="requestIcon" style="width:52px;height:52px;border-radius:14px;background:#fff7e8;color:#d97706;display:flex;align-items:center;justify-content:center;font-size:24px;">⏳</div><div><div class="eyebrow mb-1">Upgrade Request</div><h5 id="requestTitle" class="mb-1 fw-bold">Request Pending</h5><div id="requestText" class="text-muted" style="font-size:14px;">We will contact you on WhatsApp or phone for activation.</div><div id="requestMeta" class="mt-2" style="font-size:13px;color:#6b7280;"></div></div></div><div class="d-flex flex-wrap gap-2"><button id="requestAgainBtn" class="btn btn-outline-primary rounded-3" style="display:none;">🔁 Request Again</button></div></div></div></div></div>
+
 <div class="row">
-<div class="col-lg-6 mb-4"><div id="basicCard" class="card plan-card shadow border-primary rounded-4 h-100"><div class="card-body p-4 text-center"><div class="plan-icon">🌱</div><h3 class="text-primary plan-name">BASIC</h3><h1 class="plan-price">₹99</h1><p class="plan-period">per month</p><hr><ul class="feature-list"><li><span class="feature-check">✓</span> 30 Party Matching</li><li><span class="feature-check">✓</span> Excel → XML</li><li><span class="feature-check">✓</span> Download unmatched party excel</li><li><span class="feature-check">✓</span> Tally Connector</li></ul><button id="btnBasic" class="btn btn-primary mt-3">🚀 Request Basic</button></div></div></div>
-<div class="col-lg-6 mb-4"><div id="proCard" class="card plan-card shadow border-warning rounded-4 h-100"><div class="plan-ribbon">Best Value</div><div class="card-body p-4 text-center"><div class="plan-icon">🚀</div><h3 class="text-warning plan-name">PRO</h3><h1 class="plan-price">₹150</h1><p class="plan-period">per month</p><hr><ul class="feature-list"><li><span class="feature-check">✓</span> Unlimited Matching</li><li><span class="feature-check">✓</span> Excel → XML</li><li><span class="feature-check">✓</span> Download unmatched party excel</li><li><span class="feature-check">✓</span> Tally Connector</li><li><span class="feature-star">⭐</span> Priority Support</li></ul><button id="btnPro" class="btn btn-warning w-100 mt-3">🚀 Request Pro</button></div></div></div></div>
+<div class="col-lg-6 mb-4"><div id="basicCard" class="card plan-card shadow border-primary rounded-4 h-100"><div class="card-body p-4 text-center"><div class="plan-icon">🌱</div><h3 class="text-primary plan-name">BASIC</h3><h1 class="plan-price">₹99</h1><p class="plan-period">per month</p><hr><ul class="feature-list"><li><span class="feature-check">✓</span> 30 Party Matching</li><li><span class="feature-check">✓</span> Excel → XML</li><li><span class="feature-check">✓</span> Download unmatched party excel</li><li><span class="feature-check">✓</span> Tally Connector</li></ul><button id="btnBasic" class="btn btn-primary mt-3">🚀 Request Basic</button><div id="basicRequestInfo" class="plan-request-info" aria-live="polite" hidden><span class="plan-request-badge"></span><p class="plan-request-text"></p><small class="plan-request-meta"></small></div></div></div></div>
+<div class="col-lg-6 mb-4"><div id="proCard" class="card plan-card shadow border-warning rounded-4 h-100"><div class="plan-ribbon">Best Value</div><div class="card-body p-4 text-center"><div class="plan-icon">🚀</div><h3 class="text-warning plan-name">PRO</h3><h1 class="plan-price">₹150</h1><p class="plan-period">per month</p><hr><ul class="feature-list"><li><span class="feature-check">✓</span> Unlimited Matching</li><li><span class="feature-check">✓</span> Excel → XML</li><li><span class="feature-check">✓</span> Download unmatched party excel</li><li><span class="feature-check">✓</span> Tally Connector</li><li><span class="feature-star">⭐</span> Priority Support</li></ul><button id="btnPro" class="btn btn-warning w-100 mt-3">🚀 Request Pro</button><div id="proRequestInfo" class="plan-request-info" aria-live="polite" hidden><span class="plan-request-badge"></span><p class="plan-request-text"></p><small class="plan-request-meta"></small></div></div></div></div></div>
 <div class="modal fade" id="upgradeModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content rounded-4 border-0 shadow-lg"><div class="modal-header border-0 pb-0"><h5 class="modal-title fw-bold">🚀 Upgrade Request</h5><button type="button" class="btn-close" id="closeUpgradeModal" aria-label="Close"></button></div><div class="modal-body pt-2"><div class="alert alert-light border rounded-3 mb-3"><div class="fw-semibold">Selected Plan</div><div id="selectedPlanText" class="text-primary">Pro Plan</div></div><form id="upgradeRequestForm"><div class="mb-3"><label class="form-label fw-semibold">Full Name</label><input type="text" class="form-control rounded-3" id="reqName" required></div><div class="mb-3"><label class="form-label fw-semibold">Email</label><input type="email" class="form-control rounded-3" id="reqEmail" required></div><div class="mb-3"><label class="form-label fw-semibold">Phone / WhatsApp</label><input type="tel" class="form-control rounded-3" id="reqPhone" required></div><div class="mb-3"><label class="form-label fw-semibold">Message (Optional)</label><textarea class="form-control rounded-3" id="reqMessage" rows="3"></textarea></div><div class="small text-muted mb-3">No payment is required now. We will contact you on WhatsApp or phone for activation.</div><div class="d-flex gap-3 mt-2"><button type="button" id="cancelUpgradeBtn" class="btn btn-light border rounded-3 py-2 fw-semibold" style="width:120px;">Cancel</button><button type="submit" class="btn btn-primary rounded-3 py-2 fw-semibold flex-grow-1">Send Request</button></div></form></div></div></div></div>
 </div></div>
 
 <script>
 function formatExpiry(dateStr){if(!dateStr)return{text:"No Expiry",relative:"",cls:"expiry-none"};const d=new Date(dateStr);if(isNaN(d.getTime()))return{text:dateStr,relative:"",cls:""};const day=String(d.getDate()).padStart(2,"0"),month=d.toLocaleString("en-US",{month:"short"}),year=d.getFullYear(),text=day+" "+month+" "+year,today=new Date();today.setHours(0,0,0,0);const dueDate=new Date(d);dueDate.setHours(0,0,0,0),diffDays=Math.round((dueDate-today)/(1000*60*60*24));let relative,cls;if(diffDays<0){relative="Expired";cls="expiry-expired"}else if(diffDays===0){relative="Expires today";cls="expiry-soon"}else if(diffDays<=7){relative=diffDays+" day"+(diffDays>1?"s":"")+" left";cls="expiry-soon"}else{relative=diffDays+" days left";cls="expiry-ok"}return{text,relative,cls}}
 function formatRequestDate(dateStr){if(!dateStr)return"";let normalized=String(dateStr);if(!/[zZ]|[+-]\d{2}:?\d{2}$/.test(normalized))normalized+="Z";const d=new Date(normalized);if(isNaN(d.getTime()))return dateStr;return d.toLocaleString("en-IN",{day:"2-digit",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit",hour12:true})}
-function setRequestUI(status,planName="",requestedAt=""){const row=document.getElementById("upgradeRequestRow"),icon=document.getElementById("requestIcon"),title=document.getElementById("requestTitle"),text=document.getElementById("requestText"),meta=document.getElementById("requestMeta"),againBtn=document.getElementById("requestAgainBtn");row.style.display="none";againBtn.style.display="none";if(!status||status==="none")return;row.style.display="block";if(status==="pending"){icon.innerHTML="⏳";icon.style.background="#fff7e8";icon.style.color="#d97706";title.innerText="Request Pending";text.innerText="Your upgrade request is being reviewed. We will contact you for activation.";meta.innerText=planName?`Requested plan: ${planName}`:""}if(status==="approved"){icon.innerHTML="✅";icon.style.background="#ecfdf5";icon.style.color="#16a34a";title.innerText=`${planName} Plan Active`;text.innerText="Your subscription is active and ready to use.";meta.innerText=requestedAt?`Activated: ${formatRequestDate(requestedAt)}`:""}if(status==="rejected"||status==="expired"){icon.innerHTML="⚠️";icon.style.background="#fef2f2";icon.style.color="#dc2626";title.innerText=status==="expired"?"Request Expired":"Request Rejected";text.innerText="Your upgrade request was not approved. You can submit a new request.";meta.innerText="";againBtn.style.display="inline-flex"}}
-function setRequestButtonState(planName,status){const basicBtn=document.getElementById("btnBasic"),proBtn=document.getElementById("btnPro");if(status==="approved")return;if(planName==="Basic"){basicBtn.innerHTML=status==="pending"?"🟡 Request Pending":status==="rejected"?"🔁 Request Again":"🚀 Request Basic";basicBtn.disabled=status==="pending"}if(planName==="Pro"){proBtn.innerHTML=status==="pending"?"🟡 Request Pending":status==="rejected"?"🔁 Request Again":"🚀 Request Pro";proBtn.disabled=status==="pending"}}
+function setRequestUI(status,planName="",requestedAt=""){
+  const basicInfo=document.getElementById("basicRequestInfo");
+  const proInfo=document.getElementById("proRequestInfo");
+  [basicInfo,proInfo].forEach(info=>{
+    if(!info)return;
+    info.hidden=true;
+    info.className="plan-request-info";
+    const badge=info.querySelector(".plan-request-badge");
+    const message=info.querySelector(".plan-request-text");
+    const meta=info.querySelector(".plan-request-meta");
+    if(badge)badge.textContent="";
+    if(message)message.textContent="";
+    if(meta)meta.textContent="";
+  });
+  if(!status||status==="none")return;
+
+  const normalizedPlan=String(planName||"").trim().toLowerCase();
+  const info=normalizedPlan==="basic"?basicInfo:normalizedPlan==="pro"?proInfo:null;
+  if(!info)return;
+
+  const states={
+    pending:{
+      label:"Request Pending",
+      message:"Your upgrade request is being reviewed. We will contact you for activation.",
+      className:"is-pending"
+    },
+    approved:{
+      label:"Request Approved",
+      message:"Your request has been approved. Your subscription is ready to use.",
+      className:"is-approved"
+    },
+    rejected:{
+      label:"Request Rejected",
+      message:"Your request was not approved. You can submit a new request.",
+      className:"is-rejected"
+    },
+    expired:{
+      label:"Request Expired",
+      message:"This request has expired. You can submit a new request.",
+      className:"is-expired"
+    }
+  };
+  const state=states[status]||{
+    label:"Request Update",
+    message:"Your subscription request status has been updated.",
+    className:"is-pending"
+  };
+
+  info.hidden=false;
+  info.classList.add(state.className);
+  info.querySelector(".plan-request-badge").textContent=state.label;
+  info.querySelector(".plan-request-text").textContent=state.message;
+  const meta=info.querySelector(".plan-request-meta");
+  if(meta&&status==="approved"&&requestedAt)meta.textContent="Updated: "+formatRequestDate(requestedAt);
+}
+function setRequestButtonState(planName,status){
+  const basicBtn=document.getElementById("btnBasic");
+  const proBtn=document.getElementById("btnPro");
+  const isRetry=status==="rejected"||status==="expired";
+  if(planName==="Basic"&&basicBtn){
+    basicBtn.innerHTML=status==="pending"?"🟡 Request Pending":isRetry?"🔁 Request Again":"🚀 Request Basic";
+    basicBtn.disabled=status==="pending";
+  }
+  if(planName==="Pro"&&proBtn){
+    proBtn.innerHTML=status==="pending"?"🟡 Request Pending":isRetry?"🔁 Request Again":"🚀 Request Pro";
+    proBtn.disabled=status==="pending";
+  }
+}
 async function loadUpgradeRequestStatus(){try{const r=await fetch("/admin/api/subscription/request-status");if(!r.ok)return;const data=await r.json();if(!data.exists){setRequestUI("none");return}setRequestUI(data.status,data.plan_name,data.reviewed_at||data.created_at);setRequestButtonState(data.plan_name,data.status)}catch(error){console.error("Unable to load upgrade request status:",error)}}
 async function loadSubscription(){const r=await fetch("/api/subscription/me");if(!r.ok){alert("Unable to load subscription.");return}const data=await r.json(),sub=data.subscription;document.getElementById("planName").innerText=sub.plan_name;document.getElementById("planStatus").innerText=sub.subscription_status;const expiryInfo=formatExpiry(sub.plan_expiry);document.getElementById("planExpiry").innerText=expiryInfo.text;const expiryRelativeEl=document.getElementById("planExpiryRelative");expiryRelativeEl.innerText=expiryInfo.relative;expiryRelativeEl.className="expiry-relative "+expiryInfo.cls;if(sub.match_limit==-1){document.getElementById("remainingMatches").innerText="Unlimited";document.getElementById("usageBar").style.width="100%";document.getElementById("usageText").innerText="Unlimited Matching"}else{document.getElementById("remainingMatches").innerText=data.remaining_matching;let used=sub.match_limit-data.remaining_matching,percent=sub.match_limit>0?(used/sub.match_limit)*100:0;document.getElementById("usageBar").style.width=Math.max(0,Math.min(100,percent))+"%";document.getElementById("usageText").innerText=used+" used of "+sub.match_limit+" matches"}await loadUpgradeRequestStatus()}
 // Set your WhatsApp support number here (country code + digits only; e.g. India: 919876543210).
@@ -40,6 +106,68 @@ function openSubscriptionSupportWhatsApp(){
   window.open("https://wa.me/"+number+"?text="+message,"_blank","noopener,noreferrer");
 }
 var selectedPlan="";
-function initUpgradeUI(){const basicBtn=document.getElementById("btnBasic"),proBtn=document.getElementById("btnPro"),form=document.getElementById("upgradeRequestForm"),modalEl=document.getElementById("upgradeModal"),cancelBtn=document.getElementById("cancelUpgradeBtn"),closeBtn=document.getElementById("closeUpgradeModal"),againBtn=document.getElementById("requestAgainBtn");function closeModal(){modalEl.classList.remove("show");modalEl.style.display="none";modalEl.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open")}function openModal(planName){selectedPlan=planName;document.getElementById("selectedPlanText").innerText=`${planName} Plan`;modalEl.classList.add("show");modalEl.style.display="flex";modalEl.removeAttribute("aria-hidden");document.body.classList.add("modal-open")}if(basicBtn)basicBtn.onclick=function(){if(!basicBtn.disabled)openModal("Basic")};if(proBtn)proBtn.onclick=function(){if(!proBtn.disabled)openModal("Pro")};if(cancelBtn)cancelBtn.onclick=closeModal;if(closeBtn)closeBtn.onclick=closeModal;if(againBtn)againBtn.onclick=function(){openModal(selectedPlan||"Pro")};modalEl.onclick=function(e){if(e.target===modalEl)closeModal()};if(form)form.onsubmit=async function(e){e.preventDefault();const submitBtn=form.querySelector('button[type="submit"]');if(submitBtn){submitBtn.disabled=true;submitBtn.innerText="Sending..."}const payload={plan_name:selectedPlan,full_name:document.getElementById("reqName").value.trim(),email:document.getElementById("reqEmail").value.trim(),phone:document.getElementById("reqPhone").value.trim(),message:document.getElementById("reqMessage").value.trim()};try{const response=await fetch("/admin/api/subscription/request-upgrade",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)}),data=await response.json();if(!response.ok||!data.success){alert(data.message||"Unable to send upgrade request.");return}closeModal();form.reset();setRequestUI("pending",selectedPlan,data.created_at);setRequestButtonState(selectedPlan,"pending")}catch(error){console.error("Upgrade request failed:",error);alert("Unable to send upgrade request. Please try again")}finally{if(submitBtn){submitBtn.disabled=false;submitBtn.innerText="Send Request"}}}}
+function initUpgradeUI(){
+  const basicBtn=document.getElementById("btnBasic");
+  const proBtn=document.getElementById("btnPro");
+  const form=document.getElementById("upgradeRequestForm");
+  const modalEl=document.getElementById("upgradeModal");
+  const cancelBtn=document.getElementById("cancelUpgradeBtn");
+  const closeBtn=document.getElementById("closeUpgradeModal");
+
+  function closeModal(){
+    modalEl.classList.remove("show");
+    modalEl.style.display="none";
+    modalEl.setAttribute("aria-hidden","true");
+    document.body.classList.remove("modal-open");
+  }
+  function openModal(planName){
+    selectedPlan=planName;
+    document.getElementById("selectedPlanText").innerText=`${planName} Plan`;
+    modalEl.classList.add("show");
+    modalEl.style.display="flex";
+    modalEl.removeAttribute("aria-hidden");
+    document.body.classList.add("modal-open");
+  }
+
+  if(basicBtn)basicBtn.onclick=function(){if(!basicBtn.disabled)openModal("Basic")};
+  if(proBtn)proBtn.onclick=function(){if(!proBtn.disabled)openModal("Pro")};
+  if(cancelBtn)cancelBtn.onclick=closeModal;
+  if(closeBtn)closeBtn.onclick=closeModal;
+  modalEl.onclick=function(e){if(e.target===modalEl)closeModal()};
+
+  if(form)form.onsubmit=async function(e){
+    e.preventDefault();
+    const submitBtn=form.querySelector('button[type="submit"]');
+    if(submitBtn){submitBtn.disabled=true;submitBtn.innerText="Sending..."}
+    const payload={
+      plan_name:selectedPlan,
+      full_name:document.getElementById("reqName").value.trim(),
+      email:document.getElementById("reqEmail").value.trim(),
+      phone:document.getElementById("reqPhone").value.trim(),
+      message:document.getElementById("reqMessage").value.trim()
+    };
+    try{
+      const response=await fetch("/admin/api/subscription/request-upgrade",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify(payload)
+      });
+      const data=await response.json();
+      if(!response.ok||!data.success){
+        alert(data.message||"Unable to send upgrade request.");
+        return;
+      }
+      closeModal();
+      form.reset();
+      setRequestUI("pending",selectedPlan,data.created_at);
+      setRequestButtonState(selectedPlan,"pending");
+    }catch(error){
+      console.error("Upgrade request failed:",error);
+      alert("Unable to send upgrade request. Please try again");
+    }finally{
+      if(submitBtn){submitBtn.disabled=false;submitBtn.innerText="Send Request"}
+    }
+  };
+}
 document.addEventListener("DOMContentLoaded",()=>{initUpgradeUI();loadSubscription()});
 </script>
