@@ -21,6 +21,26 @@
   .subscription-page .summary-plan-name{margin:18px 0 14px}
   .subscription-page .summary-plan-note{margin-top:12px;padding-top:10px}
   @media(max-width:1199.98px){.subscription-page .summary-plan-title{white-space:normal}}
+  /* Party matching summary card — visual-only styles, scoped to this card. */
+  .subscription-page .summary-matching-card{border-radius:22px!important}
+  .subscription-page .summary-matching-card .card-body{display:flex;flex-direction:column;padding:24px!important}
+  .subscription-page .summary-matching-header{display:flex;align-items:center;justify-content:space-between}
+  .subscription-page .summary-matching-heading{display:flex;align-items:center;gap:16px}
+  .subscription-page .summary-matching-icon{width:58px;height:58px;min-width:58px;border-radius:18px;background:#eeeaff;color:#6654d9;display:flex;align-items:center;justify-content:center}
+  .subscription-page .summary-matching-icon svg{width:25px;height:25px}
+  .subscription-page .summary-matching-title{font-size:16px;font-weight:600;letter-spacing:.01em;color:#525b6b}
+  .subscription-page .summary-matching-value-row{display:flex;align-items:center;gap:18px;margin-top:30px}
+  .subscription-page .summary-matching-value-icon{font-size:38px;line-height:1;color:#2563eb;font-weight:400}
+  .subscription-page .summary-matching-value{font-family:var(--sp-font-ui);font-size:36px;line-height:1.15;font-weight:700;letter-spacing:-.035em;color:var(--sp-text);margin:0}
+  .subscription-page .summary-matching-description{font-size:15px;line-height:1.5;color:#626b78;margin-top:12px;max-width:290px}
+  .subscription-page .summary-matching-usage{margin-top:24px}
+  .subscription-page .summary-matching-progress{height:9px!important;background:#f0f1f3!important;border-radius:999px!important}
+  .subscription-page .summary-matching-progress .progress-bar{background:#765fe8!important;border-radius:999px!important}
+  .subscription-page .summary-matching-usage-text{margin-top:10px;color:#687386;font-size:13px}
+  .subscription-page .summary-matching-usage-text #usageText{font-family:var(--sp-font-ui);font-weight:500;color:#687386}
+  .subscription-page .summary-matching-included{display:flex;align-items:center;gap:10px;margin-top:auto;padding-top:22px;color:#16803a;font-size:15px;font-weight:600}
+  .subscription-page .summary-matching-included span{width:20px;height:20px;border:1.5px solid #16a34a;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;font-size:13px}
+  @media(max-width:575.98px){.subscription-page .summary-matching-card .card-body{padding:20px!important}.subscription-page .summary-matching-icon{width:50px;height:50px;min-width:50px}.subscription-page .summary-matching-value{font-size:32px}.subscription-page .summary-matching-title{font-size:14px}}
   /* Current plan summary card — scoped to this card only */
   .subscription-page .summary-plan-card{border-radius:22px!important;min-height:250px}
   .subscription-page .summary-plan-card .card-body{display:flex;flex-direction:column;padding:26px!important}
@@ -79,7 +99,38 @@
     </div>
   </div>
 </div>
-<div class="col-lg-6 mb-4"><div class="card summary-card shadow-sm border-0 rounded-4 h-100"><div class="card-body p-4"><h5 class="eyebrow">Party Matching Usage</h5><h1 id="remainingMatches" class="fw-bold mt-2">-</h1><small class="text-muted">Remaining Matching</small><div class="progress mt-4" style="height:12px;"><div id="usageBar" class="progress-bar bg-success" style="width:0%;"></div></div><div class="mt-3"><small id="usageText">Loading...</small></div></div></div></div></div>
+<div class="col-lg-6 mb-4">
+  <div class="card summary-card summary-matching-card shadow-sm border-0 rounded-4 h-100">
+    <div class="card-body p-4">
+      <div class="summary-matching-header">
+        <div class="summary-matching-heading">
+          <span class="summary-matching-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 7.5h16A1.5 1.5 0 0 1 21.5 9v7a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 16V9A1.5 1.5 0 0 1 4 7.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M7 12h10M7 15h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </span>
+          <span class="summary-matching-title">Party matching</span>
+        </div>
+      </div>
+
+      <div class="summary-matching-value-row">
+        <span class="summary-matching-value-icon" aria-hidden="true">∞</span>
+        <h1 id="remainingMatches" class="summary-matching-value">-</h1>
+      </div>
+      <div id="matchingDescription" class="summary-matching-description">Remaining party matches</div>
+
+      <div id="matchingUsageDetails" class="summary-matching-usage">
+        <div class="progress summary-matching-progress">
+          <div id="usageBar" class="progress-bar" style="width:0%;"></div>
+        </div>
+        <div class="summary-matching-usage-text"><small id="usageText">Loading...</small></div>
+      </div>
+
+      <div id="matchingIncludedNote" class="summary-matching-included" hidden>
+        <span aria-hidden="true">✓</span>
+        Included in Pro
+      </div>
+    </div>
+  </div>
+</div></div>
 
 <div class="row">
 <div class="col-lg-6 mb-4"><div id="basicCard" class="card plan-card shadow border-primary rounded-4 h-100"><div class="card-body p-4 text-center"><div class="plan-icon">🌱</div><h3 class="text-primary plan-name">BASIC</h3><h1 class="plan-price">₹99</h1><p class="plan-period">per month</p><hr><ul class="feature-list"><li><span class="feature-check">✓</span> 30 Party Matching</li><li><span class="feature-check">✓</span> Excel → XML</li><li><span class="feature-check">✓</span> Download unmatched party excel</li><li><span class="feature-check">✓</span> Tally Connector</li></ul><button id="btnBasic" class="btn btn-primary mt-3">🚀 Request Basic</button><div id="basicRequestInfo" class="plan-request-info" aria-live="polite" hidden><span class="plan-request-badge"></span><p class="plan-request-text"></p><small class="plan-request-meta"></small></div></div></div></div>
@@ -159,7 +210,7 @@ function setRequestButtonState(planName,status){
   }
 }
 async function loadUpgradeRequestStatus(){try{const r=await fetch("/admin/api/subscription/request-status");if(!r.ok)return;const data=await r.json();if(!data.exists){setRequestUI("none");return}setRequestUI(data.status,data.plan_name,data.reviewed_at||data.created_at);setRequestButtonState(data.plan_name,data.status)}catch(error){console.error("Unable to load upgrade request status:",error)}}
-async function loadSubscription(){const r=await fetch("/api/subscription/me");if(!r.ok){alert("Unable to load subscription.");return}const data=await r.json(),sub=data.subscription;document.getElementById("planName").innerText=sub.plan_name;document.getElementById("planStatus").innerText=sub.subscription_status;const expiryInfo=formatExpiry(sub.plan_expiry);document.getElementById("planExpiry").innerText=expiryInfo.text;const expiryRelativeEl=document.getElementById("planExpiryRelative");expiryRelativeEl.innerText=expiryInfo.relative;expiryRelativeEl.className="expiry-relative "+expiryInfo.cls;if(sub.match_limit==-1){document.getElementById("remainingMatches").innerText="Unlimited";document.getElementById("usageBar").style.width="100%";document.getElementById("usageText").innerText="Unlimited Matching"}else{document.getElementById("remainingMatches").innerText=data.remaining_matching;let used=sub.match_limit-data.remaining_matching,percent=sub.match_limit>0?(used/sub.match_limit)*100:0;document.getElementById("usageBar").style.width=Math.max(0,Math.min(100,percent))+"%";document.getElementById("usageText").innerText=used+" used of "+sub.match_limit+" matches"}await loadUpgradeRequestStatus()}
+async function loadSubscription(){const r=await fetch("/api/subscription/me");if(!r.ok){alert("Unable to load subscription.");return}const data=await r.json(),sub=data.subscription;document.getElementById("planName").innerText=sub.plan_name;document.getElementById("planStatus").innerText=sub.subscription_status;const expiryInfo=formatExpiry(sub.plan_expiry);document.getElementById("planExpiry").innerText=expiryInfo.text;const expiryRelativeEl=document.getElementById("planExpiryRelative");expiryRelativeEl.innerText=expiryInfo.relative;expiryRelativeEl.className="expiry-relative "+expiryInfo.cls;const matchingDetails=document.getElementById("matchingUsageDetails"),matchingIncluded=document.getElementById("matchingIncludedNote"),matchingDescription=document.getElementById("matchingDescription");if(sub.match_limit==-1){document.getElementById("remainingMatches").innerText="Unlimited";matchingDescription.innerText="No monthly cap on party matches";matchingDetails.hidden=true;matchingIncluded.hidden=false}else{document.getElementById("remainingMatches").innerText=data.remaining_matching;matchingDescription.innerText="Remaining party matches";matchingDetails.hidden=false;matchingIncluded.hidden=true;let used=sub.match_limit-data.remaining_matching,percent=sub.match_limit>0?(used/sub.match_limit)*100:0;document.getElementById("usageBar").style.width=Math.max(0,Math.min(100,percent))+"%";document.getElementById("usageText").innerText=used+" used of "+sub.match_limit+" matches"}await loadUpgradeRequestStatus()}
 // Set your WhatsApp support number here (country code + digits only; e.g. India: 919876543210).
 const SUBSCRIPTION_SUPPORT_WHATSAPP_NUMBER = "9958135904";
 function openSubscriptionSupportWhatsApp(){
