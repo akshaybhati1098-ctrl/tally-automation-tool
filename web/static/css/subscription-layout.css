@@ -192,8 +192,15 @@
   width: auto !important;
 }
 
-/* Header placement for the existing subscription WhatsApp support action. */
-.subscription-page > .page-container > .mb-4:first-child #contactSupportBtn {
+/* Align the existing WhatsApp support action in the subscription heading. */
+.subscription-page .subscription-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.subscription-page .subscription-heading-row #contactSupportBtn {
   flex: 0 0 auto;
   width: auto;
   padding: 10px 18px;
@@ -204,8 +211,8 @@
 }
 
 @media (max-width: 575.98px) {
-  .subscription-page > .page-container > .mb-4:first-child #contactSupportBtn {
-    align-self: flex-start;
-    margin-top: 8px;
+  .subscription-page .subscription-heading-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
