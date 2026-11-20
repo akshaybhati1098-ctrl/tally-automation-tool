@@ -31,14 +31,17 @@
             <h1 id="xmlRowsRemaining" class="summary-xml-value">-</h1>
             <span class="summary-xml-remaining-label">rows left</span>
           </div>
-          <div class="progress summary-xml-progress">
+          <div class="summary-xml-progress-heading">
+            <small>Usage</small>
+            <strong id="xmlUsagePercentText">0%</strong>
+          </div>
+          <div class="progress summary-xml-progress" role="progressbar" aria-label="XML row usage" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
             <div id="xmlUsageBar" class="progress-bar" style="width:0%;"></div>
           </div>
           <div class="summary-xml-counts">
             <small id="xmlUsageText">Loading...</small>
             <small id="xmlUsageTotal">- total</small>
           </div>
-          <div id="xmlUsagePercentText" class="summary-xml-percent">0% of your row limit used</div>
         </div>
       </div>`;
 
@@ -66,7 +69,7 @@
     if (remainingEl) remainingEl.textContent = remaining.toLocaleString("en-IN");
     if (usageTextEl) usageTextEl.textContent = `${used.toLocaleString("en-IN")} used`;
     if (usageTotalEl) usageTotalEl.textContent = `${limit.toLocaleString("en-IN")} total`;
-    if (usagePercentTextEl) usagePercentTextEl.textContent = `${roundedPercent}% of your row limit used`;
+    if (usagePercentTextEl) usagePercentTextEl.textContent = `${roundedPercent}%`;
 
     if (usageBar) {
       usageBar.style.width = `${percent}%`;
