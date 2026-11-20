@@ -216,3 +216,74 @@
     flex-direction: column;
   }
 }
+
+/* Compact upgrade-request status shown inside the matching plan card. */
+.subscription-page .plan-request-info {
+  margin: 12px auto 0;
+  max-width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  border: 1px solid var(--sp-border);
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.subscription-page .plan-request-info[hidden] {
+  display: none !important;
+}
+
+.subscription-page .plan-request-badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: 11px;
+  line-height: 1.3;
+  font-weight: 800;
+}
+
+.subscription-page .plan-request-text {
+  margin: 6px 0 0;
+  color: var(--sp-text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.subscription-page .plan-request-meta {
+  display: block;
+  margin-top: 4px;
+  color: var(--sp-text-muted);
+  font-size: 11px;
+}
+
+.subscription-page .plan-request-info.is-pending {
+  border-color: #f5d28b;
+  background: #fffbeb;
+}
+
+.subscription-page .plan-request-info.is-pending .plan-request-badge {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.subscription-page .plan-request-info.is-approved {
+  border-color: #a7e3c0;
+  background: #f0fdf4;
+}
+
+.subscription-page .plan-request-info.is-approved .plan-request-badge {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.subscription-page .plan-request-info.is-rejected,
+.subscription-page .plan-request-info.is-expired {
+  border-color: #fecaca;
+  background: #fef2f2;
+}
+
+.subscription-page .plan-request-info.is-rejected .plan-request-badge,
+.subscription-page .plan-request-info.is-expired .plan-request-badge {
+  color: #991b1b;
+  background: #fee2e2;
+}
